@@ -14,6 +14,8 @@ Dependencies
 ============
 * hddtemp
 * Python 3.2 or newer
+* lm_sensors
+* Supported monitoring device on your motherboard. See this list: http://www.lm-sensors.org/wiki/Devices
 
 Installation
 ============

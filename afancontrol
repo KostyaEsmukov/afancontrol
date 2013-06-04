@@ -7,7 +7,7 @@
 	Temperature sources might be files, HDDs, our own scripts.
 	See config file for more info.
 	
-	Depends: hddtemp
+	Depends: hddtemp, lm_sensors
 	
 	Copyright 2013 Kostya Esmukov <kostya.shift@gmail.com>
 	

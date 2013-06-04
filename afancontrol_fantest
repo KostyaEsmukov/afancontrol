@@ -4,6 +4,8 @@
 	
 	This program lets you test your PWM fans.
 	Using output data you might build charts and choose proper settings for afancontrol config.
+	
+	Depends: lm_sensors
 
 	Copyright 2013 Kostya Esmukov <kostya.shift@gmail.com>
 	
