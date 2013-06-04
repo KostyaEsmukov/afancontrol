@@ -10,9 +10,10 @@ Temperature sources might be files, HDDs, our own scripts.
 You can create almost any desired configuration for your specific case.
 See config file for more info.
 
-Dependensies
+Dependencies
 ============
 * hddtemp
+* Python 3.2 or newer
 
 Installation
 ============

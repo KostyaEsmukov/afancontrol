@@ -39,7 +39,6 @@ from time import sleep
 from time import time
 import datetime
 
-
 DEFAULT_CONFIG = '/etc/afancontrol/afancontrol.conf'
 DEFAULT_PIDFILE = '/var/run/afancontrol.pid'
 DEFAULT_LOGFILE = None
@@ -128,7 +127,6 @@ class Log:
 		except:
 			return False
 		return True
-		
 		
 class afancontrol_pwmfan:
 	"""
@@ -279,7 +277,6 @@ class afancontrol_temp:
 		if temp < min_t:   ret['speed'] = 0
 		elif temp > max_t: ret['speed'] = 1
 		else:              ret['speed'] = (temp - min_t)/(max_t - min_t)
-		
 		
 		return ret
 	
@@ -456,7 +453,7 @@ class afancontrol_config:
 		Keep in mind that configparser returns dict-like object, but it is not a dict.
 		So we should create new usual dict and copy values from configparser to it
 		"""
-		config = configparser.ConfigParser()
+		config = configparser.ConfigParser(interpolation=None)
 		try:
 			config.read(args.config)
 		except Exception as ex:
@@ -476,7 +473,6 @@ class afancontrol_config:
 
 		for sect in sections:
 			vals = config[sect]
-			
 			try:
 				if sect.lower().strip() == 'daemon':
 					res['daemon'] = self._parseDaemon(vals, args)
@@ -511,7 +507,6 @@ class afancontrol_config:
 			'fans': res['fans'].copy(),
 			'temps': res['temps'].copy(),
 		}
-		
 		
 		for map_name in res['mappings']:
 			for s in ('temp', 'fan'):
@@ -637,19 +632,19 @@ class afancontrol:
 				raise Exception("Temp %s initialization failed:\n%s" % (n, ex))
 	
 	@staticmethod
-	def execCommand(cmd):
+	def execCommand(cmd, stderr=False):
 		"""Static method for all classes to execute commands in system shell"""
-		devnull = open(os.devnull, 'wb')
+		
+		devnull = open(os.devnull, 'wb') if not stderr else subprocess.PIPE
 		i = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=devnull, close_fds=True)
 		r = i.stdout.read().decode('utf-8')
 		i.stdout.close()
 		ec = i.wait()
-		devnull.close()
+		if not stderr: devnull.close()
 		if ec != 0:
-			raise Exception("Got non-zero exitcode (%s) while was trying to execute %s" % (ec, cmd))
+			raise Exception("Got non-zero exitcode (%s) while was trying to execute %s. Output:\n%s" % (ec, cmd, r))
 		return r
 		
-	
 	def process(self):
 		"""Main worker function. Runs in infinite loop"""
 		while True:
@@ -670,7 +665,6 @@ class afancontrol:
 		temps = {}
 		p_temps = {}
 		t_temps = {}
-
 		
 		for (n,i) in self._temps.items():
 			try:
@@ -724,6 +718,13 @@ class afancontrol:
 		
 		self._stopped_fans = {}
 		
+	def _tick_evCmd(self, cmd, name):
+		try:
+			if cmd == None: return
+			r = afancontrol.execCommand(cmd, True)
+			if r: self._l.info("%s returned:\n%s" % (name, r))
+		except Exception as ex:
+			self._l.warning("Unable to execute %s:\n%s" % (name, ex))
 
 	def _tick_ev(self, temps, event_temps, event, global_events):
 		"""
@@ -753,7 +754,7 @@ class afancontrol:
 				except: s = "%s started on temp: id: %s, reason: %s" % (event.upper(), n, reason)
 				self._l.warning(s)
 				
-				### cmd
+				self._tick_evCmd(self._c['temps'][n]['%s_enter_cmd' % event], '%s_enter_cmd for %s' % (event, n))
 				
 			if not global_events['state'] and event_temps:
 				global_events['state'] = True
@@ -768,7 +769,7 @@ class afancontrol:
 				# call report
 				self._report("Entered %s MODE" % event.upper(), "Entered %s MODE. Take a look as soon as possible!!!\nSensors:\n%s" % (event.upper(), '\n'.join(l)))
 				
-				### cmd
+				self._tick_evCmd(self._c['actions']['%s_enter_cmd' % event], '%s_enter_cmd' % event)
 			
 			ret = True
 			
@@ -778,7 +779,7 @@ class afancontrol:
 			info = temps[n]
 			self._l.info("%s ended on temp: id: %s, current_temp: %s, %s_temp: %s" % (event.upper(), n, info['temp'], event, info[event]))
 			
-			### cmd
+			self._tick_evCmd(self._c['temps'][n]['%s_leave_cmd' % event], '%s_leave_cmd for %s' % (event, n))
 		
 		if global_events['state'] and not event_temps:
 			global_events['state'] = False
@@ -792,8 +793,8 @@ class afancontrol:
 					
 			self._report("Leaving %s MODE" % event.upper(), "Leaving %s MODE. Sensors:\n%s" % (event.upper(), '\n'.join(l)))
 			
-			### cmd
-			
+			self._tick_evCmd(self._c['actions']['%s_leave_cmd' % event], '%s_leave_cmd' % event)
+		
 		return ret
 	
 	def _tick_fullFanSpeed(self):
@@ -970,7 +971,6 @@ class afancontrol:
 			
 		self._l.info("Process gracefully stopped")
 		exit(code)
-
 
 def cleanup(signum, stackframe):
 	global afc
