@@ -1114,27 +1114,35 @@ def sighup(signum, stackframe):
     afc.queueHup()
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-t", "--test", help="test config", action="store_true")
-parser.add_argument(
-    "-d", "--daemon", help="execute in daemon mode", action="store_true"
-)
-parser.add_argument(
-    "-v", "--verbose", help="increase output verbosity", action="store_true"
-)
-parser.add_argument(
-    "-c", "--config", help="config path [%s]" % DEFAULT_CONFIG, default=DEFAULT_CONFIG
-)
-parser.add_argument("--pidfile", help="pidfile path [%s]" % DEFAULT_PIDFILE)
-parser.add_argument("--logfile", help="logfile path [%s]" % DEFAULT_LOGFILE)
-args = parser.parse_args()
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--test", help="test config", action="store_true")
+    parser.add_argument(
+        "-d", "--daemon", help="execute in daemon mode", action="store_true"
+    )
+    parser.add_argument(
+        "-v", "--verbose", help="increase output verbosity", action="store_true"
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        help="config path [%s]" % DEFAULT_CONFIG,
+        default=DEFAULT_CONFIG,
+    )
+    parser.add_argument("--pidfile", help="pidfile path [%s]" % DEFAULT_PIDFILE)
+    parser.add_argument("--logfile", help="logfile path [%s]" % DEFAULT_LOGFILE)
+    args = parser.parse_args()
 
-afc = afancontrol(args)
+    afc = afancontrol(args)
 
-signal.signal(signal.SIGTERM, cleanup)
-signal.signal(signal.SIGQUIT, cleanup)
-signal.signal(signal.SIGINT, cleanup)
-signal.signal(signal.SIGHUP, sighup)
+    signal.signal(signal.SIGTERM, cleanup)
+    signal.signal(signal.SIGQUIT, cleanup)
+    signal.signal(signal.SIGINT, cleanup)
+    signal.signal(signal.SIGHUP, sighup)
 
-afc.prepare()
-afc.process()
+    afc.prepare()
+    afc.process()
+
+
+if __name__ == "__main__":
+    main()
