@@ -28,19 +28,18 @@
 
 """
 
-import configparser
 import argparse
+import configparser
+import datetime
 import os
+import signal
+import subprocess
 import sys
 from sys import exit
-import subprocess
-import signal
-from time import sleep
-from time import time
-import datetime
+from time import sleep, time
 
-DEFAULT_CONFIG = '/etc/afancontrol/afancontrol.conf'
-DEFAULT_PIDFILE = '/var/run/afancontrol.pid'
+DEFAULT_CONFIG = "/etc/afancontrol/afancontrol.conf"
+DEFAULT_PIDFILE = "/var/run/afancontrol.pid"
 DEFAULT_LOGFILE = None
 DEFAULT_INTERVAL = 5
 DEFAULT_FANS_SPEED_CHECK_INTERVAL = 3
@@ -63,10 +62,12 @@ DEFAULT_PWM_LINE_END = 240
 
 DEFAULT_NEVER_STOP = True
 
+
 class Log:
     """
     Simple Logger class
     """
+
     def __init__(self):
         self._background = False
         self._verbose = False
@@ -75,7 +76,7 @@ class Log:
     def initError(self, text):
         """Print error and terminate this program with error code 1"""
         not self._background and print(text, file=sys.stderr)
-        #self._log("Init Error", text)
+        # self._log("Init Error", text)
         exit(1)
 
     def error(self, text):
@@ -105,7 +106,8 @@ class Log:
 
     def logfile(self, logfile):
         """Set logfile path"""
-        if self._logfile == logfile: return
+        if self._logfile == logfile:
+            return
 
         if self._logfile:
             self._log("Info", "Logfile closed")
@@ -120,33 +122,39 @@ class Log:
 
         # We are not going to write log very often, so it will be better to open file on each write
         try:
-            h = open(self._logfile, mode='at')
-            contents = "[" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] (%s): %s\n" % (type, text)
+            h = open(self._logfile, mode="at")
+            contents = (
+                "["
+                + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                + "] (%s): %s\n" % (type, text)
+            )
             h.write(contents)
             h.close()
         except:
             return False
         return True
 
+
 class afancontrol_pwmfan:
     """
     PWM fan methods
     """
+
     MAX_PWM = 255
     MIN_PWM = 0
     STOP_PWM = 0
 
     def __init__(self, fan_data):
-        self._pwm = fan_data['pwm']
-        self._fan_input = fan_data['fan_input']
+        self._pwm = fan_data["pwm"]
+        self._fan_input = fan_data["fan_input"]
 
     def _write(self, filepath, contents):
-        h = open(filepath, mode='wt')
+        h = open(filepath, mode="wt")
         h.write(contents)
         h.close()
 
     def _read(self, filepath):
-        h = open(filepath, mode='rt')
+        h = open(filepath, mode="rt")
         t = h.read().strip()
         h.close()
         return t
@@ -165,26 +173,28 @@ class afancontrol_pwmfan:
     def enable(self):
         """Enable PWM control for this fan"""
         # fancontrol way of doing it
-        if os.path.isfile(self._pwm + '_enable'):
-            self._write(self._pwm + '_enable', '1')
+        if os.path.isfile(self._pwm + "_enable"):
+            self._write(self._pwm + "_enable", "1")
         self._write(self._pwm, str(self.MAX_PWM))
 
     def disable(self):
         """Disable PWM control for this fan"""
         # fancontrol way of doing it
-        pwm_enable = self._pwm + '_enable'
+        pwm_enable = self._pwm + "_enable"
         if not os.path.isfile(pwm_enable):
             self._write(self._pwm, str(self.MAX_PWM))
             return
 
-        self._write(pwm_enable, '0')
-        if self._read(pwm_enable) == '0':
+        self._write(pwm_enable, "0")
+        if self._read(pwm_enable) == "0":
             return
 
-        self._write(pwm_enable, '1')
+        self._write(pwm_enable, "1")
         self._write(self._pwm, str(self.MAX_PWM))
 
-        if self._read(pwm_enable) == '1' and int(self._read(self._pwm)) == self.MAX_PWM: # >= 190
+        if (
+            self._read(pwm_enable) == "1" and int(self._read(self._pwm)) == self.MAX_PWM
+        ):  # >= 190
             return
 
         raise Exception("Out of luck disabling PWM on that fan.")
@@ -193,65 +203,78 @@ class afancontrol_pwmfan:
         """Get current RPM for this fan"""
         return int(self._read(self._fan_input))
 
+
 class afancontrol_temp:
     """
     Temperature sensors methods
     """
+
     def __init__(self, temp_data, env):
         self._d = temp_data
         self._env = env
 
-        if self._d['type'] == 'file':
+        if self._d["type"] == "file":
             self._get = self._get_file
-        elif self._d['type'] == 'hdd':
+        elif self._d["type"] == "hdd":
             self._get = self._get_hdd
-        elif self._d['type'] == 'exec':
+        elif self._d["type"] == "exec":
             self._get = self._get_exec
         else:
-            raise Exception("Unknown type %s. Expected: file, hdd, exec." % d['type'])
-
+            raise Exception("Unknown type %s. Expected: file, hdd, exec." % d["type"])
 
     def _read(self, filepath):
-        h = open(filepath, mode='rt')
+        h = open(filepath, mode="rt")
         t = h.read().strip()
         h.close()
         return t
 
     def _get_file(self):
-        temp = float(int(self._read(self._d['path'])) / 1000)
+        temp = float(int(self._read(self._d["path"])) / 1000)
 
         try:
-            min_t = float(self._d['min'])
+            min_t = float(self._d["min"])
             min_t += 0
         except:
-            min_t = float(int(self._read(self._d['min'])) / 1000)
+            min_t = float(int(self._read(self._d["min"])) / 1000)
 
         try:
-            max_t = float(self._d['max'])
+            max_t = float(self._d["max"])
             max_t += 0
         except:
-            max_t = float(int(self._read(self._d['max'])) / 1000)
+            max_t = float(int(self._read(self._d["max"])) / 1000)
 
         return (temp, min_t, max_t)
 
     def _get_hdd(self):
         # Execute hddtemp, explode by newline, get maximum value, strip possible whitespaces, cast to float
-        temp = float(max(afancontrol.execCommand(self._env['hddtemp'] + " -n -u C %s" % self._d['path']).strip().split('\n')).strip())
+        temp = float(
+            max(
+                afancontrol.execCommand(
+                    self._env["hddtemp"] + " -n -u C %s" % self._d["path"]
+                )
+                .strip()
+                .split("\n")
+            ).strip()
+        )
 
-        min_t = float(self._d['min'])
-        max_t = float(self._d['max'])
+        min_t = float(self._d["min"])
+        max_t = float(self._d["max"])
 
         return (temp, min_t, max_t)
 
     def _get_exec(self):
-        t = self._exec(self._d['command']).strip().split('\n')
+        t = self._exec(self._d["command"]).strip().split("\n")
         temp = float(t[0].strip())
 
-        try:    min_t = float(t[1].strip())
-        except: min_t = float(self._d['min'])
+        try:
+            min_t = float(t[1].strip())
+        except:
+            min_t = float(self._d["min"])
 
-        try:    max_t = float(t[2].strip())
-        except: max_t = float(self._d['max'])
+        try:
+            max_t = float(t[2].strip())
+        except:
+            max_t = float(self._d["max"])
 
         return (temp, min_t, max_t)
 
@@ -261,31 +284,41 @@ class afancontrol_temp:
 
         temp, min_t, max_t = self._get()
 
-        ret['temp'] = temp
-        ret['min'] = min_t
-        ret['max'] = max_t
+        ret["temp"] = temp
+        ret["min"] = min_t
+        ret["max"] = max_t
 
         if not (min_t < max_t):
-            raise Exception("Min temperature must be less than max. %s < %s" % (min_t, max_t))
+            raise Exception(
+                "Min temperature must be less than max. %s < %s" % (min_t, max_t)
+            )
 
-        ret['panic'] = self._d['panic']
-        ret['threshold'] = self._d['threshold']
+        ret["panic"] = self._d["panic"]
+        ret["threshold"] = self._d["threshold"]
 
-        ret['is_panic'] = (self._d['panic'] != None and temp >= self._d['panic'])
-        ret['is_threshold'] = (self._d['threshold'] != None and temp >= self._d['threshold'])
+        ret["is_panic"] = self._d["panic"] != None and temp >= self._d["panic"]
+        ret["is_threshold"] = (
+            self._d["threshold"] != None and temp >= self._d["threshold"]
+        )
 
-        if temp < min_t:   ret['speed'] = 0
-        elif temp > max_t: ret['speed'] = 1
-        else:              ret['speed'] = (temp - min_t)/(max_t - min_t)
+        if temp < min_t:
+            ret["speed"] = 0
+        elif temp > max_t:
+            ret["speed"] = 1
+        else:
+            ret["speed"] = (temp - min_t) / (max_t - min_t)
 
         return ret
+
 
 class afancontrol_config:
     """
     Parse config file
     """
+
     def _getStr(self, s, d, key, default, mandatory=False):
-        try:    d[key] = s[key]
+        try:
+            d[key] = s[key]
         except:
             if mandatory:
                 raise Exception("%s is not set" % key)
@@ -294,7 +327,8 @@ class afancontrol_config:
         s.pop(key, None)
 
     def _getFloat(self, s, d, key, default, mandatory=False):
-        try:    d[key] = float(s[key])
+        try:
+            d[key] = float(s[key])
         except:
             if mandatory:
                 raise Exception("%s is not set" % key)
@@ -303,7 +337,8 @@ class afancontrol_config:
         s.pop(key, None)
 
     def _getBool(self, s, d, key, default, mandatory=False):
-        try:    d[key] = s.getboolean(key)
+        try:
+            d[key] = s.getboolean(key)
         except:
             if mandatory:
                 raise Exception("%s is not set" % key)
@@ -312,7 +347,8 @@ class afancontrol_config:
         s.pop(key, None)
 
     def _getInt(self, s, d, key, default, mandatory=False):
-        try:    d[key] = int(s[key])
+        try:
+            d[key] = int(s[key])
         except:
             if mandatory:
                 raise Exception("%s is not set" % key)
@@ -323,126 +359,145 @@ class afancontrol_config:
     def _parseTemp(self, d):
         info = {}
 
-        self._getFloat(d, info, 'panic', None)
-        self._getFloat(d, info, 'threshold', None)
-        self._getStr(d, info, 'panic_enter_cmd', DEFAULT_TEMP_PANIC_ENTER_CMD)
-        self._getStr(d, info, 'panic_leave_cmd', DEFAULT_TEMP_PANIC_LEAVE_CMD)
-        self._getStr(d, info, 'threshold_enter_cmd', DEFAULT_TEMP_THRESHOLD_ENTER_CMD)
-        self._getStr(d, info, 'threshold_leave_cmd', DEFAULT_TEMP_THRESHOLD_LEAVE_CMD)
+        self._getFloat(d, info, "panic", None)
+        self._getFloat(d, info, "threshold", None)
+        self._getStr(d, info, "panic_enter_cmd", DEFAULT_TEMP_PANIC_ENTER_CMD)
+        self._getStr(d, info, "panic_leave_cmd", DEFAULT_TEMP_PANIC_LEAVE_CMD)
+        self._getStr(d, info, "threshold_enter_cmd", DEFAULT_TEMP_THRESHOLD_ENTER_CMD)
+        self._getStr(d, info, "threshold_leave_cmd", DEFAULT_TEMP_THRESHOLD_LEAVE_CMD)
 
         # min and max are not necessary
-        self._getStr(d, info, 'min', '', True)
-        self._getStr(d, info, 'max', '', True)
+        self._getStr(d, info, "min", "", True)
+        self._getStr(d, info, "max", "", True)
 
-        self._getStr(d, info, 'type', '', True)
+        self._getStr(d, info, "type", "", True)
 
-        if info['type'] == 'exec':
-            self._getStr(d, info, 'command', '', True)
+        if info["type"] == "exec":
+            self._getStr(d, info, "command", "", True)
         else:
-            self._getStr(d, info, 'path', '', True)
+            self._getStr(d, info, "path", "", True)
 
         if d:
-            raise Exception("Unknown options: %s" % ', '.join(d.keys()))
+            raise Exception("Unknown options: %s" % ", ".join(d.keys()))
 
         return info
 
     def _parseFan(self, d):
         info = {}
 
-        self._getInt(d, info, 'pwm_line_start', DEFAULT_PWM_LINE_START)
-        self._getInt(d, info, 'pwm_line_end', DEFAULT_PWM_LINE_END)
-        self._getBool(d, info, 'never_stop', DEFAULT_NEVER_STOP)
+        self._getInt(d, info, "pwm_line_start", DEFAULT_PWM_LINE_START)
+        self._getInt(d, info, "pwm_line_end", DEFAULT_PWM_LINE_END)
+        self._getBool(d, info, "never_stop", DEFAULT_NEVER_STOP)
 
-        for k in ['pwm_line_start', 'pwm_line_end']:
-            if info[k] == None: continue
-            if (info[k] < afancontrol_pwmfan.MIN_PWM) or (info[k] > afancontrol_pwmfan.MAX_PWM):
-                raise Exception("%s must be in range [%s;%s]. Got %s" % (k, afancontrol_pwmfan.MIN_PWM, afancontrol_pwmfan.MAX_PWM, info[k]))
+        for k in ["pwm_line_start", "pwm_line_end"]:
+            if info[k] == None:
+                continue
+            if (info[k] < afancontrol_pwmfan.MIN_PWM) or (
+                info[k] > afancontrol_pwmfan.MAX_PWM
+            ):
+                raise Exception(
+                    "%s must be in range [%s;%s]. Got %s"
+                    % (
+                        k,
+                        afancontrol_pwmfan.MIN_PWM,
+                        afancontrol_pwmfan.MAX_PWM,
+                        info[k],
+                    )
+                )
 
-        for i in (('pwm_line_start', 'pwm_line_end'),):
+        for i in (("pwm_line_start", "pwm_line_end"),):
             if not (info[i[0]] < info[i[1]]):
-                raise Exception("%s must be less than %s. Got %s < %s" % (i[0], i[1], info[i[0]], info[i[1]]))
+                raise Exception(
+                    "%s must be less than %s. Got %s < %s"
+                    % (i[0], i[1], info[i[0]], info[i[1]])
+                )
 
-        self._getStr(d, info, 'pwm', '', True)
-        self._getStr(d, info, 'fan_input', '', True)
+        self._getStr(d, info, "pwm", "", True)
+        self._getStr(d, info, "fan_input", "", True)
 
         if d:
-            raise Exception("Unknown options: %s" % ', '.join(d.keys()))
+            raise Exception("Unknown options: %s" % ", ".join(d.keys()))
 
         return info
 
     def _parseMapping(self, d):
         s = {}
-        info = {
-            'fans': {},
-            'temps': {},
-        }
-        self._getStr(d, s, 'fans', '', True)
-        self._getStr(d, s, 'temps', '', True)
+        info = {"fans": {}, "temps": {}}
+        self._getStr(d, s, "fans", "", True)
+        self._getStr(d, s, "temps", "", True)
 
-        for n in s['temps'].split(','):
+        for n in s["temps"].split(","):
             n = n.strip()
-            if n == '': continue
-            if n in info['temps']:
+            if n == "":
+                continue
+            if n in info["temps"]:
                 raise Exception("Duplicate temp %s" % n)
-            info['temps'][n] = True
+            info["temps"][n] = True
 
-        for nm in s['fans'].split(','):
-            nm = nm.split('*')
+        for nm in s["fans"].split(","):
+            nm = nm.split("*")
 
             n = nm[0].strip()
-            if n == '': continue
+            if n == "":
+                continue
 
-            try:    m = nm[1]
-            except: m = 1
+            try:
+                m = nm[1]
+            except:
+                m = 1
 
             try:
                 m = float(m)
             except Exception as ex:
                 raise Exception("bad multiplier for fan %s:\n%s" % (n, ex))
 
-            if n in info['fans']:
+            if n in info["fans"]:
                 raise Exception("Duplicate fan %s" % n)
-            info['fans'][n] = m
+            info["fans"][n] = m
         return info
 
     def _parseDaemon(self, d, args):
         info = {}
-        info['pidfile'] = args.pidfile
-        if not info['pidfile']:
-            self._getStr(d, info, 'pidfile', DEFAULT_PIDFILE)
-        d.pop('pidfile', None)
+        info["pidfile"] = args.pidfile
+        if not info["pidfile"]:
+            self._getStr(d, info, "pidfile", DEFAULT_PIDFILE)
+        d.pop("pidfile", None)
 
-        info['logfile'] = args.logfile
-        if not info['logfile']:
-            self._getStr(d, info, 'logfile', DEFAULT_LOGFILE)
-        d.pop('logfile', None)
+        info["logfile"] = args.logfile
+        if not info["logfile"]:
+            self._getStr(d, info, "logfile", DEFAULT_LOGFILE)
+        d.pop("logfile", None)
 
-        self._getInt(d, info, 'interval', DEFAULT_INTERVAL)
-        self._getInt(d, info, 'fans_speed_check_interval', DEFAULT_FANS_SPEED_CHECK_INTERVAL)
+        self._getInt(d, info, "interval", DEFAULT_INTERVAL)
+        self._getInt(
+            d, info, "fans_speed_check_interval", DEFAULT_FANS_SPEED_CHECK_INTERVAL
+        )
 
-        try:    info['hddtemp'] = d['hddtemp']
-        except: info['hddtemp'] = afancontrol.execCommand("which hddtemp").strip()
-        d.pop('hddtemp', None)
+        try:
+            info["hddtemp"] = d["hddtemp"]
+        except:
+            info["hddtemp"] = afancontrol.execCommand("which hddtemp").strip()
+        d.pop("hddtemp", None)
 
-        if not info['hddtemp']:
+        if not info["hddtemp"]:
             raise Exception("Unable to find hddtemp")
 
         if d:
-            raise Exception("Unknown options: %s" % ', '.join(d.keys()))
+            raise Exception("Unknown options: %s" % ", ".join(d.keys()))
 
         return info
 
     def _parseActions(self, d):
         info = {}
 
-        self._getStr(d, info, 'report_cmd', DEFAULT_REPORT_CMD)
-        self._getStr(d, info, 'panic_enter_cmd', DEFAULT_PANIC_ENTER_CMD)
-        self._getStr(d, info, 'panic_leave_cmd', DEFAULT_PANIC_LEAVE_CMD)
-        self._getStr(d, info, 'threshold_enter_cmd', DEFAULT_THRESHOLD_ENTER_CMD)
-        self._getStr(d, info, 'threshold_leave_cmd', DEFAULT_THRESHOLD_LEAVE_CMD)
+        self._getStr(d, info, "report_cmd", DEFAULT_REPORT_CMD)
+        self._getStr(d, info, "panic_enter_cmd", DEFAULT_PANIC_ENTER_CMD)
+        self._getStr(d, info, "panic_leave_cmd", DEFAULT_PANIC_LEAVE_CMD)
+        self._getStr(d, info, "threshold_enter_cmd", DEFAULT_THRESHOLD_ENTER_CMD)
+        self._getStr(d, info, "threshold_leave_cmd", DEFAULT_THRESHOLD_LEAVE_CMD)
 
         if d:
-            raise Exception("Unknown options: %s" % ', '.join(d.keys()))
+            raise Exception("Unknown options: %s" % ", ".join(d.keys()))
 
         return info
 
@@ -460,33 +515,29 @@ class afancontrol_config:
             raise Exception("Unable to parse %s:\n%s" % (args.config, ex))
 
         if not config.sections():
-            raise Exception("File is empty, not readable or doesn't exists: %s" % args.config)
+            raise Exception(
+                "File is empty, not readable or doesn't exists: %s" % args.config
+            )
 
         sections = config.sections()
-        res = {
-            'daemon': {},
-            'actions': {},
-            'temps': {},
-            'fans': {},
-            'mappings': {},
-        }
+        res = {"daemon": {}, "actions": {}, "temps": {}, "fans": {}, "mappings": {}}
 
         for sect in sections:
             vals = config[sect]
             try:
-                if sect.lower().strip() == 'daemon':
-                    res['daemon'] = self._parseDaemon(vals, args)
-                elif sect.lower().strip() == 'actions':
-                    res['actions'] = self._parseActions(vals)
+                if sect.lower().strip() == "daemon":
+                    res["daemon"] = self._parseDaemon(vals, args)
+                elif sect.lower().strip() == "actions":
+                    res["actions"] = self._parseActions(vals)
                 else:
-                    m = sect.split(':', 1)
+                    m = sect.split(":", 1)
                     ms_sect = m[0].strip().lower()
 
-                    if ms_sect == 'temp':
+                    if ms_sect == "temp":
                         ms_f = self._parseTemp
-                    elif ms_sect == 'fan':
+                    elif ms_sect == "fan":
                         ms_f = self._parseFan
-                    elif ms_sect == 'mapping':
+                    elif ms_sect == "mapping":
                         ms_f = self._parseMapping
                     else:
                         raise Exception("Unknown section %s" % sect)
@@ -494,30 +545,36 @@ class afancontrol_config:
                     try:
                         ms_name = m[1].strip()
                     except:
-                        raise Exception("Section %s must have colon folowed by name" % ms_sect)
+                        raise Exception(
+                            "Section %s must have colon folowed by name" % ms_sect
+                        )
 
                     if ms_name in res["%ss" % ms_sect]:
-                        raise Exception("Duplicate name %s for section %s" % (ms_name, ms_sect))
+                        raise Exception(
+                            "Duplicate name %s for section %s" % (ms_name, ms_sect)
+                        )
 
                     res["%ss" % ms_sect][ms_name] = ms_f(vals)
             except Exception as ex:
                 raise Exception("Failed to process %s section:\n%s" % (sect, ex))
 
-        unused = {
-            'fans': res['fans'].copy(),
-            'temps': res['temps'].copy(),
-        }
+        unused = {"fans": res["fans"].copy(), "temps": res["temps"].copy()}
 
-        for map_name in res['mappings']:
-            for s in ('temp', 'fan'):
-                for s_name in res['mappings'][map_name]["%ss" % s]:
+        for map_name in res["mappings"]:
+            for s in ("temp", "fan"):
+                for s_name in res["mappings"][map_name]["%ss" % s]:
                     unused["%ss" % s].pop(s_name, None)
                     if not (s_name in res["%ss" % s]):
-                        raise Exception("Unknown %s %s in mapping %s" % (s, s_name, map_name))
+                        raise Exception(
+                            "Unknown %s %s in mapping %s" % (s, s_name, map_name)
+                        )
 
-        for s in ('temps', 'fans'):
+        for s in ("temps", "fans"):
             if unused[s]:
-                raise Exception("Some %s are set but not used in mappings:\n%s" % (s, ', '.join(unused[s].keys())))
+                raise Exception(
+                    "Some %s are set but not used in mappings:\n%s"
+                    % (s, ", ".join(unused[s].keys()))
+                )
 
         return res
 
@@ -526,27 +583,28 @@ class afancontrol:
     """
     Main worker class
     """
+
     def __init__(self, args):
         """Init instance"""
-        self._fans_pwmed = False # are fans prepared or not
-        self._background = False # are we running background
-        self._hup_queued = False # is hup queued
+        self._fans_pwmed = False  # are fans prepared or not
+        self._background = False  # are we running background
+        self._hup_queued = False  # is hup queued
 
         # Tick vars:
         self._events = {
-            'panic': {
-                'state': False, # are we working in panic mode
-                'temps': {} # Dict of sensors that reached panic temp
+            "panic": {
+                "state": False,  # are we working in panic mode
+                "temps": {},  # Dict of sensors that reached panic temp
             },
-            'threshold': {
-                'state': False, # are we working in threshold mode
-                'temps': {} # Dict of sensors that reached threshold temp
+            "threshold": {
+                "state": False,  # are we working in threshold mode
+                "temps": {},  # Dict of sensors that reached threshold temp
             },
         }
 
-        self._failed_fans = {} # Dict of fans marked as failing (which speed is 0)
-        self._stopped_fans = {} # Dict of fans that will be skipped on speed check
-        self._fans_check_ts = 0 # Timestamp of last fans check
+        self._failed_fans = {}  # Dict of fans marked as failing (which speed is 0)
+        self._stopped_fans = {}  # Dict of fans that will be skipped on speed check
+        self._fans_check_ts = 0  # Timestamp of last fans check
 
         self._args = args
 
@@ -569,7 +627,7 @@ class afancontrol:
             self._l.initError(ex)
 
         if args.test:
-            print('Config file is good')
+            print("Config file is good")
             exit(0)
 
         try:
@@ -580,8 +638,8 @@ class afancontrol:
         except Exception as ex:
             self._l.initError(ex)
 
-        if self._c['daemon']['logfile']:
-            self._l.logfile(self._c['daemon']['logfile'])
+        if self._c["daemon"]["logfile"]:
+            self._l.logfile(self._c["daemon"]["logfile"])
 
     def prepare(self):
         """Prepare program to run"""
@@ -603,7 +661,7 @@ class afancontrol:
         # Fork
         if self._args.daemon:
             child_pid = os.fork()
-            if (child_pid != 0):
+            if child_pid != 0:
                 try:
                     self._savePid(child_pid)
                 except Exception as ex:
@@ -615,17 +673,15 @@ class afancontrol:
     def _init_fanstemps(self):
         """Create instances of afancontrol_pwmfan and afancontrol_temp classes"""
 
-        for (n,d) in self._c['fans'].items():
+        for (n, d) in self._c["fans"].items():
             try:
                 self._fans[n] = afancontrol_pwmfan(d)
             except Exception as ex:
                 raise Exception("Fan %s initialization failed:\n%s" % (n, ex))
 
-        temp_env = {
-            'hddtemp': self._c['daemon']['hddtemp']
-        }
+        temp_env = {"hddtemp": self._c["daemon"]["hddtemp"]}
 
-        for (n,d) in self._c['temps'].items():
+        for (n, d) in self._c["temps"].items():
             try:
                 self._temps[n] = afancontrol_temp(d, temp_env)
             except Exception as ex:
@@ -635,14 +691,20 @@ class afancontrol:
     def execCommand(cmd, stderr=False):
         """Static method for all classes to execute commands in system shell"""
 
-        devnull = open(os.devnull, 'wb') if not stderr else subprocess.PIPE
-        i = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=devnull, close_fds=True)
-        r = i.stdout.read().decode('utf-8')
+        devnull = open(os.devnull, "wb") if not stderr else subprocess.PIPE
+        i = subprocess.Popen(
+            cmd, shell=True, stdout=subprocess.PIPE, stderr=devnull, close_fds=True
+        )
+        r = i.stdout.read().decode("utf-8")
         i.stdout.close()
         ec = i.wait()
-        if not stderr: devnull.close()
+        if not stderr:
+            devnull.close()
         if ec != 0:
-            raise Exception("Got non-zero exitcode (%s) while was trying to execute %s. Output:\n%s" % (ec, cmd, r))
+            raise Exception(
+                "Got non-zero exitcode (%s) while was trying to execute %s. Output:\n%s"
+                % (ec, cmd, r)
+            )
         return r
 
     def process(self):
@@ -650,7 +712,7 @@ class afancontrol:
         while True:
             # Docs: any caught signal will terminate the sleep()
             if not self._hup_queued:
-                sleep(self._c['daemon']['interval'])
+                sleep(self._c["daemon"]["interval"])
 
             if self._hup_queued:
                 self._hup_queued = False
@@ -666,11 +728,14 @@ class afancontrol:
         p_temps = {}
         t_temps = {}
 
-        for (n,i) in self._temps.items():
+        for (n, i) in self._temps.items():
             try:
                 info = i.get()
                 temps[n] = info
-                self._l.debug("id: %s, temp: %s, speed: %s, panic: %s, threshold: %s" % (n, info['temp'], info['speed'], info['panic'], info['threshold']))
+                self._l.debug(
+                    "id: %s, temp: %s, speed: %s, panic: %s, threshold: %s"
+                    % (n, info["temp"], info["speed"], info["panic"], info["threshold"])
+                )
             except Exception as ex:
                 # For failed sensors we assume info equal to False and set sensor as panic
                 temps[n] = False
@@ -678,8 +743,10 @@ class afancontrol:
                 self._l.warning("Temp sensor failed: %s" % ex)
                 continue
 
-            if info['is_panic']: p_temps[n] = "Panic temp reached"
-            if info['is_threshold']: t_temps[n] = "Threshold temp reached"
+            if info["is_panic"]:
+                p_temps[n] = "Panic temp reached"
+            if info["is_threshold"]:
+                t_temps[n] = "Threshold temp reached"
 
         return (temps, p_temps, t_temps)
 
@@ -690,19 +757,25 @@ class afancontrol:
         # Fans need some time (~2 seconds) to stop or start.
 
         cts = time()
-        if cts > self._fans_check_ts + self._c['daemon']['fans_speed_check_interval']:
-            for (n,i) in self._fans.items():
-                if n in self._stopped_fans: continue
+        if cts > self._fans_check_ts + self._c["daemon"]["fans_speed_check_interval"]:
+            for (n, i) in self._fans.items():
+                if n in self._stopped_fans:
+                    continue
                 try:
                     if i.getSpeed() == 0:
                         raise Exception("Fan speed is 0")
 
                     if n in self._failed_fans:
-                        self._report("fan started: %s" % n, "Fan %s which had been reported as failing have just started." % n)
+                        self._report(
+                            "fan started: %s" % n,
+                            "Fan %s which had been reported as failing have just started."
+                            % n,
+                        )
                         del self._failed_fans[n]
 
                 except Exception as ex:
-                    if n in self._failed_fans: continue
+                    if n in self._failed_fans:
+                        continue
                     self._failed_fans[n] = True
 
                     try:
@@ -711,8 +784,10 @@ class afancontrol:
                     except Exception as ex:
                         s = "Setting fan to full speed failed:\n%s" % ex
 
-                    self._report("fan stopped: %s" % n, "Seems to me that fan %s is failing:\n%s\n\n%s" % (n, ex, s))
-
+                    self._report(
+                        "fan stopped: %s" % n,
+                        "Seems to me that fan %s is failing:\n%s\n\n%s" % (n, ex, s),
+                    )
 
             self._fans_check_ts = cts
 
@@ -720,9 +795,11 @@ class afancontrol:
 
     def _tick_evCmd(self, cmd, name):
         try:
-            if cmd == None: return
+            if cmd == None:
+                return
             r = afancontrol.execCommand(cmd, True)
-            if r: self._l.info("%s returned:\n%s" % (name, r))
+            if r:
+                self._l.info("%s returned:\n%s" % (name, r))
         except Exception as ex:
             self._l.warning("Unable to execute %s:\n%s" % (name, ex))
 
@@ -735,72 +812,114 @@ class afancontrol:
         self._tick_ev(temps, p_temps, 'panic', self._events['panic'])
         self._tick_ev(temps, t_temps, 'threshold', self._events['threshold'])
         """
-        out_of = global_events['temps'].copy()
+        out_of = global_events["temps"].copy()
 
-        ret = False # should fans be set to full speed
+        ret = False  # should fans be set to full speed
 
         if event_temps:
-            for (n,reason) in event_temps.items():
+            for (n, reason) in event_temps.items():
                 # Unset temps that are still present
-                if n in global_events['temps']:
+                if n in global_events["temps"]:
                     out_of.pop(n, None)
                     continue
 
-                global_events['temps'][n] = True
+                global_events["temps"][n] = True
 
                 # log
                 info = temps[n]
-                try:    s = "%s started on temp: id: %s, current_temp: %s, %s_temp: %s, reason: %s" % (event.upper(), n, info['temp'], event, info[event], reason)
-                except: s = "%s started on temp: id: %s, reason: %s" % (event.upper(), n, reason)
+                try:
+                    s = (
+                        "%s started on temp: id: %s, current_temp: %s, %s_temp: %s, reason: %s"
+                        % (event.upper(), n, info["temp"], event, info[event], reason)
+                    )
+                except:
+                    s = "%s started on temp: id: %s, reason: %s" % (
+                        event.upper(),
+                        n,
+                        reason,
+                    )
                 self._l.warning(s)
 
-                self._tick_evCmd(self._c['temps'][n]['%s_enter_cmd' % event], '%s_enter_cmd for %s' % (event, n))
+                self._tick_evCmd(
+                    self._c["temps"][n]["%s_enter_cmd" % event],
+                    "%s_enter_cmd for %s" % (event, n),
+                )
 
-            if not global_events['state'] and event_temps:
-                global_events['state'] = True
+            if not global_events["state"] and event_temps:
+                global_events["state"] = True
 
                 # make list of sensors
                 l = []
-                for (n,info) in temps.items():
-                    try:    s = "[%s] current_temp: %s, panic_temp: %s, threshold_temp: %s" % (n, info['temp'], info['panic'], info['threshold'])
-                    except: s = "[%s] n/a" % (n)
+                for (n, info) in temps.items():
+                    try:
+                        s = (
+                            "[%s] current_temp: %s, panic_temp: %s, threshold_temp: %s"
+                            % (n, info["temp"], info["panic"], info["threshold"])
+                        )
+                    except:
+                        s = "[%s] n/a" % (n)
                     l.append(s)
 
                 # call report
-                self._report("Entered %s MODE" % event.upper(), "Entered %s MODE. Take a look as soon as possible!!!\nSensors:\n%s" % (event.upper(), '\n'.join(l)))
+                self._report(
+                    "Entered %s MODE" % event.upper(),
+                    "Entered %s MODE. Take a look as soon as possible!!!\nSensors:\n%s"
+                    % (event.upper(), "\n".join(l)),
+                )
 
-                self._tick_evCmd(self._c['actions']['%s_enter_cmd' % event], '%s_enter_cmd' % event)
+                self._tick_evCmd(
+                    self._c["actions"]["%s_enter_cmd" % event], "%s_enter_cmd" % event
+                )
 
             ret = True
 
         for n in out_of:
-            global_events['temps'].pop(n, None)
+            global_events["temps"].pop(n, None)
 
             info = temps[n]
-            self._l.info("%s ended on temp: id: %s, current_temp: %s, %s_temp: %s" % (event.upper(), n, info['temp'], event, info[event]))
+            self._l.info(
+                "%s ended on temp: id: %s, current_temp: %s, %s_temp: %s"
+                % (event.upper(), n, info["temp"], event, info[event])
+            )
 
-            self._tick_evCmd(self._c['temps'][n]['%s_leave_cmd' % event], '%s_leave_cmd for %s' % (event, n))
+            self._tick_evCmd(
+                self._c["temps"][n]["%s_leave_cmd" % event],
+                "%s_leave_cmd for %s" % (event, n),
+            )
 
-        if global_events['state'] and not event_temps:
-            global_events['state'] = False
+        if global_events["state"] and not event_temps:
+            global_events["state"] = False
 
             # make list of sensors
             l = []
-            for (n,info) in temps.items():
-                try:    s = "[%s] current_temp: %s, panic_temp: %s, threshold_temp: %s" % (n, info['temp'], info['panic'], info['threshold'])
-                except: s = "[%s] n/a" % (n)
+            for (n, info) in temps.items():
+                try:
+                    s = "[%s] current_temp: %s, panic_temp: %s, threshold_temp: %s" % (
+                        n,
+                        info["temp"],
+                        info["panic"],
+                        info["threshold"],
+                    )
+                except:
+                    s = "[%s] n/a" % (n)
                 l.append(s)
 
-            self._report("Leaving %s MODE" % event.upper(), "Leaving %s MODE. Sensors:\n%s" % (event.upper(), '\n'.join(l)))
+            self._report(
+                "Leaving %s MODE" % event.upper(),
+                "Leaving %s MODE. Sensors:\n%s" % (event.upper(), "\n".join(l)),
+            )
 
-            self._tick_evCmd(self._c['actions']['%s_leave_cmd' % event], '%s_leave_cmd' % event)
+            self._tick_evCmd(
+                self._c["actions"]["%s_leave_cmd" % event], "%s_leave_cmd" % event
+            )
 
         return ret
 
     def _tick_fullFanSpeed(self):
         """Tick helper. Set all fans to full speed"""
-        for (n,i) in self._fans.items():
-            if n in self._failed_fans: continue
+        for (n, i) in self._fans.items():
+            if n in self._failed_fans:
+                continue
             try:
                 i.setFullSpeed()
             except Exception as ex:
@@ -810,21 +929,21 @@ class afancontrol:
         """Tick helper. Count fan speeds using temps and mappings and set them"""
         fans = {}
 
-        for (n,mapping) in self._c['mappings'].items():
+        for (n, mapping) in self._c["mappings"].items():
             # Find highest speed from all temps of current mapping
             mapspeed = None
-            for tn in mapping['temps']:
-                s = temps[tn]['speed']
+            for tn in mapping["temps"]:
+                s = temps[tn]["speed"]
                 if (mapspeed == None) or (mapspeed < s):
                     mapspeed = s
 
-            for (fn,m) in mapping['fans'].items():
+            for (fn, m) in mapping["fans"].items():
                 if fn in fans:
-                    fans[fn] += mapspeed*m
+                    fans[fn] += mapspeed * m
                 else:
-                    fans[fn] = mapspeed*m
+                    fans[fn] = mapspeed * m
 
-        for (n,i) in self._fans.items():
+        for (n, i) in self._fans.items():
             if n in self._failed_fans:
                 continue
 
@@ -834,14 +953,17 @@ class afancontrol:
                 m = 0
 
             if m > 1:
-                self._l.debug("Speed for fan %s is too high. %s truncated to 1." % (n,m))
+                self._l.debug(
+                    "Speed for fan %s is too high. %s truncated to 1." % (n, m)
+                )
                 m = 1
 
-            pwm = m * self._c['fans'][n]['pwm_line_end']
+            pwm = m * self._c["fans"][n]["pwm_line_end"]
 
-            if ((pwm != 0) and (pwm < self._c['fans'][n]['pwm_line_start'])) or \
-                (self._c['fans'][n]['never_stop'] and (pwm == 0)):
-                pwm = self._c['fans'][n]['pwm_line_start']
+            if ((pwm != 0) and (pwm < self._c["fans"][n]["pwm_line_start"])) or (
+                self._c["fans"][n]["never_stop"] and (pwm == 0)
+            ):
+                pwm = self._c["fans"][n]["pwm_line_start"]
 
             if pwm == 0:
                 self._stopped_fans[n] = True
@@ -862,13 +984,13 @@ class afancontrol:
         self._tick_checkSpeeds()
 
         # Process panic and threshold events
-        if self._tick_ev(temps, p_temps, 'panic', self._events['panic']) or \
-           self._tick_ev(temps, t_temps, 'threshold', self._events['threshold']):
+        if self._tick_ev(
+            temps, p_temps, "panic", self._events["panic"]
+        ) or self._tick_ev(temps, t_temps, "threshold", self._events["threshold"]):
             # If we got one - set fans to full speed
             self._tick_fullFanSpeed()
         else:
             self._tick_setFanSpeeds(temps)
-
 
     def _prepareFans(self):
         """Prepare fans to work with PWM"""
@@ -878,11 +1000,13 @@ class afancontrol:
         self._fans_pwmed = True
 
         self._l.info("Enabling PWM on fans...")
-        for (n,i) in self._fans.items():
+        for (n, i) in self._fans.items():
             try:
                 i.enable()
             except Exception as ex:
-                self._l.error("Exception occured while was trying to enable %s:\n%s" % (n, ex))
+                self._l.error(
+                    "Exception occured while was trying to enable %s:\n%s" % (n, ex)
+                )
                 self.exit(1)
         return True
 
@@ -894,11 +1018,14 @@ class afancontrol:
         self._fans_pwmed = False
 
         self._l.info("Disabling PWM on fans...")
-        for (n,i) in self._fans.items():
+        for (n, i) in self._fans.items():
             try:
                 i.disable()
             except Exception as ex:
-                self._l.warning("Exception occured while was trying to disable %s. Please make sure that this fan is running full speed. Exception:\n%s" % (pwm, ex))
+                self._l.warning(
+                    "Exception occured while was trying to disable %s. Please make sure that this fan is running full speed. Exception:\n%s"
+                    % (pwm, ex)
+                )
         self._l.info("Done. Verify fans have returned to full speed")
 
         return True
@@ -907,7 +1034,7 @@ class afancontrol:
         """Execute report command"""
         self._l.info("[REPORT] Reason: %s. Message: %s" % (reason, message))
         try:
-            rc = self._c['actions']['report_cmd']
+            rc = self._c["actions"]["report_cmd"]
             rc = rc.replace("%REASON%", reason)
             rc = rc.replace("%MESSAGE%", message)
             self.execCommand(rc).strip()
@@ -916,22 +1043,27 @@ class afancontrol:
 
     def _checkPid(self):
         """Check whenever pidfile is present"""
-        if os.path.isfile(self._c['daemon']['pidfile']):
-            raise Exception("Pidfile [%s] already exists. Is daemon running? Remove this file overwise." % self._c['daemon']['pidfile'])
+        if os.path.isfile(self._c["daemon"]["pidfile"]):
+            raise Exception(
+                "Pidfile [%s] already exists. Is daemon running? Remove this file overwise."
+                % self._c["daemon"]["pidfile"]
+            )
 
     def _savePid(self, pid):
         """Save pid to pidfile"""
         try:
-            h = open(self._c['daemon']['pidfile'], mode='wt')
+            h = open(self._c["daemon"]["pidfile"], mode="wt")
             h.write(str(pid))
             h.close()
         except Exception as ex:
-            raise Exception("Unable to create pid file %s:\n%s" % (self._c['daemon']['pidfile'], ex))
+            raise Exception(
+                "Unable to create pid file %s:\n%s" % (self._c["daemon"]["pidfile"], ex)
+            )
 
-    def _deletePid(self, pidfile = None):
+    def _deletePid(self, pidfile=None):
         """Deletes pidfile"""
         if pidfile == None:
-            pidfile = self._c['daemon']['pidfile']
+            pidfile = self._c["daemon"]["pidfile"]
         try:
             os.remove(pidfile)
         except:
@@ -955,7 +1087,6 @@ class afancontrol:
 
             self._l.info("SIGHUP ignored due to running in daemon mode")
 
-
     def exit(self, code):
         """Corectly terminates program"""
 
@@ -972,19 +1103,28 @@ class afancontrol:
         self._l.info("Process gracefully stopped")
         exit(code)
 
+
 def cleanup(signum, stackframe):
     global afc
     afc.exit(0)
+
 
 def sighup(signum, stackframe):
     global afc
     afc.queueHup()
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--test", help="test config", action="store_true")
-parser.add_argument("-d", "--daemon", help="execute in daemon mode", action="store_true")
-parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
-parser.add_argument("-c", "--config", help="config path [%s]" % DEFAULT_CONFIG, default=DEFAULT_CONFIG)
+parser.add_argument(
+    "-d", "--daemon", help="execute in daemon mode", action="store_true"
+)
+parser.add_argument(
+    "-v", "--verbose", help="increase output verbosity", action="store_true"
+)
+parser.add_argument(
+    "-c", "--config", help="config path [%s]" % DEFAULT_CONFIG, default=DEFAULT_CONFIG
+)
 parser.add_argument("--pidfile", help="pidfile path [%s]" % DEFAULT_PIDFILE)
 parser.add_argument("--logfile", help="logfile path [%s]" % DEFAULT_LOGFILE)
 args = parser.parse_args()

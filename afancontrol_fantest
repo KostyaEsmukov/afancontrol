@@ -26,32 +26,34 @@
 
 """
 
-import sys
 import os
+import sys
 from sys import exit
 from time import sleep
 
 RESET_INTERVAL = 7
 
+
 class afancontrol_pwmfan:
     """
     PWM fan methods
     """
+
     MAX_PWM = 255
     MIN_PWM = 0
     STOP_PWM = 0
 
     def __init__(self, fan_data):
-        self._pwm = fan_data['pwm']
-        self._fan_input = fan_data['fan_input']
+        self._pwm = fan_data["pwm"]
+        self._fan_input = fan_data["fan_input"]
 
     def _write(self, filepath, contents):
-        h = open(filepath, mode='wt')
+        h = open(filepath, mode="wt")
         h.write(contents)
         h.close()
 
     def _read(self, filepath):
-        h = open(filepath, mode='rt')
+        h = open(filepath, mode="rt")
         t = h.read().strip()
         h.close()
         return t
@@ -70,26 +72,28 @@ class afancontrol_pwmfan:
     def enable(self):
         """Enable PWM control for this fan"""
         # fancontrol way of doing it
-        if os.path.isfile(self._pwm + '_enable'):
-            self._write(self._pwm + '_enable', '1')
+        if os.path.isfile(self._pwm + "_enable"):
+            self._write(self._pwm + "_enable", "1")
         self._write(self._pwm, str(self.MAX_PWM))
 
     def disable(self):
         """Disable PWM control for this fan"""
         # fancontrol way of doing it
-        pwm_enable = self._pwm + '_enable'
+        pwm_enable = self._pwm + "_enable"
         if not os.path.isfile(pwm_enable):
             self._write(self._pwm, str(self.MAX_PWM))
             return
 
-        self._write(pwm_enable, '0')
-        if self._read(pwm_enable) == '0':
+        self._write(pwm_enable, "0")
+        if self._read(pwm_enable) == "0":
             return
 
-        self._write(pwm_enable, '1')
+        self._write(pwm_enable, "1")
         self._write(self._pwm, str(self.MAX_PWM))
 
-        if self._read(pwm_enable) == '1' and int(self._read(self._pwm)) == self.MAX_PWM: # >= 190
+        if (
+            self._read(pwm_enable) == "1" and int(self._read(self._pwm)) == self.MAX_PWM
+        ):  # >= 190
             return
 
         raise Exception("Out of luck disabling PWM on that fan.")
@@ -98,20 +102,20 @@ class afancontrol_pwmfan:
         """Get current RPM for this fan"""
         return int(self._read(self._fan_input))
 
+
 class afancontrol_fantest:
     def __init__(self, step, interval, pwm, fan_input, outf, desctest):
         self._step = step
         self._interval = interval
-        self._i = afancontrol_pwmfan({'pwm': pwm, 'fan_input': fan_input})
+        self._i = afancontrol_pwmfan({"pwm": pwm, "fan_input": fan_input})
         self._outf = outf
         self._desctest = desctest
-
 
     def test(self):
         self._i.enable()
         if self._desctest:
             print("Testing descrease with step %s. Please be patient." % self._step)
-            self._test(255, (-1)*self._step, True)
+            self._test(255, (-1) * self._step, True)
             print("Descrease test done.")
 
         print("Testing increase with step %s. Please be patient." % self._step)
@@ -127,35 +131,42 @@ class afancontrol_fantest:
         intr = RESET_INTERVAL
         prev = None
         while True:
-            if (st < 0): st = 0
-            if (st > 255): st = 255
+            if st < 0:
+                st = 0
+            if st > 255:
+                st = 255
 
             self._i.set(st)
             sleep(intr)
             intr = self._interval
             s = self._i.getSpeed()
-            self._print_test(str(st), str(s), 'n/a' if prev == None else str(s - prev))
+            self._print_test(str(st), str(s), "n/a" if prev == None else str(s - prev))
             if stop and (s <= 0):
                 break
 
-            if stop and (st == 0): break
-            if (not stop) and (st == 255): break
+            if stop and (st == 0):
+                break
+            if (not stop) and (st == 255):
+                break
 
             prev = s
             st += step
 
     def _print_test(self, pwm, speed, delta):
         if self._outf == "human":
-            print("PWM %s RPM %s DELTA %s" % (pwm.rjust(3), speed.rjust(4), delta.rjust(4)))
+            print(
+                "PWM %s RPM %s DELTA %s"
+                % (pwm.rjust(3), speed.rjust(4), delta.rjust(4))
+            )
         elif self._outf == "csv":
             print("%s;%s;%s" % (pwm, speed, delta))
 
 
-def read_stdin(prompt, values = None, default = None):
+def read_stdin(prompt, values=None, default=None):
     if values == None:
         v = ""
     else:
-        v = " (%s)" % ', '.join(values)
+        v = " (%s)" % ", ".join(values)
 
     if default == None:
         d = ""
@@ -167,7 +178,7 @@ def read_stdin(prompt, values = None, default = None):
     while True:
         r = input(p)
 
-        if r == '':
+        if r == "":
             if default != None:
                 r = default
             else:
@@ -176,13 +187,17 @@ def read_stdin(prompt, values = None, default = None):
         if values == None:
             break
         else:
-            if r in values: break
+            if r in values:
+                break
 
     return r
 
+
 print("This program tests control of your PWM fan")
 print("Using output of this program you can examine your fan")
-print("If you want to make a chart, select csv output format in questions below and put csv data in MS Excel, LibreOffice Spreadsheet, etc.")
+print(
+    "If you want to make a chart, select csv output format in questions below and put csv data in MS Excel, LibreOffice Spreadsheet, etc."
+)
 print("")
 print("Keep in mind that your fan is going to be stopped for some time")
 print("If you'll fill nervous, press Ctrl+C and your fan will run full speed again")
@@ -194,13 +209,17 @@ try:
     pwm = read_stdin("PWM file of the fan")
     fan_input = read_stdin("fan_input file of the fan")
     outf = read_stdin("Output format", ["human", "csv"], "human")
-    dt = read_stdin("Do you want to test speed descrease? Usually this doesn't makes sense.", ["y", "n"], "n")
+    dt = read_stdin(
+        "Do you want to test speed descrease? Usually this doesn't makes sense.",
+        ["y", "n"],
+        "n",
+    )
     qd = read_stdin("Quick and dirty (q) or slow and accurate (s)?", ["q", "s"], "s")
 except KeyboardInterrupt:
     print("")
     exit(130)
 
-if qd == 'q':
+if qd == "q":
     step = 25
 else:
     step = 5
