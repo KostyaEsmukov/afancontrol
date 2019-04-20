@@ -1,4 +1,3 @@
-
 import subprocess
 
 from .logger import logger
@@ -14,7 +13,7 @@ def exec_shell_command(shell_command: str, timeout: int = 5) -> str:
             check=True,
             timeout=timeout,
         )
-        out = p.stdout.decode()
+        out = p.stdout.decode("ascii")
         err = p.stderr.decode().strip()
         if err:
             logger.warning(
