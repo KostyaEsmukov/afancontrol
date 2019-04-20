@@ -15,6 +15,6 @@ def test_report_success(sense_exec_shell_command):
         assert ["@reason here@message\nthere"] == get_stdout()
 
 
-def test_report_fail():
+def test_report_fail_does_not_raise():
     r = Report("false")
     r.report("reason here", "message\nthere")
