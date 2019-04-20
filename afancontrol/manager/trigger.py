@@ -188,8 +188,12 @@ class Triggers:
 
     def __enter__(self):  # reentrant
         self._stack = ExitStack()
-        self._stack.enter_context(self.panic_trigger)
-        self._stack.enter_context(self.threshold_trigger)
+        try:
+            self._stack.enter_context(self.panic_trigger)
+            self._stack.enter_context(self.threshold_trigger)
+        except Exception:
+            self._stack.close()
+            raise
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):

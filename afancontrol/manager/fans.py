@@ -37,8 +37,12 @@ class Fans:
     def __enter__(self):  # reentrant
         self._stack = ExitStack()
         logger.info("Enabling PWM on fans...")
-        for pwmfan in self.fans.values():
-            self._stack.enter_context(pwmfan)
+        try:
+            for pwmfan in self.fans.values():
+                self._stack.enter_context(pwmfan)
+        except Exception:
+            self._stack.close()
+            raise
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):

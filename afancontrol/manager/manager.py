@@ -33,8 +33,12 @@ class Manager:
 
     def __enter__(self):  # reentrant
         self._stack = ExitStack()
-        self._stack.enter_context(self.fans)
-        self._stack.enter_context(self.triggers)
+        try:
+            self._stack.enter_context(self.fans)
+            self._stack.enter_context(self.triggers)
+        except Exception:
+            self._stack.close()
+            raise
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
