@@ -100,6 +100,32 @@ class PWMFanNorm(BasePWMFan):
                 "Got: %s <= %s" % (self.pwm_line_end, BasePWMFan.max_pwm)
             )
 
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return (
+                self._pwm == other._pwm
+                and self._pwm_enable == other._pwm_enable
+                and self._fan_input == other._fan_input
+                and self.pwm_line_start == other.pwm_line_start
+                and self.pwm_line_end == other.pwm_line_end
+                and self.never_stop == other.never_stop
+            )
+
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __repr__(self):
+        return "%s(%r, %r, pwm_line_start=%r, pwm_line_end=%r, never_stop=%r)" % (
+            type(self).__name__,
+            str(self._pwm),
+            str(self._fan_input),
+            self.pwm_line_start,
+            self.pwm_line_end,
+            self.never_stop,
+        )
+
     def get(self) -> PWMValueNorm:
         return PWMValueNorm(self._get_raw() / BasePWMFan.max_pwm)
 

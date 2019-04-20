@@ -69,6 +69,33 @@ class FileTemp(Temp):
         self._min = min
         self._max = max
 
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return (
+                self._temp_input == other._temp_input
+                and self._temp_min == other._temp_min
+                and self._temp_max == other._temp_max
+                and self._min == other._min
+                and self._max == other._max
+                and self._panic == other._panic
+                and self._threshold == other._threshold
+            )
+
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __repr__(self):
+        return "%s(%r, min=%r, max=%r, panic=%r, threshold=%r)" % (
+            type(self).__name__,
+            str(self._temp_input),
+            self._min,
+            self._max,
+            self._panic,
+            self._threshold,
+        )
+
     def _get_temp(self) -> Tuple[TempCelsius, TempCelsius, TempCelsius]:
         temp = self._read_temp_from_path(self._temp_input)
         return temp, self._get_min(), self._get_max()
@@ -91,9 +118,6 @@ class FileTemp(Temp):
     def _read_temp_from_path(path: Path) -> TempCelsius:
         return TempCelsius(int(path.read_text().strip()) / 1000)
 
-    def __repr__(self):
-        return "%s(%s)" % (type(self).__name__, self._temp_input)
-
 
 class HDDTemp(Temp):
     def __init__(
@@ -111,6 +135,33 @@ class HDDTemp(Temp):
         self._min = min
         self._max = max
         self._hddtemp_bin = hddtemp_bin
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return (
+                self._disk_path == other._disk_path
+                and self._min == other._min
+                and self._max == other._max
+                and self._panic == other._panic
+                and self._threshold == other._threshold
+                and self._hddtemp_bin == other._hddtemp_bin
+            )
+
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __repr__(self):
+        return "%s(%r, min=%r, max=%r, panic=%r, threshold=%r, hddtemp_bin=%r)" % (
+            type(self).__name__,
+            self._disk_path,
+            self._min,
+            self._max,
+            self._panic,
+            self._threshold,
+            self._hddtemp_bin,
+        )
 
     def _get_temp(self) -> Tuple[TempCelsius, TempCelsius, TempCelsius]:
         temps = [
@@ -147,9 +198,6 @@ class HDDTemp(Temp):
         else:
             return True
 
-    def __repr__(self):
-        return "%s(%s)" % (type(self).__name__, self._disk_path)
-
 
 class CommandTemp(Temp):
     def __init__(
@@ -165,6 +213,31 @@ class CommandTemp(Temp):
         self._shell_command = shell_command
         self._min = min
         self._max = max
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return (
+                self._shell_command == other._shell_command
+                and self._min == other._min
+                and self._max == other._max
+                and self._panic == other._panic
+                and self._threshold == other._threshold
+            )
+
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __repr__(self):
+        return "%s(%r, min=%r, max=%r, panic=%r, threshold=%r)" % (
+            type(self).__name__,
+            self._shell_command,
+            self._min,
+            self._max,
+            self._panic,
+            self._threshold,
+        )
 
     def _get_temp(self) -> Tuple[TempCelsius, TempCelsius, TempCelsius]:
         temps = [
@@ -185,6 +258,3 @@ class CommandTemp(Temp):
             max_t = TempCelsius(temps[2])
 
         return temp, min_t, max_t
-
-    def __repr__(self):
-        return "%s(%s)" % (type(self).__name__, self._shell_command)
