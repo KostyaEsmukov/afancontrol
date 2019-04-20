@@ -72,7 +72,7 @@ class Fans:
             try:
                 fan.set_full_speed()
             except Exception as e:
-                logger.warning("Unable to set fan %s to full speed:\n%s", name, e)
+                logger.warning("Unable to set the fan '%s' to full speed:\n%s", name, e)
 
     def set_fan_speeds(self, speeds: Mapping[FanName, PWMValueNorm]) -> None:
         assert speeds.keys() == self.fans.keys()
@@ -88,7 +88,7 @@ class Fans:
                 pwm = fan.set(pwm_norm)
             except Exception as e:
                 logger.warning(
-                    "Unable to set fan %s to speed %s:\n%s", name, pwm_norm, e
+                    "Unable to set the fan '%s' to speed %s:\n%s", name, pwm_norm, e
                 )
             else:
                 logger.debug("Fan: %s, speed: %s, pwm: %s", name, pwm_norm, pwm)
@@ -105,13 +105,13 @@ class Fans:
             # recover it?
             fan.set_full_speed()
         except Exception as e:
-            full_speed_result = "Setting fan to full speed failed:\n%s" % e
+            full_speed_result = "Setting fan speed to full has failed:\n%s" % e
         else:
-            full_speed_result = "Fan set to full speed"
+            full_speed_result = "Fan has been set to full speed"
 
         self.report.report(
             "fan stopped: %s" % name,
-            "Seems to me that fan %s is failing:\n%s\n\n%s"
+            "Looks like the fan '%s' is failing:\n%s\n\n%s"
             % (name, get_speed_exc, full_speed_result),
         )
 
@@ -120,6 +120,7 @@ class Fans:
             return
         self.report.report(
             "fan started: %s" % name,
-            "Fan %s which had been reported as failing have just started." % name,
+            "Fan '%s' which had previously been reported as failing has just started."
+            % name,
         )
         self._failed_fans.remove(name)
