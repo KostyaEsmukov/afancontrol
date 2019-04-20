@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import NamedTuple, NewType, Optional, Tuple
 
 from .exec import exec_shell_command
-from .pwmfan import PWMValueNorm
 
 TempCelsius = NewType("TempCelsius", float)
 
@@ -18,7 +17,6 @@ TempStatus = NamedTuple(
         ("threshold", Optional[TempCelsius]),
         ("is_panic", bool),
         ("is_threshold", bool),
-        ("speed", PWMValueNorm),
     ],
 )
 
@@ -38,10 +36,6 @@ class Temp(abc.ABC):
                 "Min temperature must be less than max. %s < %s" % (min_t, max_t)
             )
 
-        speed = PWMValueNorm((temp - min_t) / (max_t - min_t))
-        speed = max(speed, PWMValueNorm(0))
-        speed = min(speed, PWMValueNorm(1))
-
         return TempStatus(
             temp=temp,
             min=min_t,
@@ -50,7 +44,6 @@ class Temp(abc.ABC):
             threshold=self._threshold,
             is_panic=self._panic is not None and temp >= self._panic,
             is_threshold=self._threshold is not None and temp >= self._threshold,
-            speed=speed,
         )
 
     @abc.abstractmethod

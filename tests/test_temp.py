@@ -50,16 +50,16 @@ class DummyTemp(Temp):
 
 
 @pytest.mark.parametrize(
-    "temp, speed, threshold, panic, is_threshold, is_panic",
+    "temp, threshold, panic, is_threshold, is_panic",
     [
-        (34.0, 0.0, None, 60.0, False, False),
-        (42.0, 0.2, None, 60.0, False, False),
-        (57.0, 1.0, 55.0, 60.0, True, False),
-        (61.0, 1.0, 55.0, 61.0, True, True),
-        (61.0, 1.0, None, 61.0, False, True),
+        (34.0, None, 60.0, False, False),
+        (42.0, None, 60.0, False, False),
+        (57.0, 55.0, 60.0, True, False),
+        (61.0, 55.0, 61.0, True, True),
+        (61.0, None, 61.0, False, True),
     ],
 )
-def test_temp(temp, speed, threshold, panic, is_threshold, is_panic):
+def test_temp(temp, threshold, panic, is_threshold, is_panic):
     min = 40.0
     max = 50.0
 
@@ -75,7 +75,6 @@ def test_temp(temp, speed, threshold, panic, is_threshold, is_panic):
             threshold=threshold,
             is_panic=is_panic,
             is_threshold=is_threshold,
-            speed=speed,
         )
 
 
@@ -91,7 +90,6 @@ def test_file_temp_min_max_numbers(file_temp_path):
         threshold=None,
         is_panic=False,
         is_threshold=False,
-        speed=0,
     )
     print(repr(temp))
 
@@ -118,7 +116,6 @@ def test_file_temp_min_max_files(temp_path, file_temp_path):
         threshold=None,
         is_panic=False,
         is_threshold=False,
-        speed=0,
     )
 
 
@@ -142,7 +139,6 @@ def test_hddtemp_many(hddtemp_output_many):
             threshold=None,
             is_panic=False,
             is_threshold=False,
-            speed=pytest.approx(0.142, 0.01),
         )
         print(repr(t))
 
@@ -204,7 +200,6 @@ def test_command_temp_with_minmax():
         threshold=None,
         is_panic=False,
         is_threshold=False,
-        speed=0.5,
     )
     print(repr(t))
 
@@ -225,5 +220,4 @@ def test_command_temp_without_minmax():
         threshold=None,
         is_panic=False,
         is_threshold=False,
-        speed=0.5,
     )
