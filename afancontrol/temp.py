@@ -14,8 +14,8 @@ TempStatus = NamedTuple(
         ("temp", TempCelsius),
         ("min", TempCelsius),
         ("max", TempCelsius),
-        ("panic", TempCelsius),
-        ("threshold", TempCelsius),
+        ("panic", Optional[TempCelsius]),
+        ("threshold", Optional[TempCelsius]),
         ("is_panic", bool),
         ("is_threshold", bool),
         ("speed", PWMValueNorm),
@@ -38,9 +38,9 @@ class Temp(abc.ABC):
                 "Min temperature must be less than max. %s < %s" % (min_t, max_t)
             )
 
-        speed = (temp - min_t) / (max_t - min_t)
-        speed = max(speed, 0)
-        speed = min(speed, 1)
+        speed = PWMValueNorm((temp - min_t) / (max_t - min_t))
+        speed = max(speed, PWMValueNorm(0))
+        speed = min(speed, PWMValueNorm(1))
 
         return TempStatus(
             temp=temp,
@@ -81,18 +81,18 @@ class FileTemp(Temp):
         return temp, self._get_min(), self._get_max()
 
     def _get_min(self) -> TempCelsius:
-        try:
-            min_t = float(self._min)
-        except (ValueError, TypeError):
+        if self._min is None:
             min_t = self._read_temp_from_path(self._temp_min)
-        return TempCelsius(min_t)
+        else:
+            min_t = self._min
+        return min_t
 
     def _get_max(self) -> TempCelsius:
-        try:
-            max_t = float(self._max)
-        except (ValueError, TypeError):
+        if self._max is None:
             max_t = self._read_temp_from_path(self._temp_max)
-        return TempCelsius(max_t)
+        else:
+            max_t = self._max
+        return max_t
 
     @staticmethod
     def _read_temp_from_path(path: Path) -> TempCelsius:
