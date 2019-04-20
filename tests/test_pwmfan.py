@@ -56,13 +56,17 @@ def test_enter_exit(raises, pwmfan_norm, pwm_enable_path, pwm_path):
 
         assert "1" == pwm_enable_path.read_text()
         assert "255" == pwm_path.read_text()
-        value = 0.39  # 100/255 ~= 0.39
-        pwmfan_norm.set(value)
+
+        pwmfan_norm.set(0.39)  # 100/255 ~= 0.39
+
+        assert "1" == pwm_enable_path.read_text()
+        assert "100" == pwm_path.read_text()
+
         if raises:
             raise Exc()
 
     assert "0" == pwm_enable_path.read_text()
-    assert "100" == pwm_path.read_text()
+    assert "100" == pwm_path.read_text()  # `fancontrol` doesn't reset speed
 
 
 def test_get_set_pwmfan(pwmfan_norm, pwm_path):
