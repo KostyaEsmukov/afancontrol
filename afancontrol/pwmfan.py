@@ -1,3 +1,4 @@
+import abc
 import math
 from pathlib import Path
 from typing import NewType
@@ -9,9 +10,9 @@ PWMValueNorm = NewType("PWMValueNorm", float)  # [0..1]
 FanValue = NewType("FanValue", int)
 
 
-class PWMFan:
-    max_pwm = 255  # type: PWMValue
-    min_pwm = 0  # type: PWMValue
+class BasePWMFan(abc.ABC):
+    max_pwm = PWMValue(255)
+    min_pwm = PWMValue(0)
 
     def __init__(self, pwm: PWMDevice, fan_input: FanInputDevice):
         self._pwm = Path(pwm)
@@ -25,25 +26,19 @@ class PWMFan:
     def is_pwm_stopped(pwm: PWMValue) -> bool:
         return pwm <= 0
 
-    def get(self) -> PWMValue:
-        return self._get_raw()
-
     def _get_raw(self) -> PWMValue:
         return PWMValue(int(self._pwm.read_text()))
 
-    def set(self, pwm: PWMValue) -> None:
-        self._set_raw(pwm)
-
     def _set_raw(self, pwm: PWMValue) -> None:
-        if not (PWMFan.min_pwm <= pwm <= PWMFan.max_pwm):
+        if not (BasePWMFan.min_pwm <= pwm <= BasePWMFan.max_pwm):
             raise ValueError(
                 "Invalid pwm value %s: it must be within [%s..%s]"
-                % (pwm, PWMFan.min_pwm, PWMFan.max_pwm)
+                % (pwm, BasePWMFan.min_pwm, BasePWMFan.max_pwm)
             )
         self._pwm.write_text(str(int(pwm)))
 
     def set_full_speed(self) -> None:
-        self._set_raw(PWMFan.max_pwm)
+        self._set_raw(BasePWMFan.max_pwm)
 
     def __enter__(self):  # reentrant
         """Enable PWM control for this fan"""
@@ -67,7 +62,10 @@ class PWMFan:
         self._pwm_enable.write_text("1")
         self.set_full_speed()
 
-        if self._pwm_enable.read_text() == "1" and self._get_raw() >= PWMFan.max_pwm:
+        if (
+            self._pwm_enable.read_text() == "1"
+            and self._get_raw() >= BasePWMFan.max_pwm
+        ):
             return
 
         raise RuntimeError("Couldn't disable PWM on that fan")
@@ -77,7 +75,7 @@ class PWMFan:
         return FanValue(int(self._fan_input.read_text()))
 
 
-class PWMFanNorm(PWMFan):
+class PWMFanNorm(BasePWMFan):
     def __init__(
         self,
         pwm: PWMDevice,
@@ -91,33 +89,30 @@ class PWMFanNorm(PWMFan):
         self.pwm_line_start = pwm_line_start
         self.pwm_line_end = pwm_line_end
         self.never_stop = never_stop
-        if PWMFan.min_pwm > self.pwm_line_start:
+        if BasePWMFan.min_pwm > self.pwm_line_start:
             raise ValueError(
                 "Invalid pwm_line_start. Expected: min_pwm <= pwm_line_start. "
-                "Got: %s <= %s" % (PWMFan.min_pwm, self.pwm_line_start)
+                "Got: %s <= %s" % (BasePWMFan.min_pwm, self.pwm_line_start)
             )
-        if self.pwm_line_end > PWMFan.max_pwm:
+        if self.pwm_line_end > BasePWMFan.max_pwm:
             raise ValueError(
                 "Invalid pwm_line_end. Expected: pwm_line_end <= max_pwm. "
-                "Got: %s <= %s" % (self.pwm_line_end, PWMFan.max_pwm)
+                "Got: %s <= %s" % (self.pwm_line_end, BasePWMFan.max_pwm)
             )
 
     def get(self) -> PWMValueNorm:
-        return self._get_raw() / PWMFan.max_pwm
+        return PWMValueNorm(self._get_raw() / BasePWMFan.max_pwm)
 
-    def set(self, pwm_norm: PWMValueNorm) -> None:
-        self.set_norm(pwm_norm)
-
-    def set_norm(self, pwm_norm: PWMValueNorm) -> PWMValue:
+    def set(self, pwm_norm: PWMValueNorm) -> PWMValue:
         # TODO validate this formula
-        pwm_norm = max(pwm_norm, 0.0)
-        pwm_norm = min(pwm_norm, 1.0)
+        pwm_norm = max(pwm_norm, PWMValueNorm(0.0))
+        pwm_norm = min(pwm_norm, PWMValueNorm(1.0))
         pwm = pwm_norm * self.pwm_line_end
         if 0 < pwm < self.pwm_line_start:
             pwm = self.pwm_line_start
         if pwm <= 0 and self.never_stop:
             pwm = self.pwm_line_start
 
-        pwm = int(math.ceil(pwm))
+        pwm = PWMValue(int(math.ceil(pwm)))
         self._set_raw(pwm)
         return pwm
