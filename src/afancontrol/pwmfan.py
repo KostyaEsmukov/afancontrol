@@ -75,6 +75,34 @@ class BasePWMFan(abc.ABC):
         return FanValue(int(self._fan_input.read_text()))
 
 
+class PWMFan(BasePWMFan):  # Used by the afancontrol.fantest module
+    def get(self) -> PWMValue:
+        return self._get_raw()
+
+    def set(self, pwm: PWMValue) -> None:
+        self._set_raw(pwm)
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return (
+                self._pwm == other._pwm
+                and self._pwm_enable == other._pwm_enable
+                and self._fan_input == other._fan_input
+            )
+
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __repr__(self):
+        return "%s(%r, %r)" % (
+            type(self).__name__,
+            str(self._pwm),
+            str(self._fan_input),
+        )
+
+
 class PWMFanNorm(BasePWMFan):
     def __init__(
         self,

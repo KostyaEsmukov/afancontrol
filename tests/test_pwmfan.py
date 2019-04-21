@@ -2,7 +2,7 @@ from contextlib import ExitStack
 
 import pytest
 
-from afancontrol.pwmfan import PWMFanNorm
+from afancontrol.pwmfan import PWMFan, PWMFanNorm
 
 
 @pytest.fixture
@@ -39,25 +39,38 @@ def pwmfan_norm(pwm_path, fan_input_path):
     )
 
 
-def test_get_speed(pwmfan_norm, fan_input_path):
+@pytest.fixture
+def pwmfan(pwm_path, fan_input_path):
+    return PWMFan(pwm=str(pwm_path), fan_input=str(fan_input_path))
+
+
+@pytest.mark.parametrize("pwmfan_fixture", ["pwmfan", "pwmfan_norm"])
+def test_get_speed(pwmfan_fixture, pwmfan, pwmfan_norm, fan_input_path):
+    fan = locals()[pwmfan_fixture]
     fan_input_path.write_text("721\n")
-    assert 721 == pwmfan_norm.get_speed()
+    assert 721 == fan.get_speed()
 
 
+@pytest.mark.parametrize("pwmfan_fixture", ["pwmfan", "pwmfan_norm"])
 @pytest.mark.parametrize("raises", [True, False])
-def test_enter_exit(raises, pwmfan_norm, pwm_enable_path, pwm_path):
+def test_enter_exit(
+    raises, pwmfan_fixture, pwmfan, pwmfan_norm, pwm_enable_path, pwm_path
+):
+    fan = locals()[pwmfan_fixture]
+
     class Exc(Exception):
         pass
 
     with ExitStack() as stack:
         if raises:
             stack.enter_context(pytest.raises(Exc))
-        stack.enter_context(pwmfan_norm)
+        stack.enter_context(fan)
 
         assert "1" == pwm_enable_path.read_text()
         assert "255" == pwm_path.read_text()
 
-        pwmfan_norm.set(0.39)  # 100/255 ~= 0.39
+        value = dict(pwmfan=100, pwmfan_norm=0.39)[pwmfan_fixture]  # 100/255 ~= 0.39
+        fan.set(value)
 
         assert "1" == pwm_enable_path.read_text()
         assert "100" == pwm_path.read_text()
