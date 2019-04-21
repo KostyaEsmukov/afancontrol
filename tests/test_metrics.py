@@ -9,11 +9,14 @@ from afancontrol.config import FanName, TempName
 from afancontrol.manager.fans import Fans
 from afancontrol.manager.report import Report
 from afancontrol.manager.trigger import Triggers
-from afancontrol.metrics import PrometheusMetrics
+from afancontrol.metrics import PrometheusMetrics, prometheus_available
 from afancontrol.pwmfan import PWMFanNorm
 from afancontrol.temp import TempCelsius, TempStatus
 
 
+@pytest.mark.skipif(
+    not prometheus_available, reason="prometheus_client is not installed"
+)
 def test_prometheus_metrics():
     mocked_fan = MagicMock(spec=PWMFanNorm)()
     mocked_triggers = MagicMock(spec=Triggers)()
