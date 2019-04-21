@@ -1,11 +1,11 @@
 
 .PHONY: format
 format:
-	black afancontrol tests *.py && isort -rc afancontrol tests *.py
+	black src tests *.py && isort -rc src tests *.py
 
 .PHONY: lint
 lint:
-	flake8 afancontrol tests *.py && isort --check-only -rc afancontrol tests *.py && black --check afancontrol tests *.py && mypy afancontrol tests
+	flake8 src tests *.py && isort --check-only -rc src tests *.py && black --check src tests *.py && mypy src tests
 
 .PHONY: test
 test:

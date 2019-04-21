@@ -2,10 +2,8 @@
 
 from setuptools import setup
 
-import afancontrol
-
 setup(
-    version=afancontrol.__version__,
+    version="1.0.0b1",
     data_files={
         # XXX systemd unit?
     }.items(),
