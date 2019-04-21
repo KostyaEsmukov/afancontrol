@@ -9,14 +9,17 @@ from afancontrol.config import (
     AlertCommands,
     DaemonCLIConfig,
     DaemonConfig,
+    FanName,
     FanSpeedModifier,
     FansTempsRelation,
+    MappingName,
     ParsedConfig,
+    TempName,
     TriggerConfig,
     parse_config,
 )
-from afancontrol.pwmfan import PWMFanNorm
-from afancontrol.temp import FileTemp, HDDTemp
+from afancontrol.pwmfan import FanInputDevice, PWMDevice, PWMFanNorm, PWMValue
+from afancontrol.temp import FileTemp, HDDTemp, TempCelsius
 
 
 @pytest.fixture
@@ -58,65 +61,66 @@ def test_example_conf(example_conf: Path, mock_hddtemp_version):
                 threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
             ),
             temp_commands={
-                "hdds": Actions(
+                TempName("hdds"): Actions(
                     panic=AlertCommands(enter_cmd=None, leave_cmd=None),
                     threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
                 ),
-                "mobo": Actions(
+                TempName("mobo"): Actions(
                     panic=AlertCommands(enter_cmd=None, leave_cmd=None),
                     threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
                 ),
             },
         ),
         fans={
-            "cpu": PWMFanNorm(
-                "/sys/class/hwmon/hwmon0/device/pwm1",
-                "/sys/class/hwmon/hwmon0/device/fan1_input",
-                pwm_line_start=100,
-                pwm_line_end=240,
+            FanName("cpu"): PWMFanNorm(
+                PWMDevice("/sys/class/hwmon/hwmon0/device/pwm1"),
+                FanInputDevice("/sys/class/hwmon/hwmon0/device/fan1_input"),
+                pwm_line_start=PWMValue(100),
+                pwm_line_end=PWMValue(240),
                 never_stop=True,
             ),
-            "hdd": PWMFanNorm(
-                "/sys/class/hwmon/hwmon0/device/pwm2",
-                "/sys/class/hwmon/hwmon0/device/fan2_input",
-                pwm_line_start=100,
-                pwm_line_end=240,
+            FanName("hdd"): PWMFanNorm(
+                PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
+                FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
+                pwm_line_start=PWMValue(100),
+                pwm_line_end=PWMValue(240),
                 never_stop=False,
             ),
         },
         temps={
-            "hdds": HDDTemp(
+            TempName("hdds"): HDDTemp(
                 "/dev/sd?",
-                min=35.0,
-                max=48.0,
-                panic=55.0,
+                min=TempCelsius(35.0),
+                max=TempCelsius(48.0),
+                panic=TempCelsius(55.0),
                 threshold=None,
                 hddtemp_bin="hddtemp",
             ),
-            "mobo": FileTemp(
+            TempName("mobo"): FileTemp(
                 "/sys/class/hwmon/hwmon0/device/temp1_input",
-                min=30.0,
-                max=40.0,
+                min=TempCelsius(30.0),
+                max=TempCelsius(40.0),
                 panic=None,
                 threshold=None,
             ),
         },
         mappings={
-            "1": FansTempsRelation(
-                temps=["mobo", "hdds"],
+            MappingName("1"): FansTempsRelation(
+                temps=[TempName("mobo"), TempName("hdds")],
                 fans=[
-                    FanSpeedModifier(fan="cpu", modifier=1.0),
-                    FanSpeedModifier(fan="hdd", modifier=0.6),
+                    FanSpeedModifier(fan=FanName("cpu"), modifier=1.0),
+                    FanSpeedModifier(fan=FanName("hdd"), modifier=0.6),
                 ],
             ),
-            "2": FansTempsRelation(
-                temps=["hdds"], fans=[FanSpeedModifier(fan="hdd", modifier=1.0)]
+            MappingName("2"): FansTempsRelation(
+                temps=[TempName("hdds")],
+                fans=[FanSpeedModifier(fan=FanName("hdd"), modifier=1.0)],
             ),
         },
     )
 
 
-def test_minimal_config(mock_hddtemp_version):
+def test_minimal_config(mock_hddtemp_version) -> None:
     daemon_cli_config = DaemonCLIConfig(pidfile=None, logfile=None)
 
     config = """
@@ -154,23 +158,23 @@ temps = mobo
                 threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
             ),
             temp_commands={
-                "mobo": Actions(
+                TempName("mobo"): Actions(
                     panic=AlertCommands(enter_cmd=None, leave_cmd=None),
                     threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
                 )
             },
         ),
         fans={
-            "case": PWMFanNorm(
-                "/sys/class/hwmon/hwmon0/device/pwm2",
-                "/sys/class/hwmon/hwmon0/device/fan2_input",
-                pwm_line_start=100,
-                pwm_line_end=240,
+            FanName("case"): PWMFanNorm(
+                PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
+                FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
+                pwm_line_start=PWMValue(100),
+                pwm_line_end=PWMValue(240),
                 never_stop=True,
             )
         },
         temps={
-            "mobo": FileTemp(
+            TempName("mobo"): FileTemp(
                 "/sys/class/hwmon/hwmon0/device/temp1_input",
                 min=None,
                 max=None,
@@ -179,8 +183,9 @@ temps = mobo
             )
         },
         mappings={
-            "1": FansTempsRelation(
-                temps=["mobo"], fans=[FanSpeedModifier(fan="case", modifier=0.6)]
+            MappingName("1"): FansTempsRelation(
+                temps=[TempName("mobo")],
+                fans=[FanSpeedModifier(fan=FanName("case"), modifier=0.6)],
             )
         },
     )
