@@ -21,3 +21,7 @@ clean:
 .PHONY: wheel
 wheel: clean
 	python setup.py bdist_wheel
+
+.PHONY: check-docs
+check-docs:
+	echo TODO
