@@ -11,7 +11,7 @@ from afancontrol.manager.report import Report
 from afancontrol.manager.trigger import Triggers
 from afancontrol.metrics import PrometheusMetrics
 from afancontrol.pwmfan import PWMFanNorm
-from afancontrol.temp import TempStatus
+from afancontrol.temp import TempCelsius, TempStatus
 
 
 def test_prometheus_metrics():
@@ -45,10 +45,10 @@ def test_prometheus_metrics():
         metrics.tick(
             temps={
                 TempName("goodtemp"): TempStatus(
-                    temp=74.0,
-                    min=40.0,
-                    max=50.0,
-                    panic=60.0,
+                    temp=TempCelsius(74.0),
+                    min=TempCelsius(40.0),
+                    max=TempCelsius(50.0),
+                    panic=TempCelsius(60.0),
                     threshold=None,
                     is_panic=True,
                     is_threshold=False,

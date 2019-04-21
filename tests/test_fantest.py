@@ -11,7 +11,7 @@ from afancontrol.fantest import (
     MeasurementsOutput,
     main,
 )
-from afancontrol.pwmfan import PWMFan, PWMValue
+from afancontrol.pwmfan import FanInputDevice, PWMDevice, PWMFan, PWMValue
 
 
 def test_main():
@@ -33,8 +33,8 @@ def test_main():
         assert not args
         assert kwargs.keys() == {"fan", "pwm_step_size", "output"}
         assert kwargs["fan"] == PWMFan(
-            "/sys/class/hwmon/hwmon0/device/pwm2",
-            "/sys/class/hwmon/hwmon0/device/fan2_input",
+            PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
+            FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
         )
         assert kwargs["pwm_step_size"] == 5
         assert isinstance(kwargs["output"], HumanMeasurementsOutput)

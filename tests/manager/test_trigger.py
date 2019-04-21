@@ -2,11 +2,11 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-from afancontrol.config import Actions, AlertCommands, TriggerConfig
+from afancontrol.config import Actions, AlertCommands, TempName, TriggerConfig
 from afancontrol.manager import trigger
 from afancontrol.manager.report import Report
 from afancontrol.manager.trigger import PanicTrigger, ThresholdTrigger, Triggers
-from afancontrol.temp import TempStatus
+from afancontrol.temp import TempCelsius, TempStatus
 
 
 @pytest.fixture
@@ -19,9 +19,11 @@ def test_panic_on_empty_temp(report, sense_exec_shell_command):
         global_commands=AlertCommands(
             enter_cmd="printf '@%s' enter", leave_cmd="printf '@%s' leave"
         ),
-        temp_commands=dict(
-            mobo=AlertCommands(enter_cmd=None, leave_cmd="printf '@%s' mobo leave")
-        ),
+        temp_commands={
+            TempName("mobo"): AlertCommands(
+                enter_cmd=None, leave_cmd="printf '@%s' mobo leave"
+            )
+        },
         report=report,
     )
 
@@ -29,7 +31,7 @@ def test_panic_on_empty_temp(report, sense_exec_shell_command):
         with t:
             assert not t.is_alerting
             assert 0 == mock_exec_shell_command.call_count
-            t.check(dict(mobo=None))
+            t.check({TempName("mobo"): None})
             assert t.is_alerting
 
             assert mock_exec_shell_command.call_args_list == [
@@ -49,12 +51,12 @@ def test_panic_on_empty_temp(report, sense_exec_shell_command):
 def test_threshold_on_empty_temp(report):
     t = ThresholdTrigger(
         global_commands=AlertCommands(enter_cmd=None, leave_cmd=None),
-        temp_commands=dict(mobo=AlertCommands(enter_cmd=None, leave_cmd=None)),
+        temp_commands={TempName("mobo"): AlertCommands(enter_cmd=None, leave_cmd=None)},
         report=report,
     )
     with t:
         assert not t.is_alerting
-        t.check(dict(mobo=None))
+        t.check({TempName("mobo"): None})
         assert not t.is_alerting
     assert not t.is_alerting
 
@@ -71,10 +73,10 @@ def test_good_temp(cls, report):
         t.check(
             dict(
                 mobo=TempStatus(
-                    temp=34.0,
-                    min=40.0,
-                    max=50.0,
-                    panic=60.0,
+                    temp=TempCelsius(34.0),
+                    min=TempCelsius(40.0),
+                    max=TempCelsius(50.0),
+                    panic=TempCelsius(60.0),
                     threshold=None,
                     is_panic=False,
                     is_threshold=False,
@@ -103,11 +105,11 @@ def test_bad_temp(cls, report, sense_exec_shell_command):
             t.check(
                 dict(
                     mobo=TempStatus(
-                        temp=70.0,
-                        min=40.0,
-                        max=50.0,
-                        panic=60.0,
-                        threshold=55.0,
+                        temp=TempCelsius(70.0),
+                        min=TempCelsius(40.0),
+                        max=TempCelsius(50.0),
+                        panic=TempCelsius(60.0),
+                        threshold=TempCelsius(55.0),
                         is_panic=True,
                         is_threshold=True,
                     )
@@ -124,10 +126,10 @@ def test_bad_temp(cls, report, sense_exec_shell_command):
             t.check(
                 dict(
                     mobo=TempStatus(
-                        temp=34.0,
-                        min=40.0,
-                        max=50.0,
-                        panic=60.0,
+                        temp=TempCelsius(34.0),
+                        min=TempCelsius(40.0),
+                        max=TempCelsius(50.0),
+                        panic=TempCelsius(60.0),
                         threshold=None,
                         is_panic=False,
                         is_threshold=False,
@@ -151,28 +153,28 @@ def test_triggers_good_temp(report):
                 panic=AlertCommands(enter_cmd=None, leave_cmd=None),
                 threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
             ),
-            temp_commands=dict(
-                mobo=Actions(
+            temp_commands={
+                TempName("mobo"): Actions(
                     panic=AlertCommands(enter_cmd=None, leave_cmd=None),
                     threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
                 )
-            ),
+            },
         ),
         report=report,
     )
     with t:
         assert not t.is_alerting
         t.check(
-            dict(
-                mobo=TempStatus(
-                    temp=34.0,
-                    min=40.0,
-                    max=50.0,
-                    panic=60.0,
+            {
+                TempName("mobo"): TempStatus(
+                    temp=TempCelsius(34.0),
+                    min=TempCelsius(40.0),
+                    max=TempCelsius(50.0),
+                    panic=TempCelsius(60.0),
                     threshold=None,
                     is_panic=False,
                     is_threshold=False,
                 )
-            )
+            }
         )
         assert not t.is_alerting

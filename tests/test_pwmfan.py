@@ -2,7 +2,7 @@ from contextlib import ExitStack
 
 import pytest
 
-from afancontrol.pwmfan import PWMFan, PWMFanNorm
+from afancontrol.pwmfan import FanInputDevice, PWMDevice, PWMFan, PWMFanNorm, PWMValue
 
 
 @pytest.fixture
@@ -31,17 +31,19 @@ def fan_input_path(temp_path):
 @pytest.fixture
 def pwmfan_norm(pwm_path, fan_input_path):
     return PWMFanNorm(
-        pwm=str(pwm_path),
-        fan_input=str(fan_input_path),
-        pwm_line_start=100,
-        pwm_line_end=240,
+        pwm=PWMDevice(str(pwm_path)),
+        fan_input=FanInputDevice(str(fan_input_path)),
+        pwm_line_start=PWMValue(100),
+        pwm_line_end=PWMValue(240),
         never_stop=False,
     )
 
 
 @pytest.fixture
 def pwmfan(pwm_path, fan_input_path):
-    return PWMFan(pwm=str(pwm_path), fan_input=str(fan_input_path))
+    return PWMFan(
+        pwm=PWMDevice(str(pwm_path)), fan_input=FanInputDevice(str(fan_input_path))
+    )
 
 
 @pytest.mark.parametrize("pwmfan_fixture", ["pwmfan", "pwmfan_norm"])

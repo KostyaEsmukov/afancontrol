@@ -1,9 +1,17 @@
 import subprocess
+from typing import Optional
 from unittest.mock import patch
 
 import pytest
 
-from afancontrol.temp import CommandTemp, FileTemp, HDDTemp, Temp, TempStatus
+from afancontrol.temp import (
+    CommandTemp,
+    FileTemp,
+    HDDTemp,
+    Temp,
+    TempCelsius,
+    TempStatus,
+)
 
 
 @pytest.fixture
@@ -59,9 +67,15 @@ class DummyTemp(Temp):
         (61.0, None, 61.0, False, True),
     ],
 )
-def test_temp(temp, threshold, panic, is_threshold, is_panic):
-    min = 40.0
-    max = 50.0
+def test_temp(
+    temp: TempCelsius,
+    threshold: Optional[TempCelsius],
+    panic: TempCelsius,
+    is_threshold,
+    is_panic,
+):
+    min = TempCelsius(40.0)
+    max = TempCelsius(50.0)
 
     with patch.object(DummyTemp, "_get_temp") as mock_get_temp:
         t = DummyTemp(panic=panic, threshold=threshold)
@@ -80,13 +94,17 @@ def test_temp(temp, threshold, panic, is_threshold, is_panic):
 
 def test_file_temp_min_max_numbers(file_temp_path):
     temp = FileTemp(
-        temp_path=str(file_temp_path), min=40.0, max=50.0, panic=60.0, threshold=None
+        temp_path=str(file_temp_path),
+        min=TempCelsius(40.0),
+        max=TempCelsius(50.0),
+        panic=TempCelsius(60.0),
+        threshold=None,
     )
     assert temp.get() == TempStatus(
-        temp=34.0,
-        min=40.0,
-        max=50.0,
-        panic=60.0,
+        temp=TempCelsius(34.0),
+        min=TempCelsius(40.0),
+        max=TempCelsius(50.0),
+        panic=TempCelsius(60.0),
         threshold=None,
         is_panic=False,
         is_threshold=False,
@@ -101,18 +119,22 @@ def test_file_temp_min_max_files(temp_path, file_temp_path):
             temp_path=str(file_temp_path),
             min=None,
             max=None,
-            panic=60.0,
+            panic=TempCelsius(60.0),
             threshold=None,
         ).get()
 
     temp = FileTemp(
-        temp_path=str(file_temp_path), min=50.0, max=None, panic=60.0, threshold=None
+        temp_path=str(file_temp_path),
+        min=TempCelsius(50.0),
+        max=None,
+        panic=TempCelsius(60.0),
+        threshold=None,
     )
     assert temp.get() == TempStatus(
-        temp=34.0,
-        min=50.0,
-        max=127.0,
-        panic=60.0,
+        temp=TempCelsius(34.0),
+        min=TempCelsius(50.0),
+        max=TempCelsius(127.0),
+        panic=TempCelsius(60.0),
         threshold=None,
         is_panic=False,
         is_threshold=False,
@@ -124,18 +146,18 @@ def test_hddtemp_many(hddtemp_output_many):
         mock_call_hddtemp.return_value = hddtemp_output_many
         t = HDDTemp(
             disk_path="/dev/sd?",
-            min=38.0,
-            max=45.0,
-            panic=50.0,
+            min=TempCelsius(38.0),
+            max=TempCelsius(45.0),
+            panic=TempCelsius(50.0),
             threshold=None,
             hddtemp_bin="testbin",
         )
 
         assert t.get() == TempStatus(
-            temp=39.0,
-            min=38.0,
-            max=45.0,
-            panic=50.0,
+            temp=TempCelsius(39.0),
+            min=TempCelsius(38.0),
+            max=TempCelsius(45.0),
+            panic=TempCelsius(50.0),
             threshold=None,
             is_panic=False,
             is_threshold=False,
@@ -148,9 +170,9 @@ def test_hddtemp_bad(hddtemp_output_bad):
         mock_call_hddtemp.return_value = hddtemp_output_bad
         t = HDDTemp(
             disk_path="/dev/sda",
-            min=38.0,
-            max=45.0,
-            panic=50.0,
+            min=TempCelsius(38.0),
+            max=TempCelsius(45.0),
+            panic=TempCelsius(50.0),
             threshold=None,
             hddtemp_bin="testbin",
         )
@@ -161,9 +183,9 @@ def test_hddtemp_bad(hddtemp_output_bad):
 def test_hddtemp_exec_successful():
     t = HDDTemp(
         disk_path="/dev/sd?",
-        min=38.0,
-        max=45.0,
-        panic=50.0,
+        min=TempCelsius(38.0),
+        max=TempCelsius(45.0),
+        panic=TempCelsius(50.0),
         threshold=None,
         hddtemp_bin="printf '@%s'",
     )
@@ -174,9 +196,9 @@ def test_hddtemp_exec_successful():
 def test_hddtemp_exec_failed():
     t = HDDTemp(
         disk_path="/dev/sd?",
-        min=38.0,
-        max=45.0,
-        panic=50.0,
+        min=TempCelsius(38.0),
+        max=TempCelsius(45.0),
+        panic=TempCelsius(50.0),
         threshold=None,
         hddtemp_bin="false",
     )
@@ -187,16 +209,16 @@ def test_hddtemp_exec_failed():
 def test_command_temp_with_minmax():
     t = CommandTemp(
         shell_command=r"printf '%s\n' 35 30 40",
-        min=31.0,
-        max=39.0,
-        panic=50.0,
+        min=TempCelsius(31.0),
+        max=TempCelsius(39.0),
+        panic=TempCelsius(50.0),
         threshold=None,
     )
     assert t.get() == TempStatus(
-        temp=35.0,
-        min=31.0,
-        max=39.0,
-        panic=50.0,
+        temp=TempCelsius(35.0),
+        min=TempCelsius(31.0),
+        max=TempCelsius(39.0),
+        panic=TempCelsius(50.0),
         threshold=None,
         is_panic=False,
         is_threshold=False,
@@ -209,14 +231,14 @@ def test_command_temp_without_minmax():
         shell_command=r"printf '%s\n' 35 30 40",
         min=None,
         max=None,
-        panic=50.0,
+        panic=TempCelsius(50.0),
         threshold=None,
     )
     assert t.get() == TempStatus(
-        temp=35.0,
-        min=30.0,
-        max=40.0,
-        panic=50.0,
+        temp=TempCelsius(35.0),
+        min=TempCelsius(30.0),
+        max=TempCelsius(40.0),
+        panic=TempCelsius(50.0),
         threshold=None,
         is_panic=False,
         is_threshold=False,

@@ -51,9 +51,9 @@ Select an output format for the measurements.
 """
         )
         out_format = read_stdin("Output format", ["human", "csv"], "human")
-        output = dict(human=HumanMeasurementsOutput, csv=CSVMeasurementsOutput)[
+        output = dict(human=HumanMeasurementsOutput(), csv=CSVMeasurementsOutput())[
             out_format
-        ]()
+        ]
 
         print(
             """
@@ -79,7 +79,9 @@ faster.
             pwm_step_size_alias
         ]
         if direction == "decrease":
-            pwm_step_size *= PWMValue(-1)  # a bad PWM value, to be honest
+            pwm_step_size = PWMValue(
+                pwm_step_size * -1  # a bad PWM value, to be honest
+            )
 
         fan = PWMFan(pwm=PWMDevice(pwm), fan_input=FanInputDevice(fan_input))
     except KeyboardInterrupt:
