@@ -1,0 +1,12 @@
+[Unit]
+Description=Advanced fancontrol daemon
+After=lm-sensors.service
+
+[Service]
+Type=forking
+ExecStartPre=afancontrol -t
+ExecStart=afancontrol -d --pidfile /var/run/afancontrol.pid
+PIDFile=/var/run/afancontrol.pid
+
+[Install]
+WantedBy=multi-user.target
