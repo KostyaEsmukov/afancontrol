@@ -14,6 +14,7 @@ from afancontrol.config import (
 from afancontrol.manager.manager import Manager
 from afancontrol.manager.report import Report
 from afancontrol.manager.trigger import Triggers
+from afancontrol.metrics import Metrics
 from afancontrol.pwmfan import PWMFanNorm
 from afancontrol.temp import FileTemp
 
@@ -26,6 +27,8 @@ def report():
 def test_manager(report):
     mocked_case_fan = MagicMock(spec=PWMFanNorm)()
     mocked_mobo_temp = MagicMock(spec=FileTemp)()
+    mocked_metrics = MagicMock(spec=Metrics)()
+
     with ExitStack() as stack:
         stack.enter_context(
             patch.object(afancontrol.manager.manager, "Triggers", spec=Triggers)
@@ -52,6 +55,7 @@ def test_manager(report):
                     )
                 ),
             ),
+            metrics=mocked_metrics,
             fans_speed_check_interval=1.0,
         )
 
@@ -62,4 +66,7 @@ def test_manager(report):
         mocked_triggers = manager.triggers
         assert mocked_triggers.check.call_count == 1
         assert mocked_case_fan.__enter__.call_count == 1
+        assert mocked_metrics.__enter__.call_count == 1
+        assert mocked_metrics.tick.call_count == 1
     assert mocked_case_fan.__exit__.call_count == 1
+    assert mocked_metrics.__exit__.call_count == 1

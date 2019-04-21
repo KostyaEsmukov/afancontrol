@@ -12,6 +12,7 @@ from afancontrol.manager.report import Report
 
 from .config import DEFAULT_CONFIG, DEFAULT_PIDFILE, DaemonCLIConfig, parse_config
 from .logger import logger
+from .metrics import Metrics, NullMetrics, PrometheusMetrics
 
 
 def parse_args():
@@ -31,6 +32,13 @@ def parse_args():
     )
     parser.add_argument("--pidfile", help="pidfile path [%s]" % DEFAULT_PIDFILE)
     parser.add_argument("--logfile", help="logfile path (disabled by default)")
+    parser.add_argument(
+        "--exporter-listen-host",
+        help=(
+            "prometheus exporter listen host, e.g. `127.0.0.1:8000` "
+            "(disabled by default)"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -40,8 +48,17 @@ def main():
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
 
     config_path = Path(args.config)
-    daemon_cli_config = DaemonCLIConfig(pidfile=args.pidfile, logfile=args.logfile)
+    daemon_cli_config = DaemonCLIConfig(
+        pidfile=args.pidfile,
+        logfile=args.logfile,
+        exporter_listen_host=args.exporter_listen_host,
+    )
     config = parse_config(config_path, daemon_cli_config)
+
+    if config.daemon.exporter_listen_host:
+        metrics = PrometheusMetrics(config.daemon.exporter_listen_host)  # type: Metrics
+    else:
+        metrics = NullMetrics()
 
     manager = Manager(
         fans=config.fans,
@@ -49,6 +66,7 @@ def main():
         mappings=config.mappings,
         report=Report(report_command=config.report_cmd),
         triggers_config=config.triggers,
+        metrics=metrics,
         fans_speed_check_interval=config.daemon.fans_speed_check_interval,
     )
 

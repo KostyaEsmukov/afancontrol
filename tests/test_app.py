@@ -48,6 +48,7 @@ temps = mobo
         args.config = str(config_path)
         args.pidfile = str(temp_path / "afancontrol.pid")
         args.logfile = str(temp_path / "afancontrol.log")
+        args.exporter_listen_host = None
 
         stack.enter_context(patch.object(app, "parse_args", return_value=args))
         mocked_tick = stack.enter_context(patch.object(app.Manager, "tick"))

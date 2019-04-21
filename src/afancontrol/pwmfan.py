@@ -154,6 +154,9 @@ class PWMFanNorm(BasePWMFan):
             self.never_stop,
         )
 
+    def get_raw(self) -> PWMValue:
+        return self._get_raw()
+
     def get(self) -> PWMValueNorm:
         return PWMValueNorm(self._get_raw() / BasePWMFan.max_pwm)
 

@@ -41,13 +41,16 @@ def path_from_str(contents: str) -> Path:
 
 
 def test_example_conf(example_conf: Path, mock_hddtemp_version):
-    daemon_cli_config = DaemonCLIConfig(pidfile=None, logfile=None)
+    daemon_cli_config = DaemonCLIConfig(
+        pidfile=None, logfile=None, exporter_listen_host=None
+    )
 
     parsed = parse_config(example_conf, daemon_cli_config)
     assert parsed == ParsedConfig(
         daemon=DaemonConfig(
             pidfile="/var/run/afancontrol.pid",
             logfile="/var/log/afancontrol.log",
+            exporter_listen_host=None,
             interval=5,
             fans_speed_check_interval=3,
         ),
@@ -121,7 +124,9 @@ def test_example_conf(example_conf: Path, mock_hddtemp_version):
 
 
 def test_minimal_config(mock_hddtemp_version) -> None:
-    daemon_cli_config = DaemonCLIConfig(pidfile=None, logfile=None)
+    daemon_cli_config = DaemonCLIConfig(
+        pidfile=None, logfile=None, exporter_listen_host=None
+    )
 
     config = """
 [daemon]
@@ -145,6 +150,7 @@ temps = mobo
         daemon=DaemonConfig(
             pidfile="/var/run/afancontrol.pid",
             logfile=None,
+            exporter_listen_host=None,
             interval=5,
             fans_speed_check_interval=3,
         ),

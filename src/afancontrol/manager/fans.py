@@ -34,6 +34,12 @@ class Fans:
         # Timestamp of last fans check
         self._check_clock = _clock() - fans_speed_check_interval * 2
 
+    def is_fan_failing(self, fan_name: FanName) -> bool:
+        return fan_name in self._failed_fans
+
+    def is_fan_stopped(self, fan_name: FanName) -> bool:
+        return fan_name in self._stopped_fans
+
     def __enter__(self):  # reentrant
         self._stack = ExitStack()
         logger.info("Enabling PWM on fans...")

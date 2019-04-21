@@ -4,6 +4,7 @@ from typing import Dict, Mapping, Optional
 
 from ..config import FanName, FansTempsRelation, MappingName, TempName, TriggerConfig
 from ..logger import logger
+from ..metrics import Metrics
 from ..pwmfan import PWMFanNorm, PWMValueNorm
 from ..temp import Temp, TempStatus
 from .fans import Fans
@@ -20,6 +21,7 @@ class Manager:
         mappings: Mapping[MappingName, FansTempsRelation],
         report: Report,
         triggers_config: TriggerConfig,
+        metrics: Metrics,
         fans_speed_check_interval: float  # seconds
     ) -> None:
         self.report = report
@@ -29,6 +31,7 @@ class Manager:
         self.temps = temps
         self.mappings = mappings
         self.triggers = Triggers(triggers_config, report)
+        self.metrics = metrics
         self._stack = None
 
     def __enter__(self):  # reentrant
@@ -36,6 +39,7 @@ class Manager:
         try:
             self._stack.enter_context(self.fans)
             self._stack.enter_context(self.triggers)
+            self._stack.enter_context(self.metrics)
         except Exception:
             self._stack.close()
             raise
@@ -46,16 +50,22 @@ class Manager:
         return None
 
     def tick(self) -> None:
-        temps = self._get_temps()
-        self.fans.maybe_check_speeds()
+        with self.metrics.measure_tick():
+            temps = self._get_temps()
+            self.fans.maybe_check_speeds()
 
-        self.triggers.check(temps)
+            self.triggers.check(temps)
 
-        if self.triggers.is_alerting:
-            self.fans.set_all_to_full_speed()
-        else:
-            speeds = self._map_temps_to_fan_speeds(temps)
-            self.fans.set_fan_speeds(speeds)
+            if self.triggers.is_alerting:
+                self.fans.set_all_to_full_speed()
+            else:
+                speeds = self._map_temps_to_fan_speeds(temps)
+                self.fans.set_fan_speeds(speeds)
+
+        try:
+            self.metrics.tick(temps, self.fans, self.triggers)
+        except Exception:
+            logger.warning("Failed to collect metrics", exc_info=True)
 
     def _get_temps(self) -> Mapping[TempName, Optional[TempStatus]]:
         result = {}
