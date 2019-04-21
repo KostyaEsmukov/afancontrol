@@ -6,6 +6,7 @@ import sys
 import threading
 from contextlib import ExitStack
 from pathlib import Path
+from typing import Optional
 
 from afancontrol.manager.manager import Manager
 from afancontrol.manager.report import Report
@@ -70,7 +71,9 @@ def main():
         fans_speed_check_interval=config.daemon.fans_speed_check_interval,
     )
 
-    pidfile = PidFile(config.daemon.pidfile)
+    pidfile = None  # type: Optional[PidFile]
+    if config.daemon.pidfile is not None:
+        pidfile = PidFile(config.daemon.pidfile)
 
     if args.test:
         print("Config file '%s' if good" % config_path)
@@ -88,9 +91,10 @@ def main():
     signal.signal(signal.SIGHUP, signals.sigterm)
 
     with ExitStack() as stack:
-        stack.enter_context(pidfile)
-        # Ensure that pidfile is writable before forking:
-        pidfile.save_pid(os.getpid())
+        if pidfile is not None:
+            stack.enter_context(pidfile)
+            # Ensure that pidfile is writable before forking:
+            pidfile.save_pid(os.getpid())
 
         stack.enter_context(manager)
 
@@ -106,7 +110,7 @@ def main():
             manager.tick()
 
 
-def daemonize(pidfile: "PidFile") -> None:  # pragma: no cover
+def daemonize(pidfile: Optional["PidFile"]) -> None:  # pragma: no cover
     child_pid = os.fork()
     # child_pid == 0 -- the daemonized process, which is
     #   now responsible for the `manager`'s context manager.
@@ -116,7 +120,8 @@ def daemonize(pidfile: "PidFile") -> None:  # pragma: no cover
     #   with the `sys.exit` call.
     if child_pid != 0:
         try:
-            pidfile.save_pid(child_pid)
+            if pidfile is not None:
+                pidfile.save_pid(child_pid)
         except Exception:
             logger.error("Unable to save process pid=%s to %s", child_pid, pidfile)
             sys.exit(1)
