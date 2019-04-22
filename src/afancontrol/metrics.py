@@ -4,10 +4,10 @@ from http.server import HTTPServer
 from socketserver import ThreadingMixIn
 from typing import ContextManager, Mapping, Optional
 
-from .config import TempName
-from .manager.fans import Fans
-from .manager.trigger import Triggers
-from .temp import TempStatus
+from afancontrol.config import TempName
+from afancontrol.manager.fans import Fans
+from afancontrol.manager.trigger import Triggers
+from afancontrol.temp import TempStatus
 
 try:
     import prometheus_client as prom

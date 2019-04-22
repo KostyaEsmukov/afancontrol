@@ -1,6 +1,6 @@
 import subprocess
 
-from .logger import logger
+from afancontrol.logger import logger
 
 
 def exec_shell_command(shell_command: str, timeout: int = 5) -> str:

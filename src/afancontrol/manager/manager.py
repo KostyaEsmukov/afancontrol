@@ -2,14 +2,20 @@ from collections import defaultdict
 from contextlib import ExitStack
 from typing import Dict, Mapping, Optional
 
-from ..config import FanName, FansTempsRelation, MappingName, TempName, TriggerConfig
-from ..logger import logger
-from ..metrics import Metrics
-from ..pwmfan import PWMFanNorm, PWMValueNorm
-from ..temp import Temp, TempStatus
-from .fans import Fans
-from .report import Report
-from .trigger import Triggers
+from afancontrol.config import (
+    FanName,
+    FansTempsRelation,
+    MappingName,
+    TempName,
+    TriggerConfig,
+)
+from afancontrol.logger import logger
+from afancontrol.manager.fans import Fans
+from afancontrol.manager.report import Report
+from afancontrol.manager.trigger import Triggers
+from afancontrol.metrics import Metrics
+from afancontrol.pwmfan import PWMFanNorm, PWMValueNorm
+from afancontrol.temp import Temp, TempStatus
 
 
 class Manager:

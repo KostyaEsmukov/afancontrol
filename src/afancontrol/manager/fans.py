@@ -2,10 +2,10 @@ from contextlib import ExitStack
 from timeit import default_timer
 from typing import Mapping, MutableSet
 
-from ..config import FanName
-from ..logger import logger
-from ..pwmfan import PWMFanNorm, PWMValueNorm
-from .report import Report
+from afancontrol.config import FanName
+from afancontrol.logger import logger
+from afancontrol.manager.report import Report
+from afancontrol.pwmfan import PWMFanNorm, PWMValueNorm
 
 
 def _clock():

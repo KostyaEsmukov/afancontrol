@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from typing import NamedTuple, NewType, Optional, Tuple
 
-from .exec import exec_shell_command
+from afancontrol.exec import exec_shell_command
 
 TempCelsius = NewType("TempCelsius", float)
 

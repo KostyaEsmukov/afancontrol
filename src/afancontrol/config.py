@@ -11,9 +11,9 @@ from typing import (
     TypeVar,
 )
 
-from .exec import exec_shell_command
-from .pwmfan import FanInputDevice, PWMDevice, PWMFanNorm, PWMValue
-from .temp import CommandTemp, FileTemp, HDDTemp, Temp, TempCelsius
+from afancontrol.exec import exec_shell_command
+from afancontrol.pwmfan import FanInputDevice, PWMDevice, PWMFanNorm, PWMValue
+from afancontrol.temp import CommandTemp, FileTemp, HDDTemp, Temp, TempCelsius
 
 DEFAULT_CONFIG = "/etc/afancontrol/afancontrol.conf"
 DEFAULT_PIDFILE = "/var/run/afancontrol.pid"

@@ -2,11 +2,11 @@ import abc
 from contextlib import ExitStack
 from typing import Mapping, Optional, Set
 
-from ..config import AlertCommands, TempName, TriggerConfig
-from ..exec import exec_shell_command
-from ..logger import logger
-from ..temp import TempStatus
-from .report import Report
+from afancontrol.config import AlertCommands, TempName, TriggerConfig
+from afancontrol.exec import exec_shell_command
+from afancontrol.logger import logger
+from afancontrol.manager.report import Report
+from afancontrol.temp import TempStatus
 
 
 class Trigger(abc.ABC):

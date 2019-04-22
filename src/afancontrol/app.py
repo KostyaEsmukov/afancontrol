@@ -8,12 +8,16 @@ from contextlib import ExitStack
 from pathlib import Path
 from typing import Optional
 
+from afancontrol.config import (
+    DEFAULT_CONFIG,
+    DEFAULT_PIDFILE,
+    DaemonCLIConfig,
+    parse_config,
+)
+from afancontrol.logger import logger
 from afancontrol.manager.manager import Manager
 from afancontrol.manager.report import Report
-
-from .config import DEFAULT_CONFIG, DEFAULT_PIDFILE, DaemonCLIConfig, parse_config
-from .logger import logger
-from .metrics import Metrics, NullMetrics, PrometheusMetrics
+from afancontrol.metrics import Metrics, NullMetrics, PrometheusMetrics
 
 
 def parse_args():

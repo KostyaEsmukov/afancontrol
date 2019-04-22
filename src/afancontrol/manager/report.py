@@ -1,5 +1,5 @@
-from ..exec import exec_shell_command
-from ..logger import logger
+from afancontrol.exec import exec_shell_command
+from afancontrol.logger import logger
 
 
 class Report:
