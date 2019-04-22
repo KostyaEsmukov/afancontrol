@@ -1,7 +1,7 @@
 from unittest.mock import call
 
-from afancontrol.manager import report
-from afancontrol.manager.report import Report
+from afancontrol import report
+from afancontrol.report import Report
 
 
 def test_report_success(sense_exec_shell_command):

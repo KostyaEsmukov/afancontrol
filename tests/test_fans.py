@@ -3,9 +3,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from afancontrol.config import FanName
-from afancontrol.manager.fans import Fans
-from afancontrol.manager.report import Report
+from afancontrol.fans import Fans
 from afancontrol.pwmfan import PWMFanNorm, PWMValueNorm
+from afancontrol.report import Report
 
 
 @pytest.fixture

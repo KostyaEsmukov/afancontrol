@@ -2,11 +2,11 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
+from afancontrol import trigger
 from afancontrol.config import Actions, AlertCommands, TempName, TriggerConfig
-from afancontrol.manager import trigger
-from afancontrol.manager.report import Report
-from afancontrol.manager.trigger import PanicTrigger, ThresholdTrigger, Triggers
+from afancontrol.report import Report
 from afancontrol.temp import TempCelsius, TempStatus
+from afancontrol.trigger import PanicTrigger, ThresholdTrigger, Triggers
 
 
 @pytest.fixture

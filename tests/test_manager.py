@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import afancontrol.manager.manager
+import afancontrol.manager
 from afancontrol.config import (
     Actions,
     AlertCommands,
@@ -14,12 +14,12 @@ from afancontrol.config import (
     TempName,
     TriggerConfig,
 )
-from afancontrol.manager.manager import Manager
-from afancontrol.manager.report import Report
-from afancontrol.manager.trigger import Triggers
+from afancontrol.manager import Manager
 from afancontrol.metrics import Metrics
 from afancontrol.pwmfan import PWMFanNorm
+from afancontrol.report import Report
 from afancontrol.temp import FileTemp
+from afancontrol.trigger import Triggers
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ def test_manager(report):
 
     with ExitStack() as stack:
         stack.enter_context(
-            patch.object(afancontrol.manager.manager, "Triggers", spec=Triggers)
+            patch.object(afancontrol.manager, "Triggers", spec=Triggers)
         )
 
         manager = Manager(

@@ -5,7 +5,7 @@ from typing import Mapping, Optional, Set
 from afancontrol.config import AlertCommands, TempName, TriggerConfig
 from afancontrol.exec import exec_shell_command
 from afancontrol.logger import logger
-from afancontrol.manager.report import Report
+from afancontrol.report import Report
 from afancontrol.temp import TempStatus
 
 

@@ -9,13 +9,13 @@ from afancontrol.config import (
     TempName,
     TriggerConfig,
 )
+from afancontrol.fans import Fans
 from afancontrol.logger import logger
-from afancontrol.manager.fans import Fans
-from afancontrol.manager.report import Report
-from afancontrol.manager.trigger import Triggers
 from afancontrol.metrics import Metrics
 from afancontrol.pwmfan import PWMFanNorm, PWMValueNorm
+from afancontrol.report import Report
 from afancontrol.temp import Temp, TempStatus
+from afancontrol.trigger import Triggers
 
 
 class Manager:

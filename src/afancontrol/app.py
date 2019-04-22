@@ -15,9 +15,9 @@ from afancontrol.config import (
     parse_config,
 )
 from afancontrol.logger import logger
-from afancontrol.manager.manager import Manager
-from afancontrol.manager.report import Report
+from afancontrol.manager import Manager
 from afancontrol.metrics import Metrics, NullMetrics, PrometheusMetrics
+from afancontrol.report import Report
 
 
 def parse_args():

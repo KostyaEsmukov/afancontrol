@@ -4,8 +4,8 @@ from typing import Mapping, MutableSet
 
 from afancontrol.config import FanName
 from afancontrol.logger import logger
-from afancontrol.manager.report import Report
 from afancontrol.pwmfan import PWMFanNorm, PWMValueNorm
+from afancontrol.report import Report
 
 
 def _clock():

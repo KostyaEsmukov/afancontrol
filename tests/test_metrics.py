@@ -6,12 +6,12 @@ import pytest
 import requests
 
 from afancontrol.config import FanName, TempName
-from afancontrol.manager.fans import Fans
-from afancontrol.manager.report import Report
-from afancontrol.manager.trigger import Triggers
+from afancontrol.fans import Fans
 from afancontrol.metrics import PrometheusMetrics, prometheus_available
 from afancontrol.pwmfan import PWMFanNorm
+from afancontrol.report import Report
 from afancontrol.temp import TempCelsius, TempStatus
+from afancontrol.trigger import Triggers
 
 
 @pytest.mark.skipif(

@@ -5,9 +5,9 @@ from socketserver import ThreadingMixIn
 from typing import ContextManager, Mapping, Optional
 
 from afancontrol.config import TempName
-from afancontrol.manager.fans import Fans
-from afancontrol.manager.trigger import Triggers
+from afancontrol.fans import Fans
 from afancontrol.temp import TempStatus
+from afancontrol.trigger import Triggers
 
 try:
     import prometheus_client as prom
