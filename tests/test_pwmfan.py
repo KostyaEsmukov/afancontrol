@@ -2,7 +2,13 @@ from contextlib import ExitStack
 
 import pytest
 
-from afancontrol.pwmfan import FanInputDevice, PWMDevice, PWMFan, PWMFanNorm, PWMValue
+from afancontrol.pwmfan import (
+    FanInputDevice,
+    LinuxPWMFan,
+    PWMDevice,
+    PWMFanNorm,
+    PWMValue,
+)
 
 
 @pytest.fixture
@@ -29,10 +35,9 @@ def fan_input_path(temp_path):
 
 
 @pytest.fixture
-def pwmfan_norm(pwm_path, fan_input_path):
+def pwmfan_norm(pwmfan):
     return PWMFanNorm(
-        pwm=PWMDevice(str(pwm_path)),
-        fan_input=FanInputDevice(str(fan_input_path)),
+        pwmfan,
         pwm_line_start=PWMValue(100),
         pwm_line_end=PWMValue(240),
         never_stop=False,
@@ -41,7 +46,7 @@ def pwmfan_norm(pwm_path, fan_input_path):
 
 @pytest.fixture
 def pwmfan(pwm_path, fan_input_path):
-    return PWMFan(
+    return LinuxPWMFan(
         pwm=PWMDevice(str(pwm_path)), fan_input=FanInputDevice(str(fan_input_path))
     )
 
@@ -84,21 +89,21 @@ def test_enter_exit(
     assert "100" == pwm_path.read_text()  # `fancontrol` doesn't reset speed
 
 
-def test_get_set_pwmfan(pwmfan_norm, pwm_path):
-    pwmfan_norm._set_raw(142)
+def test_get_set_pwmfan(pwmfan, pwm_path):
+    pwmfan.set(142)
     assert "142" == pwm_path.read_text()
 
     pwm_path.write_text("132\n")
-    assert 132 == pwmfan_norm._get_raw()
+    assert 132 == pwmfan.get()
 
-    pwmfan_norm.set_full_speed()
+    pwmfan.set_full_speed()
     assert "255" == pwm_path.read_text()
 
     with pytest.raises(ValueError):
-        pwmfan_norm._set_raw(256)
+        pwmfan.set(256)
 
     with pytest.raises(ValueError):
-        pwmfan_norm._set_raw(-1)
+        pwmfan.set(-1)
 
 
 def test_get_set_pwmfan_norm(pwmfan_norm, pwm_path):

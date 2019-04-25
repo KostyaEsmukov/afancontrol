@@ -102,7 +102,7 @@ class Fans:
                 )
             else:
                 logger.debug("Fan: %s, speed: %s, pwm: %s", name, pwm_norm, pwm)
-                if PWMFanNorm.is_pwm_stopped(pwm):
+                if fan.is_pwm_stopped(pwm):
                     self._stopped_fans.add(name)
 
     def _ensure_fan_is_failing(self, name: FanName, get_speed_exc: Exception) -> None:

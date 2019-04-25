@@ -11,7 +11,13 @@ from afancontrol.fantest import (
     MeasurementsOutput,
     main,
 )
-from afancontrol.pwmfan import FanInputDevice, PWMDevice, PWMFan, PWMValue
+from afancontrol.pwmfan import (
+    BasePWMFan,
+    FanInputDevice,
+    LinuxPWMFan,
+    PWMDevice,
+    PWMValue,
+)
 
 
 def test_main():
@@ -19,6 +25,7 @@ def test_main():
         mocked_fantest = stack.enter_context(patch.object(fantest, "fantest"))
         mocked_read_stdin = stack.enter_context(patch.object(fantest, "read_stdin"))
         mocked_read_stdin.side_effect = [
+            "linux",
             "/sys/class/hwmon/hwmon0/device/pwm2",
             "/sys/class/hwmon/hwmon0/device/fan2_input",
             "human",
@@ -32,7 +39,7 @@ def test_main():
         args, kwargs = mocked_fantest.call_args
         assert not args
         assert kwargs.keys() == {"fan", "pwm_step_size", "output"}
-        assert kwargs["fan"] == PWMFan(
+        assert kwargs["fan"] == LinuxPWMFan(
             PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
             FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
         )
@@ -43,7 +50,9 @@ def test_main():
 @pytest.mark.parametrize("pwm_step_size", [5, -5])
 @pytest.mark.parametrize("output_cls", [HumanMeasurementsOutput, CSVMeasurementsOutput])
 def test_fantest(output_cls: Type[MeasurementsOutput], pwm_step_size: PWMValue):
-    mocked_fan = MagicMock(spec=PWMFan)
+    mocked_fan = MagicMock(spec=BasePWMFan)
+    mocked_fan.min_pwm = 0
+    mocked_fan.max_pwm = 255
     output = output_cls()
 
     with ExitStack() as stack:

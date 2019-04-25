@@ -4,6 +4,12 @@ from unittest.mock import Mock, call, patch
 import pytest
 
 from afancontrol import config
+from afancontrol.arduino import (
+    ArduinoConnection,
+    ArduinoPin,
+    ArduinoPWMFan,
+    pyserial_available,
+)
 from afancontrol.config import (
     Actions,
     AlertCommands,
@@ -18,7 +24,13 @@ from afancontrol.config import (
     TriggerConfig,
     parse_config,
 )
-from afancontrol.pwmfan import FanInputDevice, PWMDevice, PWMFanNorm, PWMValue
+from afancontrol.pwmfan import (
+    FanInputDevice,
+    LinuxPWMFan,
+    PWMDevice,
+    PWMFanNorm,
+    PWMValue,
+)
 from afancontrol.temp import FileTemp, HDDTemp, TempCelsius
 
 
@@ -40,6 +52,7 @@ def path_from_str(contents: str) -> Path:
     return p
 
 
+@pytest.mark.skipif(not pyserial_available, reason="pyserial is not installed")
 def test_example_conf(example_conf: Path, mock_hddtemp_version):
     daemon_cli_config = DaemonCLIConfig(
         pidfile=None, logfile=None, exporter_listen_host=None
@@ -76,18 +89,34 @@ def test_example_conf(example_conf: Path, mock_hddtemp_version):
         ),
         fans={
             FanName("cpu"): PWMFanNorm(
-                PWMDevice("/sys/class/hwmon/hwmon0/device/pwm1"),
-                FanInputDevice("/sys/class/hwmon/hwmon0/device/fan1_input"),
+                LinuxPWMFan(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm1"),
+                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan1_input"),
+                ),
                 pwm_line_start=PWMValue(100),
                 pwm_line_end=PWMValue(240),
                 never_stop=True,
             ),
             FanName("hdd"): PWMFanNorm(
-                PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
-                FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
+                LinuxPWMFan(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
+                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
+                ),
                 pwm_line_start=PWMValue(100),
                 pwm_line_end=PWMValue(240),
                 never_stop=False,
+            ),
+            FanName("my_arduino_fan"): PWMFanNorm(
+                ArduinoPWMFan(
+                    ArduinoConnection(
+                        "/dev/cu.usbmodem14201", baudrate=115200, status_ttl=5
+                    ),
+                    pwm_pin=ArduinoPin(9),
+                    tacho_pin=ArduinoPin(3),
+                ),
+                pwm_line_start=PWMValue(100),
+                pwm_line_end=PWMValue(240),
+                never_stop=True,
             ),
         },
         temps={
@@ -113,6 +142,7 @@ def test_example_conf(example_conf: Path, mock_hddtemp_version):
                 fans=[
                     FanSpeedModifier(fan=FanName("cpu"), modifier=1.0),
                     FanSpeedModifier(fan=FanName("hdd"), modifier=0.6),
+                    FanSpeedModifier(fan=FanName("my_arduino_fan"), modifier=1.0),
                 ],
             ),
             MappingName("2"): FansTempsRelation(
@@ -172,8 +202,10 @@ temps = mobo
         ),
         fans={
             FanName("case"): PWMFanNorm(
-                PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
-                FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
+                LinuxPWMFan(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
+                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
+                ),
                 pwm_line_start=PWMValue(100),
                 pwm_line_end=PWMValue(240),
                 never_stop=True,

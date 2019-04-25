@@ -11,8 +11,23 @@ from typing import (
     TypeVar,
 )
 
+from afancontrol.arduino import (
+    DEFAULT_BAUDRATE,
+    DEFAULT_STATUS_TTL,
+    ArduinoConnection,
+    ArduinoName,
+    ArduinoPin,
+    ArduinoPWMFan,
+)
 from afancontrol.exec import exec_shell_command
-from afancontrol.pwmfan import FanInputDevice, PWMDevice, PWMFanNorm, PWMValue
+from afancontrol.pwmfan import (
+    BasePWMFan,
+    FanInputDevice,
+    LinuxPWMFan,
+    PWMDevice,
+    PWMFanNorm,
+    PWMValue,
+)
 from afancontrol.temp import CommandTemp, FileTemp, HDDTemp, Temp, TempCelsius
 
 DEFAULT_CONFIG = "/etc/afancontrol/afancontrol.conf"
@@ -26,6 +41,7 @@ DEFAULT_REPORT_CMD = (
     " | sendmail -t"
 )
 
+DEFAULT_FAN_TYPE = "linux"
 DEFAULT_PWM_LINE_START = 100
 DEFAULT_PWM_LINE_END = 240
 
@@ -139,8 +155,9 @@ def parse_config(config_path: Path, daemon_cli_config: DaemonCLIConfig) -> Parse
 
     daemon, hddtemp = _parse_daemon(config, daemon_cli_config)
     report_cmd, global_commands = _parse_actions(config)
+    arduino_connections = _parse_arduino_connections(config)
     temps, temp_commands = _parse_temps(config, hddtemp)
-    fans = _parse_fans(config)
+    fans = _parse_fans(config, arduino_connections)
     mappings = _parse_mappings(config, fans, temps)
 
     return ParsedConfig(
@@ -240,6 +257,45 @@ def _parse_actions(config: configparser.ConfigParser) -> Tuple[str, Actions]:
     return report_cmd, Actions(panic=panic, threshold=threshold)
 
 
+def _parse_arduino_connections(
+    config: configparser.ConfigParser
+) -> Mapping[ArduinoName, ArduinoConnection]:
+    arduino_connections = {}  # type: Dict[ArduinoName, ArduinoConnection]
+    for section_name in config.sections():
+        section_name_parts = section_name.split(":", 1)
+
+        if section_name_parts[0].strip().lower() != "arduino":
+            continue
+
+        arduino_name = ArduinoName(section_name_parts[1].strip())
+        arduino = config[section_name]
+        keys = set(arduino.keys())
+
+        serial_url = arduino["serial_url"]
+        keys.discard("serial_url")
+
+        baudrate = arduino.getint("baudrate", fallback=DEFAULT_BAUDRATE)
+        keys.discard("baudrate")
+        status_ttl = arduino.getint("status_ttl", fallback=DEFAULT_STATUS_TTL)
+        keys.discard("status_ttl")
+
+        if keys:
+            raise RuntimeError(
+                "Unknown options in the [%s] section: %s" % (section_name, keys)
+            )
+
+        if arduino_name in arduino_connections:
+            raise RuntimeError(
+                "Duplicate arduino section declaration for '%s'" % arduino_name
+            )
+        arduino_connections[arduino_name] = ArduinoConnection(
+            serial_url=serial_url, baudrate=baudrate, status_ttl=status_ttl
+        )
+
+    # Empty arduino_connections is ok
+    return arduino_connections
+
+
 def _parse_temps(
     config: configparser.ConfigParser, hddtemp: str
 ) -> Tuple[Mapping[TempName, Temp], Mapping[TempName, Actions]]:
@@ -330,7 +386,10 @@ def _parse_temps(
     return temps, temp_commands
 
 
-def _parse_fans(config: configparser.ConfigParser) -> Mapping[FanName, PWMFanNorm]:
+def _parse_fans(
+    config: configparser.ConfigParser,
+    arduino_connections: Mapping[ArduinoName, ArduinoConnection],
+) -> Mapping[FanName, PWMFanNorm]:
     fans = {}  # type: Dict[FanName, PWMFanNorm]
     for section_name in config.sections():
         section_name_parts = section_name.split(":", 1)
@@ -341,6 +400,36 @@ def _parse_fans(config: configparser.ConfigParser) -> Mapping[FanName, PWMFanNor
         fan_name = FanName(section_name_parts[1].strip())
         fan = config[section_name]
         keys = set(fan.keys())
+
+        fan_type = fan.get("type", fallback=DEFAULT_FAN_TYPE)
+        keys.discard("type")
+
+        if fan_type == "linux":
+            pwm = PWMDevice(fan["pwm"])
+            fan_input = FanInputDevice(fan["fan_input"])
+            keys.discard("pwm")
+            keys.discard("fan_input")
+
+            pwmfan = LinuxPWMFan(pwm=pwm, fan_input=fan_input)  # type: BasePWMFan
+        elif fan_type == "arduino":
+            arduino_name = ArduinoName(fan["arduino_name"])
+            keys.discard("arduino_name")
+            pwm_pin = ArduinoPin(fan.getint("pwm_pin"))
+            keys.discard("pwm_pin")
+            tacho_pin = ArduinoPin(fan.getint("tacho_pin"))
+            keys.discard("tacho_pin")
+
+            if arduino_name not in arduino_connections:
+                raise ValueError("[arduino:%s] section is missing" % arduino_name)
+
+            pwmfan = ArduinoPWMFan(
+                arduino_connections[arduino_name], pwm_pin=pwm_pin, tacho_pin=tacho_pin
+            )
+        else:
+            raise ValueError(
+                "Unsupported FAN type %s. Supported ones are "
+                "`linux` and `arduino`." % fan_type
+            )
 
         never_stop = fan.getboolean("never_stop", fallback=DEFAULT_NEVER_STOP)
         keys.discard("never_stop")
@@ -356,21 +445,16 @@ def _parse_fans(config: configparser.ConfigParser) -> Mapping[FanName, PWMFanNor
         keys.discard("pwm_line_end")
 
         for pwm_value in (pwm_line_start, pwm_line_end):
-            if not (PWMFanNorm.min_pwm <= pwm_value <= PWMFanNorm.max_pwm):
+            if not (pwmfan.min_pwm <= pwm_value <= pwmfan.max_pwm):
                 raise RuntimeError(
                     "Incorrect PWM value '%s' for fan '%s': it must be within [%s;%s]"
-                    % (pwm_value, fan_name, PWMFanNorm.min_pwm, PWMFanNorm.max_pwm)
+                    % (pwm_value, fan_name, pwmfan.min_pwm, pwmfan.max_pwm)
                 )
         if pwm_line_start >= pwm_line_end:
             raise RuntimeError(
                 "`pwm_line_start` PWM value must be less than `pwm_line_end` for fan '%s'"
                 % (fan_name,)
             )
-
-        pwm = PWMDevice(fan["pwm"])
-        fan_input = FanInputDevice(fan["fan_input"])
-        keys.discard("pwm")
-        keys.discard("fan_input")
 
         if keys:
             raise RuntimeError(
@@ -380,8 +464,7 @@ def _parse_fans(config: configparser.ConfigParser) -> Mapping[FanName, PWMFanNor
         if fan_name in fans:
             raise RuntimeError("Duplicate fan section declaration for '%s'" % fan_name)
         fans[fan_name] = PWMFanNorm(
-            pwm=pwm,
-            fan_input=fan_input,
+            pwmfan,
             pwm_line_start=pwm_line_start,
             pwm_line_end=pwm_line_end,
             never_stop=never_stop,

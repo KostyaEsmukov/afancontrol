@@ -3,7 +3,20 @@ import sys
 from time import sleep
 from typing import Iterable, Optional
 
-from afancontrol.pwmfan import FanInputDevice, FanValue, PWMDevice, PWMFan, PWMValue
+from afancontrol.arduino import (
+    DEFAULT_BAUDRATE,
+    ArduinoConnection,
+    ArduinoPin,
+    ArduinoPWMFan,
+)
+from afancontrol.pwmfan import (
+    BasePWMFan,
+    FanInputDevice,
+    FanValue,
+    LinuxPWMFan,
+    PWMDevice,
+    PWMValue,
+)
 
 # Time to wait before measuring fan speed after setting a PWM value.
 STEP_INTERVAL_SECONDS = 2
@@ -40,8 +53,32 @@ controlling the fan you're going to test.
 """
     )
     try:
-        pwm = read_stdin("PWM file of the fan")
-        fan_input = read_stdin("fan_input file of the fan")
+        fan_type = read_stdin("FAN type", ["linux", "arduino"], "linux")
+        if fan_type == "linux":
+            pwm = read_stdin("PWM file of the fan")
+            fan_input = read_stdin("fan_input file of the fan")
+
+            fan = LinuxPWMFan(
+                pwm=PWMDevice(pwm), fan_input=FanInputDevice(fan_input)
+            )  # type: BasePWMFan
+        elif fan_type == "arduino":
+            serial_url = read_stdin("URL for the Arduino's COM port")
+            baudrate = int(read_stdin("Baudrate", None, str(DEFAULT_BAUDRATE)))
+            pwm_pin = ArduinoPin(int(read_stdin("FAN PWM pin on the Arduino board")))
+            tacho_pin = ArduinoPin(
+                int(read_stdin("FAN Tachometer pin on the Arduino board"))
+            )
+
+            arduino_connection = ArduinoConnection(
+                serial_url=serial_url, baudrate=int(baudrate)
+            )
+            fan = ArduinoPWMFan(
+                arduino_connection, pwm_pin=pwm_pin, tacho_pin=tacho_pin
+            )
+        else:
+            raise AssertionError(
+                "unreachable if the `fan_type`'s allowed `values` are in sync"
+            )
 
         print(
             """
@@ -82,8 +119,6 @@ faster.
             pwm_step_size = PWMValue(
                 pwm_step_size * -1  # a bad PWM value, to be honest
             )
-
-        fan = PWMFan(pwm=PWMDevice(pwm), fan_input=FanInputDevice(fan_input))
     except KeyboardInterrupt:
         print("")
         sys.exit(EXIT_CODE_CTRL_C)
@@ -95,10 +130,12 @@ faster.
         sys.exit(EXIT_CODE_CTRL_C)
 
 
-def fantest(fan: PWMFan, pwm_step_size: PWMValue, output: "MeasurementsOutput") -> None:
+def fantest(
+    fan: BasePWMFan, pwm_step_size: PWMValue, output: "MeasurementsOutput"
+) -> None:
     with fan:
-        start = PWMFan.min_pwm
-        stop = PWMFan.max_pwm
+        start = fan.min_pwm
+        stop = fan.max_pwm
         if pwm_step_size > 0:
             print("Testing increase with step %s" % pwm_step_size)
             print("Waiting %s seconds for fan to stop..." % FAN_RESET_INTERVAL_SECONDS)
