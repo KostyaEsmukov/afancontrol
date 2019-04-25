@@ -27,7 +27,7 @@ class Trigger(abc.ABC):
     def trigger_name(self):
         pass
 
-    def __enter__(self):  # reentrant
+    def __enter__(self):  # reusable
         assert not self._alerting_temps
         self._alerting_temps.clear()
         return self
@@ -186,7 +186,7 @@ class Triggers:
         )
         self._stack = None
 
-    def __enter__(self):  # reentrant
+    def __enter__(self):  # reusable
         self._stack = ExitStack()
         try:
             self._stack.enter_context(self.panic_trigger)

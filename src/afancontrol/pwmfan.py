@@ -40,7 +40,7 @@ class BasePWMFan(abc.ABC):
     def set_full_speed(self) -> None:
         self._set_raw(BasePWMFan.max_pwm)
 
-    def __enter__(self):  # reentrant
+    def __enter__(self):  # reusable
         """Enable PWM control for this fan"""
         # fancontrol way of doing it
         if self._pwm_enable.is_file():

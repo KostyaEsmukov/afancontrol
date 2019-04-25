@@ -40,7 +40,7 @@ class Fans:
     def is_fan_stopped(self, fan_name: FanName) -> bool:
         return fan_name in self._stopped_fans
 
-    def __enter__(self):  # reentrant
+    def __enter__(self):  # reusable
         self._stack = ExitStack()
         logger.info("Enabling PWM on fans...")
         try:

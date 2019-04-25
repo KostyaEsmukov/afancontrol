@@ -40,7 +40,7 @@ class Manager:
         self.metrics = metrics
         self._stack = None
 
-    def __enter__(self):  # reentrant
+    def __enter__(self):  # reusable
         self._stack = ExitStack()
         try:
             self._stack.enter_context(self.fans)
