@@ -91,49 +91,49 @@ class PrometheusMetrics(Metrics):
         # Temps:
         self.temperature_is_failing = prom.Gauge(
             "temperature_is_failing",
-            "The temperature sensor is failing (it isn't returning data)",
+            "The temperature sensor is failing (it isn't returning any data)",
             ["temp_name"],
             registry=self.registry,
         )
         self.temperature_current = prom.Gauge(
             "temperature_current",
-            "The current temperature value (in celsius) from a `temp` sensor",
+            "The current temperature value (in Celsius) from a temperature sensor",
             ["temp_name"],
             registry=self.registry,
         )
         self.temperature_min = prom.Gauge(
             "temperature_min",
-            "The min temperature value (in celsius) for a `temp` sensor",
+            "The min temperature value (in Celsius) for a temperature sensor",
             ["temp_name"],
             registry=self.registry,
         )
         self.temperature_max = prom.Gauge(
             "temperature_max",
-            "The max temperature value (in celsius) for a `temp` sensor",
+            "The max temperature value (in Celsius) for a temperature sensor",
             ["temp_name"],
             registry=self.registry,
         )
         self.temperature_panic = prom.Gauge(
             "temperature_panic",
-            "The panic temperature value (in celsius) for a `temp` sensor",
+            "The panic temperature value (in Celsius) for a temperature sensor",
             ["temp_name"],
             registry=self.registry,
         )
         self.temperature_threshold = prom.Gauge(
             "temperature_threshold",
-            "The panic temperature value (in celsius) for a `temp` sensor",
+            "The threshold temperature value (in Celsius) for a temperature sensor",
             ["temp_name"],
             registry=self.registry,
         )
         self.temperature_is_panic = prom.Gauge(
             "temperature_is_panic",
-            "Is panic temperature reached for a `temp` sensor",
+            "Is panic temperature reached for a temperature sensor",
             ["temp_name"],
             registry=self.registry,
         )
         self.temperature_is_threshold = prom.Gauge(
             "temperature_is_threshold",
-            "Is threshold temperature reached for a `temp` sensor",
+            "Is threshold temperature reached for a temperature sensor",
             ["temp_name"],
             registry=self.registry,
         )
@@ -141,19 +141,19 @@ class PrometheusMetrics(Metrics):
         # Fans:
         self.fan_rpm = prom.Gauge(
             "fan_rpm",
-            "Fan speed (RPM) as reported by the fan",
+            "Fan speed (in RPM) as reported by the fan",
             ["fan_name"],
             registry=self.registry,
         )
         self.fan_pwm = prom.Gauge(
             "fan_pwm",
-            "Current fan PWM value (from 0 to 255)",
+            "Current fan's PWM value (from 0 to 255)",
             ["fan_name"],
             registry=self.registry,
         )
         self.fan_pwm_normalized = prom.Gauge(
             "fan_pwm_normalized",
-            "Current fan normalized PWM value (from 0.0 to 1.0, within "
+            "Current fan's normalized PWM value (from 0.0 to 1.0, within "
             "the `fan_pwm_line_start` and `fan_pwm_line_end` interval)",
             ["fan_name"],
             registry=self.registry,
@@ -172,14 +172,14 @@ class PrometheusMetrics(Metrics):
         )
         self.fan_is_stopped = prom.Gauge(
             "fan_is_stopped",
-            "PWM fan has been stopped because the corresponding temperatures "
+            "Is PWM fan stopped because the corresponding temperatures "
             "are already low",
             ["fan_name"],
             registry=self.registry,
         )
         self.fan_is_failing = prom.Gauge(
             "fan_is_failing",
-            "PWM fan has been marked as failing (e.g. because if jammed)",
+            "Is PWM fan marked as failing (e.g. because it has jammed)",
             ["fan_name"],
             registry=self.registry,
         )
@@ -193,7 +193,8 @@ class PrometheusMetrics(Metrics):
         )
         self.arduino_status_age_seconds = prom.Gauge(
             "arduino_status_age_seconds",
-            "Seconds since last `status` message from the Arduino board at last tick",
+            "Seconds since the last `status` message from "
+            "the Arduino board (measured at the latest tick)",
             ["arduino_name"],
             registry=self.registry,
         )
