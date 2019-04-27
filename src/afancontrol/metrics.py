@@ -145,6 +145,13 @@ class PrometheusMetrics(Metrics):
             ["fan_name"],
             registry=self.registry,
         )
+        self.fan_pwm_normalized = prom.Gauge(
+            "fan_pwm_normalized",
+            "Current fan normalized PWM value (from 0.0 to 1.0, within "
+            "the `fan_pwm_line_start` and `fan_pwm_line_end` interval)",
+            ["fan_name"],
+            registry=self.registry,
+        )
         self.fan_pwm_line_start = prom.Gauge(
             "fan_pwm_line_start",
             "PWM value where a linear correlation with RPM starts for the fan",
@@ -253,12 +260,14 @@ class PrometheusMetrics(Metrics):
         try:
             self.fan_rpm.labels(fan_name).set(pwm_fan_norm.get_speed())
             self.fan_pwm.labels(fan_name).set(pwm_fan_norm.get_raw())
+            self.fan_pwm_normalized.labels(fan_name).set(pwm_fan_norm.get())
         except Exception:
             logger.warning(
                 "Failed to collect metrics for fan %s", fan_name, exc_info=True
             )
             self.fan_rpm.labels(fan_name).set(none_to_nan(None))
             self.fan_pwm.labels(fan_name).set(none_to_nan(None))
+            self.fan_pwm_normalized.labels(fan_name).set(none_to_nan(None))
 
 
 def none_to_nan(v: Optional[float]) -> float:

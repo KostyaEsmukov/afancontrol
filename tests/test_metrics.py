@@ -44,6 +44,8 @@ def test_prometheus_metrics():
         mocked_fan.pwm_line_end = 240
         mocked_fan.get_speed.return_value = 999
         mocked_fan.get_raw.return_value = 142
+        mocked_fan.get = PWMFanNorm.get.__get__(mocked_fan)  # type: ignore
+        mocked_fan._pwmfan.max_pwm = 255
 
         metrics.tick(
             temps={
@@ -70,6 +72,7 @@ def test_prometheus_metrics():
         assert 'temperature_is_failing{temp_name="goodtemp"} 0.0' in resp.text
         assert 'fan_rpm{fan_name="test"} 999.0' in resp.text
         assert 'fan_pwm{fan_name="test"} 142.0' in resp.text
+        assert 'fan_pwm_normalized{fan_name="test"} 0.556' in resp.text
         assert 'fan_is_failing{fan_name="test"} 0.0' in resp.text
         assert "is_panic 1.0" in resp.text
         assert "is_threshold 0.0" in resp.text
@@ -111,6 +114,7 @@ def test_prometheus_faulty_fans_dont_break_metrics_collection():
         assert 'fan_pwm_line_end{fan_name="test"} 240.0' in resp.text
         assert 'fan_rpm{fan_name="test"} NaN' in resp.text
         assert 'fan_pwm{fan_name="test"} NaN' in resp.text
+        assert 'fan_pwm_normalized{fan_name="test"} NaN' in resp.text
         assert 'fan_is_failing{fan_name="test"} 0.0' in resp.text
         assert "is_panic 0.0" in resp.text
         assert "is_threshold 0.0" in resp.text

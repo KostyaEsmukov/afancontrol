@@ -190,7 +190,7 @@ class PWMFanNorm:
         return self._pwmfan.get()
 
     def get(self) -> PWMValueNorm:
-        return PWMValueNorm(self.get_raw() / type(self._pwmfan).max_pwm)
+        return PWMValueNorm(self.get_raw() / self._pwmfan.max_pwm)
 
     def set(self, pwm_norm: PWMValueNorm) -> PWMValue:
         # TODO validate this formula
