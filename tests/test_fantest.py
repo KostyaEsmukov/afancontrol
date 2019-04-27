@@ -3,6 +3,7 @@ from typing import Type
 from unittest.mock import MagicMock, patch
 
 import pytest
+from click.testing import CliRunner
 
 from afancontrol import fantest
 from afancontrol.fantest import (
@@ -20,19 +21,38 @@ from afancontrol.pwmfan import (
 )
 
 
-def test_main():
+def test_main(temp_path):
+    pwm_path = temp_path / "pwm2"
+    pwm_path.write_text("")
+    fan_input_path = temp_path / "fan2_input"
+    fan_input_path.write_text("")
+
     with ExitStack() as stack:
         mocked_fantest = stack.enter_context(patch.object(fantest, "fantest"))
-        mocked_read_stdin = stack.enter_context(patch.object(fantest, "read_stdin"))
-        mocked_read_stdin.side_effect = [
-            "linux",
-            "/sys/class/hwmon/hwmon0/device/pwm2",
-            "/sys/class/hwmon/hwmon0/device/fan2_input",
-            "human",
-            "increase",
-            "accurate",
-        ]
-        main()
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            [
+                "--fan-type",
+                "linux",
+                "--linux-fan-pwm",
+                # "/sys/class/hwmon/hwmon0/device/pwm2",
+                str(pwm_path),  # click verifies that this file exists
+                "--linux-fan-input",
+                # "/sys/class/hwmon/hwmon0/device/fan2_input",
+                str(fan_input_path),  # click verifies that this file exists
+                "--output-format",
+                "human",
+                "--direction",
+                "increase",
+                "--pwm-step-size",
+                "accurate",
+            ],
+        )
+
+        print(result.output)
+        assert result.exit_code == 0
 
         assert mocked_fantest.call_count == 1
 
@@ -40,8 +60,7 @@ def test_main():
         assert not args
         assert kwargs.keys() == {"fan", "pwm_step_size", "output"}
         assert kwargs["fan"] == LinuxPWMFan(
-            PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
-            FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
+            PWMDevice(str(pwm_path)), FanInputDevice(str(fan_input_path))
         )
         assert kwargs["pwm_step_size"] == 5
         assert isinstance(kwargs["output"], HumanMeasurementsOutput)

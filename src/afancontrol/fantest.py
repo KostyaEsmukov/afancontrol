@@ -1,7 +1,9 @@
 import abc
 import sys
 from time import sleep
-from typing import Iterable, Optional
+from typing import Optional
+
+import click
 
 from afancontrol.arduino import (
     DEFAULT_BAUDRATE,
@@ -28,10 +30,116 @@ FAN_RESET_INTERVAL_SECONDS = 7
 
 EXIT_CODE_CTRL_C = 130  # https://stackoverflow.com/a/1101969
 
+HELP_FAN_TYPE = (
+    "Linux -- a standard PWM fan connected to a motherboard; "
+    "Arduino -- a PWM fan connected to an Arduino board."
+)
 
-def main():
-    print(
-        """afancontrol_fantest
+HELP_LINUX_PWM_FILE = (
+    "PWM file for a Linux PWM fan, e.g. `/sys/class/hwmon/hwmon0/device/pwm2`."
+)
+HELP_LINUX_FAN_INPUT_FILE = (
+    "Fan input (tachometer) file for a Linux PWM fan, "
+    "e.g. `/sys/class/hwmon/hwmon0/device/fan2_input`."
+)
+
+HELP_ARDUINO_SERIAL_URL = "URL for the Arduino's Serial port"
+HELP_ARDUINO_BAUDRATE = "Arduino Serial connection baudrate"
+HELP_ARDUINO_PWM_PIN = (
+    "Arduino Board pin where the target fan's PWM wire is connected to."
+)
+HELP_ARDUINO_TACHO_PIN = (
+    "Arduino Board pin where the target fan's tachometer wire is connected to."
+)
+
+HELP_OUTPUT_FORMAT = (
+    "Output format for the measurements. `csv` data could be used "
+    "to make a plot using a spreadsheet program like MS Excel."
+)
+HELP_TEST_DIRECTION = (
+    "The default test is to stop the fan and then gracefully increase its speed. "
+    "You might want to reverse it, i.e. run the fan at full speed and then start "
+    "decreasing the speed. This would allow you to test the fan without fully "
+    "stopping it, if you abort the test with Ctrl+C when the speed becomes too low."
+)
+HELP_PWM_STEP_SIZE = (
+    "A single step size for the PWM value. `accurate` equals to 5 and provides "
+    "more accurate results, but is a slower option. `fast` equals to 25 and completes "
+    "faster."
+)
+
+
+@click.command()
+@click.option(
+    "--fan-type",
+    help="FAN type. %s" % HELP_FAN_TYPE,
+    default="linux",
+    type=click.Choice(["linux", "arduino"]),
+    prompt="\n%s\nFAN type (linux, arduino)" % HELP_FAN_TYPE,
+    # `show_choices` is supported since click 7.0
+    show_default=True,
+)
+@click.option(
+    "--linux-fan-pwm",
+    help=HELP_LINUX_PWM_FILE,
+    type=click.Path(exists=True, dir_okay=False),
+)
+@click.option(
+    "--linux-fan-input",
+    help=HELP_LINUX_FAN_INPUT_FILE,
+    type=click.Path(exists=True, dir_okay=False),
+)
+@click.option("--arduino-serial-url", help=HELP_ARDUINO_SERIAL_URL, type=str)
+@click.option(
+    "--arduino-baudrate",
+    help=HELP_ARDUINO_BAUDRATE,
+    type=int,
+    default=DEFAULT_BAUDRATE,
+    show_default=True,
+)
+@click.option("--arduino-pwm-pin", help=HELP_ARDUINO_PWM_PIN, type=int)
+@click.option("--arduino-tacho-pin", help=HELP_ARDUINO_TACHO_PIN, type=int)
+@click.option(
+    "-f",
+    "--output-format",
+    help=HELP_OUTPUT_FORMAT,
+    default="human",
+    type=click.Choice(["human", "csv"]),
+    prompt="\n%s\nOutput format (human, csv)" % HELP_OUTPUT_FORMAT,
+    show_default=True,
+)
+@click.option(
+    "-d",
+    "--direction",
+    help=HELP_TEST_DIRECTION,
+    default="increase",
+    type=click.Choice(["increase", "decrease"]),
+    prompt="\n%s\nTest direction (increase decrease)" % HELP_TEST_DIRECTION,
+    show_default=True,
+)
+@click.option(
+    "-s",
+    "--pwm-step-size",
+    help=HELP_PWM_STEP_SIZE,
+    default="accurate",
+    type=click.Choice(["accurate", "fast"]),
+    prompt="\n%s\nPWM step size (accurate fast)" % HELP_PWM_STEP_SIZE,
+    show_default=True,
+)
+def main(
+    *,
+    fan_type: str,
+    linux_fan_pwm: Optional[str],
+    linux_fan_input: Optional[str],
+    arduino_serial_url: Optional[str],
+    arduino_baudrate: int,
+    arduino_pwm_pin: Optional[int],
+    arduino_tacho_pin: Optional[int],
+    output_format: str,
+    direction: str,
+    pwm_step_size: str
+) -> None:
+    """afancontrol_fantest
 
 This program tests how changing the PWM value of a fan affects its speed.
 
@@ -52,84 +160,87 @@ Before starting the test ensure that no fan control software is currently
 controlling the fan you're going to test.
 
 """
-    )
     try:
-        fan_type = read_stdin("FAN type", ["linux", "arduino"], "linux")
         if fan_type == "linux":
-            pwm = read_stdin("PWM file of the fan")
-            fan_input = read_stdin("fan_input file of the fan")
+            if not linux_fan_pwm:
+                linux_fan_pwm = click.prompt(
+                    "\n%s\nPWM file" % HELP_LINUX_PWM_FILE,
+                    type=click.Path(exists=True, dir_okay=False),
+                )
 
+            if not linux_fan_input:
+                linux_fan_input = click.prompt(
+                    "\n%s\nFan input file" % HELP_LINUX_FAN_INPUT_FILE,
+                    type=click.Path(exists=True, dir_okay=False),
+                )
+
+            assert linux_fan_pwm is not None
+            assert linux_fan_input is not None
             fan = LinuxPWMFan(
-                pwm=PWMDevice(pwm), fan_input=FanInputDevice(fan_input)
+                pwm=PWMDevice(linux_fan_pwm), fan_input=FanInputDevice(linux_fan_input)
             )  # type: BasePWMFan
         elif fan_type == "arduino":
-            serial_url = read_stdin("URL for the Arduino's COM port")
-            baudrate = int(read_stdin("Baudrate", None, str(DEFAULT_BAUDRATE)))
-            pwm_pin = ArduinoPin(int(read_stdin("FAN PWM pin on the Arduino board")))
-            tacho_pin = ArduinoPin(
-                int(read_stdin("FAN Tachometer pin on the Arduino board"))
-            )
+            if not arduino_serial_url:
+                arduino_serial_url = click.prompt(
+                    "\n%s\nArduino Serial url" % HELP_ARDUINO_SERIAL_URL, type=str
+                )
 
+                # typeshed currently specifies `Optional[str]` for `default`,
+                # see https://github.com/python/typeshed/blob/5acc22d82aa01005ea47ef64f31cad7e16e78450/third_party/2and3/click/termui.pyi#L34  # noqa
+                # however the click docs say that `default` can be of any type,
+                # see https://click.palletsprojects.com/en/7.x/prompts/#input-prompts
+                # Hence the `type: ignore`.
+                arduino_baudrate = click.prompt(  # type: ignore
+                    "\n%s\nBaudrate" % HELP_ARDUINO_BAUDRATE,
+                    type=int,
+                    default=arduino_baudrate,
+                    show_default=True,
+                )
+            if not arduino_pwm_pin:
+                arduino_pwm_pin = click.prompt(
+                    "\n%s\nArduino PWM pin" % HELP_ARDUINO_PWM_PIN, type=int
+                )
+            if not arduino_tacho_pin:
+                arduino_tacho_pin = click.prompt(
+                    "\n%s\nArduino Tachometer pin" % HELP_ARDUINO_TACHO_PIN, type=int
+                )
+
+            assert arduino_serial_url is not None
             arduino_connection = ArduinoConnection(
                 name=ArduinoName("_fantest"),
-                serial_url=serial_url,
-                baudrate=int(baudrate),
+                serial_url=arduino_serial_url,
+                baudrate=arduino_baudrate,
             )
+            assert arduino_pwm_pin is not None
+            assert arduino_tacho_pin is not None
             fan = ArduinoPWMFan(
-                arduino_connection, pwm_pin=pwm_pin, tacho_pin=tacho_pin
+                arduino_connection,
+                pwm_pin=ArduinoPin(arduino_pwm_pin),
+                tacho_pin=ArduinoPin(arduino_tacho_pin),
             )
         else:
             raise AssertionError(
                 "unreachable if the `fan_type`'s allowed `values` are in sync"
             )
 
-        print(
-            """
-Select an output format for the measurements.
-
-`csv` data could be used to make a plot using something like MS Excel.
-"""
-        )
-        out_format = read_stdin("Output format", ["human", "csv"], "human")
-        output = dict(human=HumanMeasurementsOutput(), csv=CSVMeasurementsOutput())[
-            out_format
+        output = {"human": HumanMeasurementsOutput(), "csv": CSVMeasurementsOutput()}[
+            output_format
         ]
-
-        print(
-            """
-The default test is to stop the fan and then gracefully increase its speed.
-You might want to reverse it, i.e. run the fan at full and then start
-decreasing the speed. This would allow you to test the fan without fully
-stopping it, if you abort the test with Ctrl+C when the speed becomes too low.
-"""
-        )
-        direction = read_stdin("Test direction? ", ["increase", "decrease"], "increase")
-
-        print(
-            """
-Choose a single step size for the PWM value. `accurate` equals 5 and provides
-more accurate results, but is a slower options. `fast` equals 25 and completes
-faster.
-"""
-        )
-        pwm_step_size_alias = read_stdin(
-            "PWM %s step size" % direction, ["accurate", "fast"], "accurate"
-        )
-        pwm_step_size = dict(accurate=PWMValue(5), fast=PWMValue(25))[
-            pwm_step_size_alias
+        pwm_step_size_value = {"accurate": PWMValue(5), "fast": PWMValue(25)}[
+            pwm_step_size
         ]
         if direction == "decrease":
-            pwm_step_size = PWMValue(
-                pwm_step_size * -1  # a bad PWM value, to be honest
+            pwm_step_size_value = PWMValue(
+                pwm_step_size_value * -1  # a bad PWM value, to be honest
             )
     except KeyboardInterrupt:
-        print("")
+        click.echo("")
         sys.exit(EXIT_CODE_CTRL_C)
 
     try:
-        fantest(fan=fan, pwm_step_size=pwm_step_size, output=output)
+        fantest(fan=fan, pwm_step_size=pwm_step_size_value, output=output)
     except KeyboardInterrupt:
-        print("Fan has been returned to full speed")
+        click.echo("Fan has been returned to full speed")
         sys.exit(EXIT_CODE_CTRL_C)
 
 
@@ -209,40 +320,6 @@ class CSVMeasurementsOutput(MeasurementsOutput):
         self, pwm: PWMValue, rpm: FanValue, rpm_delta: Optional[FanValue]
     ) -> str:
         return "%s;%s;%s" % (pwm, rpm, rpm_delta if rpm_delta is not None else "")
-
-
-def read_stdin(
-    prompt: str, values: Optional[Iterable[str]] = None, default: Optional[str] = None
-) -> str:
-    if values is None:
-        v = ""
-    else:
-        v = " (%s)" % ", ".join(values)
-
-    if default is None:
-        d = ""
-    else:
-        d = " [%s]" % default
-
-    p = "%s%s%s: " % (prompt, v, d)
-
-    while True:
-        r = input(p)
-        r = r.strip()
-
-        if not r:
-            if default is not None:
-                r = default
-            else:
-                continue
-
-        if values is None:
-            break
-        else:
-            if r in values:
-                break
-
-    return r
 
 
 if __name__ == "__main__":
