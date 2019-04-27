@@ -191,8 +191,14 @@ class PrometheusMetrics(Metrics):
             "is_threshold", "Is in threshold mode", registry=self.registry
         )
 
-        self.tick_duration = prom.Summary(
-            "tick_duration", "Duration of a single tick", registry=self.registry
+        self.tick_duration = prom.Histogram(
+            # Summary would have been better there, but prometheus_client
+            # doesn't yet support quantiles in Summaries.
+            # See: https://github.com/prometheus/client_python/issues/92
+            "tick_duration",
+            "Duration of a single tick",
+            buckets=(0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 10.0, float("inf")),
+            registry=self.registry,
         )
         last_metrics_tick_seconds_ago = prom.Gauge(
             "last_metrics_tick_seconds_ago",
