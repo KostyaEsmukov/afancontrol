@@ -188,6 +188,8 @@ def _parse_daemon(
     pidfile = first_not_none(
         daemon_cli_config.pidfile, daemon.get("pidfile"), DEFAULT_PIDFILE
     )
+    if pidfile is not None and not pidfile.strip():
+        pidfile = None
     keys.discard("pidfile")
 
     logfile = first_not_none(daemon_cli_config.logfile, daemon.get("logfile"))
