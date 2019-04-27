@@ -1,4 +1,3 @@
-import argparse
 import logging
 import os
 import signal
@@ -8,6 +7,9 @@ from contextlib import ExitStack
 from pathlib import Path
 from typing import Optional
 
+import click
+
+import afancontrol
 from afancontrol.config import (
     DEFAULT_CONFIG,
     DEFAULT_PIDFILE,
@@ -20,72 +22,86 @@ from afancontrol.metrics import Metrics, NullMetrics, PrometheusMetrics
 from afancontrol.report import Report
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--test", help="test config", action="store_true")
-    parser.add_argument(
-        "-d", "--daemon", help="execute in daemon mode", action="store_true"
-    )
-    parser.add_argument(
-        "-v", "--verbose", help="increase output verbosity", action="store_true"
-    )
-    parser.add_argument(
-        "-c",
-        "--config",
-        help="config path [%s]" % DEFAULT_CONFIG,
-        default=DEFAULT_CONFIG,
-    )
-    parser.add_argument("--pidfile", help="pidfile path [%s]" % DEFAULT_PIDFILE)
-    parser.add_argument("--logfile", help="logfile path (disabled by default)")
-    parser.add_argument(
-        "--exporter-listen-host",
-        help=(
-            "prometheus exporter listen host, e.g. `127.0.0.1:8000` "
-            "(disabled by default)"
-        ),
-    )
-    return parser.parse_args()
+@click.command()
+@click.version_option(version=afancontrol.__version__)
+@click.option("-t", "--test", is_flag=True, help="Test config")
+@click.option("-d", "--daemon", is_flag=True, help="Daemonize the process after start")
+@click.option("-v", "--verbose", is_flag=True, help="Increase logging verbosity")
+@click.option(
+    "-c",
+    "--config",
+    help="Config path",
+    default=DEFAULT_CONFIG,
+    show_default=True,
+    type=click.Path(exists=True, dir_okay=False),
+)
+@click.option(
+    "--pidfile",
+    help="Pidfile path (default is %s)" % DEFAULT_PIDFILE,
+    # The default is set by the `config` module.
+    type=click.Path(exists=False),
+)
+@click.option(
+    "--logfile",
+    help="Logfile path (log to stdout by default)",
+    type=click.Path(exists=False),
+)
+@click.option(
+    "--exporter-listen-host",
+    help="Prometheus exporter listen host, e.g. `127.0.0.1:8000` (disabled by default)",
+    type=str,
+)
+def main(
+    *,
+    test: bool,
+    daemon: bool,
+    verbose: bool,
+    config: str,
+    pidfile: str,
+    logfile: str,
+    exporter_listen_host: str
+):
+    """afancontrol is an Advanced Fan Control program, which controls PWM
+    fans according to the current temperatures of the system components.
+    """
+    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
 
-
-def main():
-    args = parse_args()
-
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
-
-    config_path = Path(args.config)
+    config_path = Path(config)
     daemon_cli_config = DaemonCLIConfig(
-        pidfile=args.pidfile,
-        logfile=args.logfile,
-        exporter_listen_host=args.exporter_listen_host,
+        pidfile=pidfile, logfile=logfile, exporter_listen_host=exporter_listen_host
     )
-    config = parse_config(config_path, daemon_cli_config)
+    parsed_config = parse_config(config_path, daemon_cli_config)
 
-    if config.daemon.exporter_listen_host:
-        metrics = PrometheusMetrics(config.daemon.exporter_listen_host)  # type: Metrics
+    if parsed_config.daemon.exporter_listen_host:
+        metrics = PrometheusMetrics(
+            parsed_config.daemon.exporter_listen_host
+        )  # type: Metrics
     else:
         metrics = NullMetrics()
 
     manager = Manager(
-        fans=config.fans,
-        temps=config.temps,
-        mappings=config.mappings,
-        report=Report(report_command=config.report_cmd),
-        triggers_config=config.triggers,
+        fans=parsed_config.fans,
+        temps=parsed_config.temps,
+        mappings=parsed_config.mappings,
+        report=Report(report_command=parsed_config.report_cmd),
+        triggers_config=parsed_config.triggers,
         metrics=metrics,
     )
 
-    pidfile = None  # type: Optional[PidFile]
-    if config.daemon.pidfile is not None:
-        pidfile = PidFile(config.daemon.pidfile)
+    pidfile_instance = None  # type: Optional[PidFile]
+    if parsed_config.daemon.pidfile is not None:
+        pidfile_instance = PidFile(parsed_config.daemon.pidfile)
 
-    if args.test:
-        print("Config file '%s' if good" % config_path)
+    if test:
+        print("Config file '%s' is good" % config_path)
         return
 
-    if config.daemon.logfile:
+    if parsed_config.daemon.logfile:
         # Logging to file should not be configured when running in
         # the config test mode.
-        logging.getLogger().addHandler(logging.FileHandler(config.daemon.logfile))
+        logging.getLogger().addHandler(
+            logging.FileHandler(parsed_config.daemon.logfile)
+        )
 
     signals = Signals()
     signal.signal(signal.SIGTERM, signals.sigterm)
@@ -94,10 +110,10 @@ def main():
     signal.signal(signal.SIGHUP, signals.sigterm)
 
     with ExitStack() as stack:
-        if pidfile is not None:
-            stack.enter_context(pidfile)
+        if pidfile_instance is not None:
+            stack.enter_context(pidfile_instance)
             # Ensure that pidfile is writable before forking:
-            pidfile.save_pid(os.getpid())
+            pidfile_instance.save_pid(os.getpid())
 
         stack.enter_context(manager)
 
@@ -106,10 +122,10 @@ def main():
         # here.
         manager.tick()
 
-        if args.daemon:
-            daemonize(pidfile)
+        if daemon:
+            daemonize(pidfile_instance)
 
-        while not signals.wait_for_term_queued(config.daemon.interval):
+        while not signals.wait_for_term_queued(parsed_config.daemon.interval):
             manager.tick()
 
 

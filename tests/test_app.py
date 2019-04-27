@@ -1,8 +1,9 @@
 import threading
 from contextlib import ExitStack
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
+from click.testing import CliRunner
 
 from afancontrol import app
 from afancontrol.app import PidFile, Signals, main
@@ -41,24 +42,27 @@ temps = mobo
     )
 
     with ExitStack() as stack:
-        args = MagicMock()
-        args.test = False
-        args.daemon = False
-        args.verbose = True
-        args.config = str(config_path)
-        args.pidfile = str(temp_path / "afancontrol.pid")
-        args.logfile = str(temp_path / "afancontrol.log")
-        args.exporter_listen_host = None
-
-        stack.enter_context(patch.object(app, "parse_args", return_value=args))
         mocked_tick = stack.enter_context(patch.object(app.Manager, "tick"))
         stack.enter_context(patch.object(app, "signal"))
         stack.enter_context(
             patch.object(app.Signals, "wait_for_term_queued", return_value=True)
         )
 
-        main()
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            [
+                "--verbose",
+                "--config",
+                str(config_path),
+                "--pidfile",
+                str(temp_path / "afancontrol.pid"),
+                "--logfile",
+                str(temp_path / "afancontrol.log"),
+            ],
+        )
 
+        assert result.exit_code == 0
         assert mocked_tick.call_count == 1
 
 
