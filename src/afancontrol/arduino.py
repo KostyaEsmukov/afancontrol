@@ -6,7 +6,7 @@ from timeit import default_timer
 from typing import Any, Dict, NewType, Optional
 
 from afancontrol.logger import logger
-from afancontrol.pwmfan import BasePWMFan, FanValue, PWMValue
+from afancontrol.pwmfan import BasePWMFan, FanValue, PWMFanNorm, PWMValue
 
 try:
     from serial import serial_for_url
@@ -24,6 +24,16 @@ ArduinoPin = NewType("ArduinoPin", int)
 
 DEFAULT_BAUDRATE = 115200
 DEFAULT_STATUS_TTL = 5
+
+
+def arduino_connection_from_pwmfan_norm(
+    pwmfan_norm: PWMFanNorm
+) -> Optional["ArduinoConnection"]:
+    # Used in metrics
+    pwmfan = pwmfan_norm.pwmfan
+    if isinstance(pwmfan, ArduinoPWMFan):
+        return pwmfan._conn
+    return None
 
 
 class ArduinoPWMFan(BasePWMFan):
@@ -96,6 +106,7 @@ class ArduinoPWMFan(BasePWMFan):
 class ArduinoConnection:
     def __init__(
         self,
+        name: ArduinoName,
         serial_url: str,
         *,
         baudrate: int = DEFAULT_BAUDRATE,
@@ -106,6 +117,7 @@ class ArduinoConnection:
                 "`pyserial` is not installed. "
                 "Run `pip install 'afancontrol[arduino]'`."
             )
+        self.name = name
         self.url = serial_url
         self.baudrate = baudrate
         self.status_ttl = status_ttl
@@ -121,7 +133,8 @@ class ArduinoConnection:
     def __eq__(self, other):
         if isinstance(other, type(self)):
             return (
-                self.url == other.url
+                self.name == other.name
+                and self.url == other.url
                 and self.baudrate == other.baudrate
                 and self.status_ttl == other.status_ttl
             )
@@ -132,8 +145,9 @@ class ArduinoConnection:
         return not (self == other)
 
     def __repr__(self):
-        return "%s(%r, baudrate=%r, status_ttl=%r)" % (
+        return "%s(%r, %r, baudrate=%r, status_ttl=%r)" % (
             type(self).__name__,
+            self.name,
             self.url,
             self.baudrate,
             self.status_ttl,
@@ -167,6 +181,16 @@ class ArduinoConnection:
             self._status_clock = self._clock()
         self._status_event.set()
 
+    @property
+    def is_connected(self) -> bool:
+        try:
+            with self._status_lock:
+                self._ensure_status_is_valid()
+        except Exception:
+            return False
+        else:
+            return True
+
     def get_rpm(self, pin: ArduinoPin) -> int:
         if self._status is None:
             self.wait_for_status()
@@ -194,6 +218,13 @@ class ArduinoConnection:
                 "The last received status from the Arduino board "
                 "at %s was too long ago: %s seconds" % (self.url, status_age)
             )
+
+    @property
+    def status_age_seconds(self) -> float:
+        with self._status_lock:
+            if self._status_clock is None:
+                return float("nan")
+            return self._clock() - self._status_clock
 
     def set_pwm(self, pin: ArduinoPin, pwm: PWMValue) -> None:
         command = SetPWMCommand(pwm_pin=pin, pwm=pwm).to_bytes()

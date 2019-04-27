@@ -5,6 +5,7 @@ import pytest
 
 from afancontrol.arduino import (
     ArduinoConnection,
+    ArduinoName,
     ArduinoPin,
     ArduinoPWMFan,
     pyserial_available,
@@ -100,7 +101,10 @@ def test_example_conf(example_conf: Path):
             FanName("my_arduino_fan"): PWMFanNorm(
                 ArduinoPWMFan(
                     ArduinoConnection(
-                        "/dev/cu.usbmodem14201", baudrate=115200, status_ttl=5
+                        ArduinoName("mymicro"),
+                        "/dev/cu.usbmodem14201",
+                        baudrate=115200,
+                        status_ttl=5,
                     ),
                     pwm_pin=ArduinoPin(9),
                     tacho_pin=ArduinoPin(3),

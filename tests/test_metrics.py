@@ -46,7 +46,7 @@ def test_prometheus_metrics():
         mocked_fan.get_speed.return_value = 999
         mocked_fan.get_raw.return_value = 142
         mocked_fan.get = types.MethodType(PWMFanNorm.get, mocked_fan)
-        mocked_fan._pwmfan.max_pwm = 255
+        mocked_fan.pwmfan.max_pwm = 255
 
         metrics.tick(
             temps={
@@ -67,6 +67,7 @@ def test_prometheus_metrics():
 
         resp = requests.get("http://127.0.0.1:%s/metrics" % port)
         assert resp.status_code == 200
+        print(resp.text)
         assert 'temperature_current{temp_name="failingtemp"} NaN' in resp.text
         assert 'temperature_current{temp_name="goodtemp"} 74.0' in resp.text
         assert 'temperature_is_failing{temp_name="failingtemp"} 1.0' in resp.text
@@ -78,7 +79,6 @@ def test_prometheus_metrics():
         assert "is_panic 1.0" in resp.text
         assert "is_threshold 0.0" in resp.text
         assert "last_metrics_tick_seconds_ago 0." in resp.text
-        print(resp.text)
 
     with pytest.raises(IOError):
         requests.get("http://127.0.0.1:%s/metrics" % port)

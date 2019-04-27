@@ -278,7 +278,10 @@ def _parse_arduino_connections(
                 "Duplicate arduino section declaration for '%s'" % arduino_name
             )
         arduino_connections[arduino_name] = ArduinoConnection(
-            serial_url=serial_url, baudrate=baudrate, status_ttl=status_ttl
+            name=arduino_name,
+            serial_url=serial_url,
+            baudrate=baudrate,
+            status_ttl=status_ttl,
         )
 
     # Empty arduino_connections is ok

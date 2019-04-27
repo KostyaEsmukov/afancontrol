@@ -5,6 +5,7 @@ from socketserver import ThreadingMixIn
 from timeit import default_timer
 from typing import ContextManager, Mapping, Optional
 
+from afancontrol.arduino import arduino_connection_from_pwmfan_norm
 from afancontrol.config import TempName
 from afancontrol.fans import Fans
 from afancontrol.logger import logger
@@ -183,6 +184,20 @@ class PrometheusMetrics(Metrics):
             registry=self.registry,
         )
 
+        # Arduino boards:
+        self.arduino_is_connected = prom.Gauge(
+            "arduino_is_connected",
+            "Is Arduino board connected via Serial",
+            ["arduino_name"],
+            registry=self.registry,
+        )
+        self.arduino_status_age_seconds = prom.Gauge(
+            "arduino_status_age_seconds",
+            "Seconds since last `status` message from the Arduino board at last tick",
+            ["arduino_name"],
+            registry=self.registry,
+        )
+
         # Others:
         self.is_panic = prom.Gauge(
             "is_panic", "Is in panic mode", registry=self.registry
@@ -267,8 +282,24 @@ class PrometheusMetrics(Metrics):
                     temp_status.is_threshold
                 )
 
-        for fan_name, pwm_fan_norm in fans.fans.items():
-            self._collect_fan_metrics(fans, fan_name, pwm_fan_norm)
+        for fan_name, pwmfan_norm in fans.fans.items():
+            self._collect_fan_metrics(fans, fan_name, pwmfan_norm)
+
+        arduino_connections = {
+            arduino_connection.name: arduino_connection
+            for arduino_connection in (
+                arduino_connection_from_pwmfan_norm(pwmfan_norm)
+                for pwmfan_norm in fans.fans.values()
+            )
+            if arduino_connection is not None
+        }
+        for arduino_name, arduino_connection in arduino_connections.items():
+            self.arduino_is_connected.labels(arduino_name).set(
+                arduino_connection.is_connected
+            )
+            self.arduino_status_age_seconds.labels(arduino_name).set(
+                arduino_connection.status_age_seconds
+            )
 
         self.is_panic.set(triggers.panic_trigger.is_alerting)
         self.is_threshold.set(triggers.threshold_trigger.is_alerting)

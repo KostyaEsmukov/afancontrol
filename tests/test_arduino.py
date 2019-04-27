@@ -10,6 +10,7 @@ import pytest
 
 from afancontrol.arduino import (
     ArduinoConnection,
+    ArduinoName,
     ArduinoPin,
     ArduinoPWMFan,
     SetPWMCommand,
@@ -137,7 +138,7 @@ def dummy_arduino():
 
 
 def test_smoke(dummy_arduino):
-    conn = ArduinoConnection(dummy_arduino.pyserial_url)
+    conn = ArduinoConnection(ArduinoName("test"), dummy_arduino.pyserial_url)
     fan = ArduinoPWMFan(conn, pwm_pin=ArduinoPin(9), tacho_pin=ArduinoPin(3))
 
     dummy_arduino.set_inner_state_pwms({"9": 42})

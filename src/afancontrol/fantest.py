@@ -6,6 +6,7 @@ from typing import Iterable, Optional
 from afancontrol.arduino import (
     DEFAULT_BAUDRATE,
     ArduinoConnection,
+    ArduinoName,
     ArduinoPin,
     ArduinoPWMFan,
 )
@@ -70,7 +71,9 @@ controlling the fan you're going to test.
             )
 
             arduino_connection = ArduinoConnection(
-                serial_url=serial_url, baudrate=int(baudrate)
+                name=ArduinoName("_fantest"),
+                serial_url=serial_url,
+                baudrate=int(baudrate),
             )
             fan = ArduinoPWMFan(
                 arduino_connection, pwm_pin=pwm_pin, tacho_pin=tacho_pin
