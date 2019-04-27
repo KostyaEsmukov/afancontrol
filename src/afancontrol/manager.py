@@ -80,9 +80,11 @@ class Manager:
                 status = temp.get()  # type: Optional[TempStatus]
             except Exception as e:
                 status = None
-                logger.warning("Temp sensor has failed: %s", e, exc_info=True)
+                logger.warning(
+                    "Temp sensor [%s] has failed: %s", name, e, exc_info=True
+                )
             else:
-                logger.debug("Temp sensor status. name: %s, %s", name, status)
+                logger.debug("Temp status [%s]: %s", name, status)
             result[name] = status
         return result
 

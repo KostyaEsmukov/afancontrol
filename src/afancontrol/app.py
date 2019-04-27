@@ -158,8 +158,7 @@ class PidFile:
         if self.pidfile.exists():
             raise RuntimeError(
                 "pidfile %s already exists. Is daemon already running? "
-                "Remove this file if it's not.",
-                self,
+                "Remove this file if it's not." % self
             )
 
 

@@ -54,7 +54,7 @@ class Fans:
     def __exit__(self, exc_type, exc_value, exc_tb):
         logger.info("Disabling PWM on fans...")
         self._stack.close()
-        logger.info("Done. Verify fans have returned to full speed")
+        logger.info("Done. Fans should be returned to full speed")
         return None
 
     def maybe_check_speeds(self) -> None:
@@ -101,7 +101,9 @@ class Fans:
                     "Unable to set the fan '%s' to speed %s:\n%s", name, pwm_norm, e
                 )
             else:
-                logger.debug("Fan: %s, speed: %s, pwm: %s", name, pwm_norm, pwm)
+                logger.debug(
+                    "Fan status [%s]: speed: %.3f, pwm: %s", name, pwm_norm, pwm
+                )
                 if fan.is_pwm_stopped(pwm):
                     self._stopped_fans.add(name)
 
