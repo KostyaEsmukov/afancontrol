@@ -2,6 +2,7 @@ import abc
 import threading
 from http.server import HTTPServer
 from socketserver import ThreadingMixIn
+from timeit import default_timer
 from typing import ContextManager, Mapping, Optional
 
 from afancontrol.config import TempName
@@ -73,6 +74,8 @@ class PrometheusMetrics(Metrics):
 
         self._http_server = None  # type: Optional[HTTPServer]
 
+        self._last_metrics_collect_clock = float("nan")
+
         # Create a separate registry for this instance instead of using
         # the default one (which is global and doesn't allow to instantiate
         # this class more than once due to having metrics below being
@@ -84,6 +87,7 @@ class PrometheusMetrics(Metrics):
         prom.ProcessCollector(registry=self.registry)
         prom.GCCollector(registry=self.registry)
 
+        # Temps:
         self.temperature_is_failing = prom.Gauge(
             "temperature_is_failing",
             "The temperature sensor is failing (it isn't returning data)",
@@ -133,6 +137,7 @@ class PrometheusMetrics(Metrics):
             registry=self.registry,
         )
 
+        # Fans:
         self.fan_rpm = prom.Gauge(
             "fan_rpm",
             "Fan speed (RPM) as reported by the fan",
@@ -178,6 +183,7 @@ class PrometheusMetrics(Metrics):
             registry=self.registry,
         )
 
+        # Others:
         self.is_panic = prom.Gauge(
             "is_panic", "Is in panic mode", registry=self.registry
         )
@@ -188,6 +194,18 @@ class PrometheusMetrics(Metrics):
         self.tick_duration = prom.Summary(
             "tick_duration", "Duration of a single tick", registry=self.registry
         )
+        last_metrics_tick_seconds_ago = prom.Gauge(
+            "last_metrics_tick_seconds_ago",
+            "The time in seconds since the last tick (which also updates these metrics)",
+            registry=self.registry,
+        )
+        last_metrics_tick_seconds_ago.set_function(
+            lambda: self.last_metrics_tick_seconds_ago
+        )
+
+    @property
+    def last_metrics_tick_seconds_ago(self):
+        return self._clock() - self._last_metrics_collect_clock
 
     def _start(self):
         # `prometheus_client.start_http_server` which persists a server reference
@@ -249,6 +267,8 @@ class PrometheusMetrics(Metrics):
         self.is_panic.set(triggers.panic_trigger.is_alerting)
         self.is_threshold.set(triggers.threshold_trigger.is_alerting)
 
+        self._last_metrics_collect_clock = self._clock()
+
     def measure_tick(self) -> ContextManager[None]:
         return self.tick_duration.time()
 
@@ -268,6 +288,9 @@ class PrometheusMetrics(Metrics):
             self.fan_rpm.labels(fan_name).set(none_to_nan(None))
             self.fan_pwm.labels(fan_name).set(none_to_nan(None))
             self.fan_pwm_normalized.labels(fan_name).set(none_to_nan(None))
+
+    def _clock(self):
+        return default_timer()
 
 
 def none_to_nan(v: Optional[float]) -> float:

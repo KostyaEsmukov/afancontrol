@@ -1,4 +1,5 @@
 import random
+import types
 from time import sleep
 from unittest.mock import MagicMock
 
@@ -44,7 +45,7 @@ def test_prometheus_metrics():
         mocked_fan.pwm_line_end = 240
         mocked_fan.get_speed.return_value = 999
         mocked_fan.get_raw.return_value = 142
-        mocked_fan.get = PWMFanNorm.get.__get__(mocked_fan)  # type: ignore
+        mocked_fan.get = types.MethodType(PWMFanNorm.get, mocked_fan)
         mocked_fan._pwmfan.max_pwm = 255
 
         metrics.tick(
@@ -76,6 +77,7 @@ def test_prometheus_metrics():
         assert 'fan_is_failing{fan_name="test"} 0.0' in resp.text
         assert "is_panic 1.0" in resp.text
         assert "is_threshold 0.0" in resp.text
+        assert "last_metrics_tick_seconds_ago 0." in resp.text
         print(resp.text)
 
     with pytest.raises(IOError):
