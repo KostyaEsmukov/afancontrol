@@ -10,7 +10,8 @@ from afancontrol.fantest import (
     CSVMeasurementsOutput,
     HumanMeasurementsOutput,
     MeasurementsOutput,
-    main,
+    fantest as main,
+    run_fantest,
 )
 from afancontrol.pwmfan import (
     BasePWMFan,
@@ -21,14 +22,14 @@ from afancontrol.pwmfan import (
 )
 
 
-def test_main(temp_path):
+def test_main_smoke(temp_path):
     pwm_path = temp_path / "pwm2"
     pwm_path.write_text("")
     fan_input_path = temp_path / "fan2_input"
     fan_input_path.write_text("")
 
     with ExitStack() as stack:
-        mocked_fantest = stack.enter_context(patch.object(fantest, "fantest"))
+        mocked_fantest = stack.enter_context(patch.object(fantest, "run_fantest"))
 
         runner = CliRunner()
         result = runner.invoke(
@@ -78,7 +79,7 @@ def test_fantest(output_cls: Type[MeasurementsOutput], pwm_step_size: PWMValue):
         mocked_sleep = stack.enter_context(patch.object(fantest, "sleep"))
         mocked_fan.get_speed.return_value = 999
 
-        fantest.fantest(fan=mocked_fan, pwm_step_size=pwm_step_size, output=output)
+        run_fantest(fan=mocked_fan, pwm_step_size=pwm_step_size, output=output)
 
         assert mocked_fan.set.call_count == (255 // abs(pwm_step_size)) + 1
         assert mocked_fan.get_speed.call_count == (255 // abs(pwm_step_size))

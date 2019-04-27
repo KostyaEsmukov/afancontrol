@@ -5,8 +5,8 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from afancontrol import app
-from afancontrol.app import PidFile, Signals, main
+from afancontrol import daemon
+from afancontrol.daemon import PidFile, Signals, daemon as main
 
 
 def test_main_smoke(temp_path):
@@ -42,10 +42,10 @@ temps = mobo
     )
 
     with ExitStack() as stack:
-        mocked_tick = stack.enter_context(patch.object(app.Manager, "tick"))
-        stack.enter_context(patch.object(app, "signal"))
+        mocked_tick = stack.enter_context(patch.object(daemon.Manager, "tick"))
+        stack.enter_context(patch.object(daemon, "signal"))
         stack.enter_context(
-            patch.object(app.Signals, "wait_for_term_queued", return_value=True)
+            patch.object(daemon.Signals, "wait_for_term_queued", return_value=True)
         )
 
         runner = CliRunner()

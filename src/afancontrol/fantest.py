@@ -126,7 +126,7 @@ HELP_PWM_STEP_SIZE = (
     prompt="\n%s\nPWM step size (accurate fast)" % HELP_PWM_STEP_SIZE,
     show_default=True,
 )
-def main(
+def fantest(
     *,
     fan_type: str,
     linux_fan_pwm: Optional[str],
@@ -139,7 +139,7 @@ def main(
     direction: str,
     pwm_step_size: str
 ) -> None:
-    """afancontrol_fantest
+    """The PWM fan testing program.
 
 This program tests how changing the PWM value of a fan affects its speed.
 
@@ -238,13 +238,13 @@ controlling the fan you're going to test.
         sys.exit(EXIT_CODE_CTRL_C)
 
     try:
-        fantest(fan=fan, pwm_step_size=pwm_step_size_value, output=output)
+        run_fantest(fan=fan, pwm_step_size=pwm_step_size_value, output=output)
     except KeyboardInterrupt:
         click.echo("Fan has been returned to full speed")
         sys.exit(EXIT_CODE_CTRL_C)
 
 
-def fantest(
+def run_fantest(
     fan: BasePWMFan, pwm_step_size: PWMValue, output: "MeasurementsOutput"
 ) -> None:
     with fan:
@@ -320,7 +320,3 @@ class CSVMeasurementsOutput(MeasurementsOutput):
         self, pwm: PWMValue, rpm: FanValue, rpm_delta: Optional[FanValue]
     ) -> str:
         return "%s;%s;%s" % (pwm, rpm, rpm_delta if rpm_delta is not None else "")
-
-
-if __name__ == "__main__":
-    main()

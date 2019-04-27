@@ -9,7 +9,6 @@ from typing import Optional
 
 import click
 
-import afancontrol
 from afancontrol.config import (
     DEFAULT_CONFIG,
     DEFAULT_PIDFILE,
@@ -23,7 +22,6 @@ from afancontrol.report import Report
 
 
 @click.command()
-@click.version_option(version=afancontrol.__version__)
 @click.option("-t", "--test", is_flag=True, help="Test config")
 @click.option("-d", "--daemon", is_flag=True, help="Daemonize the process after start")
 @click.option("-v", "--verbose", is_flag=True, help="Increase logging verbosity")
@@ -51,7 +49,7 @@ from afancontrol.report import Report
     help="Prometheus exporter listen host, e.g. `127.0.0.1:8000` (disabled by default)",
     type=str,
 )
-def main(
+def daemon(
     *,
     test: bool,
     daemon: bool,
@@ -61,9 +59,8 @@ def main(
     logfile: str,
     exporter_listen_host: str
 ):
-    """afancontrol is an Advanced Fan Control program, which controls PWM
-    fans according to the current temperatures of the system components.
-    """
+    """The main program of afancontrol."""
+
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
 
     config_path = Path(config)
