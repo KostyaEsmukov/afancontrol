@@ -19,7 +19,6 @@ from afancontrol.arduino import (
     ArduinoPin,
     ArduinoPWMFan,
 )
-from afancontrol.exec import exec_shell_command
 from afancontrol.pwmfan import (
     BasePWMFan,
     FanInputDevice,
@@ -204,11 +203,6 @@ def _parse_daemon(
 
     hddtemp = daemon.get("hddtemp") or DEFAULT_HDDTEMP
     keys.discard("hddtemp")
-
-    try:
-        exec_shell_command("%s --version" % hddtemp)
-    except Exception as e:
-        raise RuntimeError("Unable to call hddtemp: %s" % e)
 
     if keys:
         raise RuntimeError("Unknown options in the [daemon] section: %s" % (keys,))

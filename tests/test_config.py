@@ -1,9 +1,8 @@
 from pathlib import Path
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock
 
 import pytest
 
-from afancontrol import config
 from afancontrol.arduino import (
     ArduinoConnection,
     ArduinoPin,
@@ -39,13 +38,6 @@ def example_conf():
     return Path(__file__).parents[1] / "afancontrol.cfg"
 
 
-@pytest.fixture
-def mock_hddtemp_version():
-    with patch.object(config, "exec_shell_command") as mock_exec_shell_command:
-        yield mock_exec_shell_command
-        assert mock_exec_shell_command.call_args_list == [call("hddtemp --version")]
-
-
 def path_from_str(contents: str) -> Path:
     p = Mock(spec=Path)
     p.read_text.return_value = contents
@@ -53,7 +45,7 @@ def path_from_str(contents: str) -> Path:
 
 
 @pytest.mark.skipif(not pyserial_available, reason="pyserial is not installed")
-def test_example_conf(example_conf: Path, mock_hddtemp_version):
+def test_example_conf(example_conf: Path):
     daemon_cli_config = DaemonCLIConfig(
         pidfile=None, logfile=None, exporter_listen_host=None
     )
@@ -152,7 +144,7 @@ def test_example_conf(example_conf: Path, mock_hddtemp_version):
     )
 
 
-def test_minimal_config(mock_hddtemp_version) -> None:
+def test_minimal_config() -> None:
     daemon_cli_config = DaemonCLIConfig(
         pidfile=None, logfile=None, exporter_listen_host=None
     )
