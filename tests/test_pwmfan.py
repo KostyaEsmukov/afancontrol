@@ -116,8 +116,14 @@ def test_get_set_pwmfan_norm(pwmfan_norm, pwm_path):
     pwmfan_norm.set_full_speed()
     assert "255" == pwm_path.read_text()
 
-    assert 240 == pwmfan_norm.set(1.1)
-    assert "240" == pwm_path.read_text()
+    assert 238 == pwmfan_norm.set(0.99)
+    assert "238" == pwm_path.read_text()
+
+    assert 255 == pwmfan_norm.set(1.0)
+    assert "255" == pwm_path.read_text()
+
+    assert 255 == pwmfan_norm.set(1.1)
+    assert "255" == pwm_path.read_text()
 
     assert 0 == pwmfan_norm.set(-0.1)
     assert "0" == pwm_path.read_text()

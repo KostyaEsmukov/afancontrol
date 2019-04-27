@@ -201,6 +201,8 @@ class PWMFanNorm:
             pwm = self.pwm_line_start
         if pwm <= 0 and self.never_stop:
             pwm = self.pwm_line_start
+        if pwm_norm >= 1.0:
+            pwm = self.pwmfan.max_pwm
 
         pwm = PWMValue(int(math.ceil(pwm)))
         self.pwmfan.set(pwm)
