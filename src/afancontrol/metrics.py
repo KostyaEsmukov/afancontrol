@@ -6,6 +6,7 @@ from typing import ContextManager, Mapping, Optional
 
 from afancontrol.config import TempName
 from afancontrol.fans import Fans
+from afancontrol.logger import logger
 from afancontrol.temp import TempStatus
 from afancontrol.trigger import Triggers
 
@@ -72,84 +73,119 @@ class PrometheusMetrics(Metrics):
 
         self._http_server = None  # type: Optional[HTTPServer]
 
+        # Create a separate registry for this instance instead of using
+        # the default one (which is global and doesn't allow to instantiate
+        # this class more than once due to having metrics below being
+        # registered for a second time):
+        self.registry = prom.CollectorRegistry(auto_describe=True)
+
+        # Register some default prometheus_client metrics:
+        prom.PlatformCollector(registry=self.registry)
+        prom.ProcessCollector(registry=self.registry)
+        prom.GCCollector(registry=self.registry)
+
         self.temperature_is_failing = prom.Gauge(
             "temperature_is_failing",
             "The temperature sensor is failing (it isn't returning data)",
             ["temp_name"],
+            registry=self.registry,
         )
         self.temperature_current = prom.Gauge(
             "temperature_current",
             "The current temperature value (in celsius) from a `temp` sensor",
             ["temp_name"],
+            registry=self.registry,
         )
         self.temperature_min = prom.Gauge(
             "temperature_min",
             "The min temperature value (in celsius) for a `temp` sensor",
             ["temp_name"],
+            registry=self.registry,
         )
         self.temperature_max = prom.Gauge(
             "temperature_max",
             "The max temperature value (in celsius) for a `temp` sensor",
             ["temp_name"],
+            registry=self.registry,
         )
         self.temperature_panic = prom.Gauge(
             "temperature_panic",
             "The panic temperature value (in celsius) for a `temp` sensor",
             ["temp_name"],
+            registry=self.registry,
         )
         self.temperature_threshold = prom.Gauge(
             "temperature_threshold",
             "The panic temperature value (in celsius) for a `temp` sensor",
             ["temp_name"],
+            registry=self.registry,
         )
         self.temperature_is_panic = prom.Gauge(
             "temperature_is_panic",
             "Is panic temperature reached for a `temp` sensor",
             ["temp_name"],
+            registry=self.registry,
         )
         self.temperature_is_threshold = prom.Gauge(
             "temperature_is_threshold",
             "Is threshold temperature reached for a `temp` sensor",
             ["temp_name"],
+            registry=self.registry,
         )
 
         self.fan_rpm = prom.Gauge(
-            "fan_rpm", "Fan speed (RPM) as reported by the fan", ["fan_name"]
+            "fan_rpm",
+            "Fan speed (RPM) as reported by the fan",
+            ["fan_name"],
+            registry=self.registry,
         )
         self.fan_pwm = prom.Gauge(
-            "fan_pwm", "Current fan PWM value (from 0 to 255)", ["fan_name"]
+            "fan_pwm",
+            "Current fan PWM value (from 0 to 255)",
+            ["fan_name"],
+            registry=self.registry,
         )
         self.fan_pwm_line_start = prom.Gauge(
             "fan_pwm_line_start",
             "PWM value where a linear correlation with RPM starts for the fan",
             ["fan_name"],
+            registry=self.registry,
         )
         self.fan_pwm_line_end = prom.Gauge(
             "fan_pwm_line_end",
             "PWM value where a linear correlation with RPM ends for the fan",
             ["fan_name"],
+            registry=self.registry,
         )
         self.fan_is_stopped = prom.Gauge(
             "fan_is_stopped",
             "PWM fan has been stopped because the corresponding temperatures "
             "are already low",
             ["fan_name"],
+            registry=self.registry,
         )
         self.fan_is_failing = prom.Gauge(
             "fan_is_failing",
             "PWM fan has been marked as failing (e.g. because if jammed)",
             ["fan_name"],
+            registry=self.registry,
         )
 
-        self.is_panic = prom.Gauge("is_panic", "Is in panic mode")
-        self.is_threshold = prom.Gauge("is_threshold", "Is in threshold mode")
+        self.is_panic = prom.Gauge(
+            "is_panic", "Is in panic mode", registry=self.registry
+        )
+        self.is_threshold = prom.Gauge(
+            "is_threshold", "Is in threshold mode", registry=self.registry
+        )
 
-        self.tick_duration = prom.Summary("tick_duration", "Duration of a single tick")
+        self.tick_duration = prom.Summary(
+            "tick_duration", "Duration of a single tick", registry=self.registry
+        )
 
     def _start(self):
         # `prometheus_client.start_http_server` which persists a server reference
         # so it could be stopped later.
-        CustomMetricsHandler = prom.MetricsHandler.factory(prom.REGISTRY)
+        CustomMetricsHandler = prom.MetricsHandler.factory(self.registry)
         httpd = _ThreadingSimpleServer(
             (self._listen_addr, self._listen_port), CustomMetricsHandler
         )
@@ -201,18 +237,28 @@ class PrometheusMetrics(Metrics):
                 )
 
         for fan_name, pwm_fan_norm in fans.fans.items():
-            self.fan_rpm.labels(fan_name).set(pwm_fan_norm.get_speed())
-            self.fan_pwm.labels(fan_name).set(pwm_fan_norm.get_raw())
-            self.fan_pwm_line_start.labels(fan_name).set(pwm_fan_norm.pwm_line_start)
-            self.fan_pwm_line_end.labels(fan_name).set(pwm_fan_norm.pwm_line_end)
-            self.fan_is_stopped.labels(fan_name).set(fans.is_fan_stopped(fan_name))
-            self.fan_is_failing.labels(fan_name).set(fans.is_fan_failing(fan_name))
+            self._collect_fan_metrics(fans, fan_name, pwm_fan_norm)
 
         self.is_panic.set(triggers.panic_trigger.is_alerting)
         self.is_threshold.set(triggers.threshold_trigger.is_alerting)
 
     def measure_tick(self) -> ContextManager[None]:
         return self.tick_duration.time()
+
+    def _collect_fan_metrics(self, fans, fan_name, pwm_fan_norm):
+        self.fan_pwm_line_start.labels(fan_name).set(pwm_fan_norm.pwm_line_start)
+        self.fan_pwm_line_end.labels(fan_name).set(pwm_fan_norm.pwm_line_end)
+        self.fan_is_stopped.labels(fan_name).set(fans.is_fan_stopped(fan_name))
+        self.fan_is_failing.labels(fan_name).set(fans.is_fan_failing(fan_name))
+        try:
+            self.fan_rpm.labels(fan_name).set(pwm_fan_norm.get_speed())
+            self.fan_pwm.labels(fan_name).set(pwm_fan_norm.get_raw())
+        except Exception:
+            logger.warning(
+                "Failed to collect metrics for fan %s", fan_name, exc_info=True
+            )
+            self.fan_rpm.labels(fan_name).set(none_to_nan(None))
+            self.fan_pwm.labels(fan_name).set(none_to_nan(None))
 
 
 def none_to_nan(v: Optional[float]) -> float:

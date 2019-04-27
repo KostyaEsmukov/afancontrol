@@ -77,3 +77,40 @@ def test_prometheus_metrics():
 
     with pytest.raises(IOError):
         requests.get("http://127.0.0.1:%s/metrics" % port)
+
+
+@pytest.mark.skipif(
+    not prometheus_available, reason="prometheus_client is not installed"
+)
+def test_prometheus_faulty_fans_dont_break_metrics_collection():
+    mocked_fan = MagicMock(spec=PWMFanNorm)()
+    mocked_triggers = MagicMock(spec=Triggers)()
+    mocked_report = MagicMock(spec=Report)()
+
+    port = random.randint(20000, 50000)
+    metrics = PrometheusMetrics("127.0.0.1:%s" % port)
+    with metrics:
+        mocked_triggers.panic_trigger.is_alerting = False
+        mocked_triggers.threshold_trigger.is_alerting = False
+
+        mocked_fan.pwm_line_start = 100
+        mocked_fan.pwm_line_end = 240
+        mocked_fan.get_speed.side_effect = IOError
+        mocked_fan.get_raw.side_effect = IOError
+
+        # Must not raise despite the PWMFan methods raising above:
+        metrics.tick(
+            temps={TempName("failingtemp"): None},
+            fans=Fans(fans={FanName("test"): mocked_fan}, report=mocked_report),
+            triggers=mocked_triggers,
+        )
+
+        resp = requests.get("http://127.0.0.1:%s/metrics" % port)
+        assert resp.status_code == 200
+        assert 'fan_pwm_line_start{fan_name="test"} 100.0' in resp.text
+        assert 'fan_pwm_line_end{fan_name="test"} 240.0' in resp.text
+        assert 'fan_rpm{fan_name="test"} NaN' in resp.text
+        assert 'fan_pwm{fan_name="test"} NaN' in resp.text
+        assert 'fan_is_failing{fan_name="test"} 0.0' in resp.text
+        assert "is_panic 0.0" in resp.text
+        assert "is_threshold 0.0" in resp.text
