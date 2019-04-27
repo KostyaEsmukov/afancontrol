@@ -1,5 +1,4 @@
 from contextlib import ExitStack
-from timeit import default_timer
 from typing import Mapping, MutableSet
 
 from afancontrol.config import FanName
@@ -8,20 +7,9 @@ from afancontrol.pwmfan import PWMFanNorm, PWMValueNorm
 from afancontrol.report import Report
 
 
-def _clock():
-    return default_timer()
-
-
 class Fans:
-    def __init__(
-        self,
-        fans: Mapping[FanName, PWMFanNorm],
-        *,
-        fans_speed_check_interval: float,  # seconds
-        report: Report
-    ) -> None:
+    def __init__(self, fans: Mapping[FanName, PWMFanNorm], *, report: Report) -> None:
         self.fans = fans
-        self.fans_speed_check_interval = fans_speed_check_interval
         self.report = report
         self._stack = None
 
@@ -30,9 +18,6 @@ class Fans:
 
         # Set of fans that will be skipped on speed check
         self._stopped_fans = set()  # type: MutableSet[FanName]
-
-        # Timestamp of last fans check
-        self._check_clock = _clock() - fans_speed_check_interval * 2
 
     def is_fan_failing(self, fan_name: FanName) -> bool:
         return fan_name in self._failed_fans
@@ -57,11 +42,7 @@ class Fans:
         logger.info("Done. Fans should be returned to full speed")
         return None
 
-    def maybe_check_speeds(self) -> None:
-        now_clock = _clock()
-        if now_clock - self._check_clock <= self.fans_speed_check_interval:
-            return
-
+    def check_speeds(self) -> None:
         for name, fan in self.fans.items():
             if name in self._stopped_fans:
                 continue
@@ -72,8 +53,6 @@ class Fans:
                 self._ensure_fan_is_failing(name, e)
             else:
                 self._ensure_fan_is_not_failing(name)
-
-        self._check_clock = now_clock
 
     def set_all_to_full_speed(self) -> None:
         for name, fan in self.fans.items():

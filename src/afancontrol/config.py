@@ -125,7 +125,6 @@ DaemonConfig = NamedTuple(
         ("pidfile", Optional[str]),
         ("logfile", Optional[str]),
         ("interval", int),
-        ("fans_speed_check_interval", int),
         ("exporter_listen_host", Optional[str]),
     ]
     # fmt: on
@@ -198,11 +197,6 @@ def _parse_daemon(
     interval = daemon.getint("interval", fallback=DEFAULT_INTERVAL)
     keys.discard("interval")
 
-    fans_speed_check_interval = daemon.getint(
-        "fans_speed_check_interval", fallback=DEFAULT_FANS_SPEED_CHECK_INTERVAL
-    )
-    keys.discard("fans_speed_check_interval")
-
     exporter_listen_host = first_not_none(
         daemon_cli_config.exporter_listen_host, daemon.get("exporter_listen_host")
     )
@@ -224,7 +218,6 @@ def _parse_daemon(
             pidfile=pidfile,
             logfile=logfile,
             interval=interval,
-            fans_speed_check_interval=fans_speed_check_interval,
             exporter_listen_host=exporter_listen_host,
         ),
         hddtemp,

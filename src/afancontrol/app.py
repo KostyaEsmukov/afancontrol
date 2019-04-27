@@ -72,7 +72,6 @@ def main():
         report=Report(report_command=config.report_cmd),
         triggers_config=config.triggers,
         metrics=metrics,
-        fans_speed_check_interval=config.daemon.fans_speed_check_interval,
     )
 
     pidfile = None  # type: Optional[PidFile]

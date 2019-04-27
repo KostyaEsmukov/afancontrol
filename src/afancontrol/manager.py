@@ -27,13 +27,10 @@ class Manager:
         mappings: Mapping[MappingName, FansTempsRelation],
         report: Report,
         triggers_config: TriggerConfig,
-        metrics: Metrics,
-        fans_speed_check_interval: float  # seconds
+        metrics: Metrics
     ) -> None:
         self.report = report
-        self.fans = Fans(
-            fans, report=report, fans_speed_check_interval=fans_speed_check_interval
-        )
+        self.fans = Fans(fans, report=report)
         self.temps = temps
         self.mappings = mappings
         self.triggers = Triggers(triggers_config, report)
@@ -58,7 +55,7 @@ class Manager:
     def tick(self) -> None:
         with self.metrics.measure_tick():
             temps = self._get_temps()
-            self.fans.maybe_check_speeds()
+            self.fans.check_speeds()
 
             self.triggers.check(temps)
 

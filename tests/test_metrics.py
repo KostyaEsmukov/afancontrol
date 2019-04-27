@@ -58,11 +58,7 @@ def test_prometheus_metrics():
                 ),
                 TempName("failingtemp"): None,
             },
-            fans=Fans(
-                fans={FanName("test"): mocked_fan},
-                fans_speed_check_interval=1.0,
-                report=mocked_report,
-            ),
+            fans=Fans(fans={FanName("test"): mocked_fan}, report=mocked_report),
             triggers=mocked_triggers,
         )
 

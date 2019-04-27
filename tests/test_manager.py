@@ -60,7 +60,6 @@ def test_manager(report):
                 },
             ),
             metrics=mocked_metrics,
-            fans_speed_check_interval=1.0,
         )
 
         stack.enter_context(manager)

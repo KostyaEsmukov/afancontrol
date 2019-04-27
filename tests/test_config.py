@@ -65,7 +65,6 @@ def test_example_conf(example_conf: Path, mock_hddtemp_version):
             logfile="/var/log/afancontrol.log",
             exporter_listen_host=None,
             interval=5,
-            fans_speed_check_interval=3,
         ),
         report_cmd=(
             'printf "Subject: %s\nTo: %s\n\n%b" '
@@ -182,7 +181,6 @@ temps = mobo
             logfile=None,
             exporter_listen_host=None,
             interval=5,
-            fans_speed_check_interval=3,
         ),
         report_cmd=(
             'printf "Subject: %s\nTo: %s\n\n%b" '
