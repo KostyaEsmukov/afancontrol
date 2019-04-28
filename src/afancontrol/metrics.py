@@ -1,4 +1,5 @@
 import abc
+import contextlib
 import threading
 from http.server import HTTPServer
 from socketserver import ThreadingMixIn
@@ -59,7 +60,11 @@ class NullMetrics(Metrics):
         pass
 
     def measure_tick(self) -> ContextManager[None]:
-        pass
+        @contextlib.contextmanager
+        def null_context_manager():
+            yield
+
+        return null_context_manager()
 
 
 class PrometheusMetrics(Metrics):
