@@ -18,7 +18,7 @@ def test_main_smoke(temp_path):
     pwm_enable_path.write_text("0")
     pwm_faninput_path.write_text("999")
 
-    config_path = temp_path / "afancontrol.cfg"
+    config_path = temp_path / "afancontrol.conf"
     config_path.write_text(
         """
 [daemon]

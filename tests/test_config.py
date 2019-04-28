@@ -36,7 +36,7 @@ from afancontrol.temp import FileTemp, HDDTemp, TempCelsius
 
 @pytest.fixture
 def example_conf():
-    return Path(__file__).parents[1] / "afancontrol.cfg"
+    return Path(__file__).parents[1] / "afancontrol.conf"
 
 
 def path_from_str(contents: str) -> Path:
