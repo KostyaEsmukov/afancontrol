@@ -1,0 +1,12 @@
+[Unit]
+Description=Advanced Fan Control program
+After=lm-sensors.service
+
+[Service]
+LimitNOFILE=8192
+ExecStartPre=/usr/bin/afancontrol daemon --test
+ExecStart=/usr/bin/afancontrol daemon --pidfile /var/run/afancontrol.pid
+PIDFile=/var/run/afancontrol.pid
+
+[Install]
+WantedBy=multi-user.target

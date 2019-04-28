@@ -1,0 +1,6 @@
+graft pkg
+graft tests
+include afancontrol.conf
+recursive-exclude * *.py[co]
+recursive-exclude * .DS_Store
+recursive-exclude * __pycache__
