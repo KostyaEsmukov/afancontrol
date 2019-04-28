@@ -1,0 +1,26 @@
+# Docker image for building an `afancontrol` package for Debian Stretch.
+
+FROM debian:stretch
+
+RUN apt-get update \
+    && apt-get install -y \
+        build-essential \
+        debhelper \
+        devscripts \
+        python3
+
+# https://github.com/inversepath/usbarmory-debian-base_image/issues/9#issuecomment-451635505
+RUN mkdir ~/.gnupg && echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf
+
+# Import the GPG key used to sign the PyPI releases of `afancontrol`:
+RUN gpg --recv-keys "2D3B9C1712FF84F7"
+
+COPY debian /build/afancontrol/debian
+WORKDIR /build/afancontrol/
+
+RUN mkdir -p debian/upstream \
+    && gpg --export --export-options export-minimal --armor \
+        'BE3D633AB6792715ECF34D742D3B9C1712FF84F7' \
+        > debian/upstream/signing-key.asc
+
+RUN apt-get -y build-dep .

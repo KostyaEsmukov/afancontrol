@@ -1,0 +1,36 @@
+Source: afancontrol
+Section: utils
+Priority: optional
+Maintainer: Kostya Esmukov <kostya@esmukov.ru>
+Build-Depends: debhelper (>= 9),
+               dh-python,
+               python3-all,
+               python3-setuptools
+Build-Depends-Indep: python3-pytest,
+                     python3-requests,
+                     python3-click,
+                     python3-prometheus-client,
+                     python3-serial
+Standards-Version: 3.9.8
+Homepage: https://github.com/KostyaEsmukov/afancontrol
+X-Python3-Version: >= 3.5
+#Vcs-Git: https://anonscm.debian.org/git/python-modules/packages/python3-afancontrol.git
+#Vcs-Browser: https://anonscm.debian.org/cgit/python-modules/packages/python3-afancontrol.git/
+#Testsuite: autopkgtest-pkg-python
+
+
+Package: afancontrol
+Architecture: all
+Depends: ${python3:Depends},
+         ${misc:Depends},
+         hddtemp,
+         lm-sensors,
+         python3-click,
+         python3-pkg-resources,
+         python3-prometheus-client,
+         python3-serial
+Description: Advanced Fan Control program (Python 3)
+ afancontrol is an Advanced Fan Control program, which controls PWM
+ fans according to the current temperatures of the system components.
+ .
+ This package installs the library for Python 3.

@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+
+export PYTHONWARNINGS=d
+export PYBUILD_NAME=afancontrol
+export PYBUILD_TEST_PYTEST=1
+export PYBUILD_TEST_ARGS={dir}/tests/
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild

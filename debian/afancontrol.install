@@ -1,0 +1,2 @@
+pkg/afancontrol.conf /etc/afancontrol
+pkg/afancontrol.service /lib/systemd/system
