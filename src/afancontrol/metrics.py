@@ -363,35 +363,36 @@ class _ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
 
 # `MetricsHandler` of `prometheus_client==0.0.18` doesn't support exposing
 # a custom registry. This is backported below:
-if hasattr(prom.MetricsHandler, "factory"):
-    MetricsHandler = prom.MetricsHandler
-else:
-    from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
+if prometheus_available:
+    if hasattr(prom.MetricsHandler, "factory"):
+        MetricsHandler = prom.MetricsHandler
+    else:
+        from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
 
-    class MetricsHandler(BaseHTTPRequestHandler):  # type: ignore
-        # https://github.com/prometheus/client_python/blob/31f5557e2e84ca4ffa9a03abf6e3f4d0c8b8c3eb/prometheus_client/exposition.py#L141-L177  # noqa
-        registry = prom.REGISTRY
+        class MetricsHandler(BaseHTTPRequestHandler):  # type: ignore
+            # https://github.com/prometheus/client_python/blob/31f5557e2e84ca4ffa9a03abf6e3f4d0c8b8c3eb/prometheus_client/exposition.py#L141-L177  # noqa
+            registry = prom.REGISTRY
 
-        def do_GET(self):
-            registry = self.registry
-            params = parse_qs(urlparse(self.path).query)
-            if "name[]" in params:
-                registry = registry.restricted_registry(params["name[]"])
-            try:
-                output = generate_latest(registry)
-            except Exception:
-                self.send_error(500, "error generating metric output")
-                raise
-            self.send_response(200)
-            self.send_header("Content-Type", CONTENT_TYPE_LATEST)
-            self.end_headers()
-            self.wfile.write(output)
+            def do_GET(self):
+                registry = self.registry
+                params = parse_qs(urlparse(self.path).query)
+                if "name[]" in params:
+                    registry = registry.restricted_registry(params["name[]"])
+                try:
+                    output = generate_latest(registry)
+                except Exception:
+                    self.send_error(500, "error generating metric output")
+                    raise
+                self.send_response(200)
+                self.send_header("Content-Type", CONTENT_TYPE_LATEST)
+                self.end_headers()
+                self.wfile.write(output)
 
-        def log_message(self, format, *args):
-            """Log nothing."""
+            def log_message(self, format, *args):
+                """Log nothing."""
 
-        @classmethod
-        def factory(cls, registry):
-            cls_name = str(cls.__name__)
-            MyMetricsHandler = type(cls_name, (cls, object), {"registry": registry})
-            return MyMetricsHandler
+            @classmethod
+            def factory(cls, registry):
+                cls_name = str(cls.__name__)
+                MyMetricsHandler = type(cls_name, (cls, object), {"registry": registry})
+                return MyMetricsHandler
