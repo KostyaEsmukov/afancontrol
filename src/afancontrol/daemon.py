@@ -96,9 +96,11 @@ def daemon(
     if parsed_config.daemon.logfile:
         # Logging to file should not be configured when running in
         # the config test mode.
-        logging.getLogger().addHandler(
-            logging.FileHandler(parsed_config.daemon.logfile)
+        file_handler = logging.FileHandler(parsed_config.daemon.logfile)
+        file_handler.setFormatter(
+            logging.Formatter("[%(asctime)s] %(levelname)s:%(name)s:%(message)s")
         )
+        logging.getLogger().addHandler(file_handler)
 
     signals = Signals()
     signal.signal(signal.SIGTERM, signals.sigterm)
