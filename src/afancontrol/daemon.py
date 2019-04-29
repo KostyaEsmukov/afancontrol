@@ -1,7 +1,6 @@
 import logging
 import os
 import signal
-import sys
 import threading
 from contextlib import ExitStack
 from pathlib import Path
@@ -15,7 +14,6 @@ from afancontrol.config import (
     DaemonCLIConfig,
     parse_config,
 )
-from afancontrol.logger import logger
 from afancontrol.manager import Manager
 from afancontrol.metrics import Metrics, NullMetrics, PrometheusMetrics
 from afancontrol.report import Report
@@ -23,7 +21,6 @@ from afancontrol.report import Report
 
 @click.command()
 @click.option("-t", "--test", is_flag=True, help="Test config")
-@click.option("-d", "--daemon", is_flag=True, help="Daemonize the process after start")
 @click.option("-v", "--verbose", is_flag=True, help="Increase logging verbosity")
 @click.option(
     "-c",
@@ -52,7 +49,6 @@ from afancontrol.report import Report
 def daemon(
     *,
     test: bool,
-    daemon: bool,
     verbose: bool,
     config: str,
     pidfile: str,
@@ -121,30 +117,8 @@ def daemon(
         # here.
         manager.tick()
 
-        if daemon:
-            daemonize(pidfile_instance)
-
         while not signals.wait_for_term_queued(parsed_config.daemon.interval):
             manager.tick()
-
-
-def daemonize(pidfile: Optional["PidFile"]) -> None:  # pragma: no cover
-    child_pid = os.fork()
-    # child_pid == 0 -- the daemonized process, which is
-    #   now responsible for the `manager`'s context manager.
-    #
-    # child_pid != 0 -- the master process, which MUST NOT
-    #   reach the end of the `with` block -- it must be terminated
-    #   with the `sys.exit` call.
-    if child_pid != 0:
-        try:
-            if pidfile is not None:
-                pidfile.save_pid(child_pid)
-        except Exception:
-            logger.error("Unable to save process pid=%s to %s", child_pid, pidfile)
-            sys.exit(1)
-        else:
-            sys.exit(0)
 
 
 class PidFile:
