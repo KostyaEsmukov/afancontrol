@@ -40,10 +40,10 @@ class Trigger(abc.ABC):
             # being executed twice.
             # Perhaps we should somehow tell the `leave_cmd` that it's
             # being called not because the issue is resolved,
-            # but because this program is reloading or is shutting down.
+            # but because this program is restarting or is shutting down.
             self.report.report(
                 "Leaving %s MODE" % self.trigger_name.upper(),
-                "Leaving %s MODE because of shutting down or reloading."
+                "Leaving %s MODE because of shutting down or restarting."
                 % self.trigger_name.upper(),
             )
             for name in self._alerting_temps:
