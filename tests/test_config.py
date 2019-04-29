@@ -102,7 +102,8 @@ def test_example_conf(example_conf: Path):
                 ArduinoPWMFan(
                     ArduinoConnection(
                         ArduinoName("mymicro"),
-                        "/dev/cu.usbmodem14201",
+                        "/dev/ttyACM0",  # linux
+                        # "/dev/cu.usbmodem14201",  # macos
                         baudrate=115200,
                         status_ttl=5,
                     ),
