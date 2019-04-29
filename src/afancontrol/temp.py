@@ -101,17 +101,27 @@ class FileTemp(Temp):
         return temp, self._get_min(), self._get_max()
 
     def _get_min(self) -> TempCelsius:
-        if self._min is None:
+        if self._min is not None:
+            return self._min
+        try:
             min_t = self._read_temp_from_path(self._temp_min)
-        else:
-            min_t = self._min
+        except FileNotFoundError:
+            raise RuntimeError(
+                "Please specify `min` and `max` temperatures for "
+                "the %s sensor" % self._temp_input
+            )
         return min_t
 
     def _get_max(self) -> TempCelsius:
-        if self._max is None:
+        if self._max is not None:
+            return self._max
+        try:
             max_t = self._read_temp_from_path(self._temp_max)
-        else:
-            max_t = self._max
+        except FileNotFoundError:
+            raise RuntimeError(
+                "Please specify `min` and `max` temperatures for "
+                "the %s sensor" % self._temp_input
+            )
         return max_t
 
     @staticmethod
