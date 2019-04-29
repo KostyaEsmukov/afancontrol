@@ -138,7 +138,7 @@ def test_example_conf(example_conf: Path):
                 fans=[
                     FanSpeedModifier(fan=FanName("cpu"), modifier=1.0),
                     FanSpeedModifier(fan=FanName("hdd"), modifier=0.6),
-                    FanSpeedModifier(fan=FanName("my_arduino_fan"), modifier=1.0),
+                    FanSpeedModifier(fan=FanName("my_arduino_fan"), modifier=0.222),
                 ],
             ),
             MappingName("2"): FansTempsRelation(

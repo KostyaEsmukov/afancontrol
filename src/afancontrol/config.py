@@ -524,9 +524,11 @@ def _parse_mappings(
                 )
         mapping_fans = [
             FanSpeedModifier(
-                fan=FanName(fan_speed_pair[0]),
+                fan=FanName(fan_speed_pair[0].strip()),
                 modifier=(
-                    float(fan_speed_pair[1] if len(fan_speed_pair) == 2 else 1.0)
+                    float(
+                        fan_speed_pair[1].strip() if len(fan_speed_pair) == 2 else 1.0
+                    )
                 ),
             )
             for fan_speed_pair in fan_speed_pairs
