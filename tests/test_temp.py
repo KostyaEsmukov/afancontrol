@@ -180,16 +180,18 @@ def test_hddtemp_bad(hddtemp_output_bad):
             t.get()
 
 
-def test_hddtemp_exec_successful():
+def test_hddtemp_exec_successful(temp_path):
+    (temp_path / "sda").write_text("")
+    (temp_path / "sdz").write_text("")
     t = HDDTemp(
-        disk_path="/dev/sd?",
+        disk_path=str(temp_path / "sd") + "?",
         min=TempCelsius(38.0),
         max=TempCelsius(45.0),
         panic=TempCelsius(50.0),
         threshold=None,
         hddtemp_bin="printf '@%s'",
     )
-    expected_out = "@-n@-u@C@/dev/sd?"
+    expected_out = "@-n@-u@C@--@{0}/sda@{0}/sdz".format(temp_path)
     assert expected_out == t._call_hddtemp()
 
 
