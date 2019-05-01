@@ -71,7 +71,7 @@ class Fans:
             assert 0.0 <= pwm_norm <= 1.0
 
             if name in self._failed_fans:
-                return
+                continue
 
             try:
                 pwm = fan.set(pwm_norm)

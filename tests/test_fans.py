@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from unittest.mock import MagicMock
 
 import pytest
@@ -36,3 +37,32 @@ def test_smoke(report, is_fan_failing):
             assert fans._stopped_fans == set()
 
     assert 1 == fan.__exit__.call_count
+
+
+def test_set_fan_speeds(report):
+    mocked_fans = OrderedDict(
+        [
+            (FanName("test1"), MagicMock(spec=PWMFanNorm)),
+            (FanName("test2"), MagicMock(spec=PWMFanNorm)),
+            (FanName("test3"), MagicMock(spec=PWMFanNorm)),
+            (FanName("test4"), MagicMock(spec=PWMFanNorm)),
+        ]
+    )
+
+    for fan in mocked_fans.values():
+        fan.set.return_value = 240
+        fan.get_speed.return_value = 942
+        fan.is_pwm_stopped = BasePWMFan.is_pwm_stopped
+
+    fans = Fans(mocked_fans, report=report)
+    with fans:
+        fans._ensure_fan_is_failing(FanName("test2"), Exception("test"))
+        fans.set_fan_speeds(
+            {
+                FanName("test1"): PWMValueNorm(0.42),
+                FanName("test2"): PWMValueNorm(0.42),
+                FanName("test3"): PWMValueNorm(0.42),
+                FanName("test4"): PWMValueNorm(0.42),
+            }
+        )
+        assert [1, 0, 1, 1] == [f.set.call_count for f in mocked_fans.values()]
