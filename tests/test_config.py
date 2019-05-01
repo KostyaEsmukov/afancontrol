@@ -35,14 +35,78 @@ from afancontrol.temp import FileTemp, HDDTemp, TempCelsius
 
 
 @pytest.fixture
+def pkg_conf():
+    return Path(__file__).parents[1] / "pkg" / "afancontrol.conf"
+
+
+@pytest.fixture
 def example_conf():
-    return Path(__file__).parents[1] / "afancontrol.conf"
+    return Path(__file__).parents[0] / "data" / "afancontrol-example.conf"
 
 
 def path_from_str(contents: str) -> Path:
     p = Mock(spec=Path)
     p.read_text.return_value = contents
     return p
+
+
+@pytest.mark.skipif(not pyserial_available, reason="pyserial is not installed")
+def test_pkg_conf(pkg_conf: Path):
+    daemon_cli_config = DaemonCLIConfig(
+        pidfile=None, logfile=None, exporter_listen_host=None
+    )
+
+    parsed = parse_config(pkg_conf, daemon_cli_config)
+    assert parsed == ParsedConfig(
+        daemon=DaemonConfig(
+            pidfile="/var/run/afancontrol.pid",
+            logfile="/var/log/afancontrol.log",
+            interval=5,
+            exporter_listen_host=None,
+        ),
+        report_cmd=(
+            'printf "Subject: %s\nTo: %s\n\n%b" '
+            '"afancontrol daemon report: %REASON%" root "%MESSAGE%" | sendmail -t'
+        ),
+        triggers=TriggerConfig(
+            global_commands=Actions(
+                panic=AlertCommands(enter_cmd=None, leave_cmd=None),
+                threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
+            ),
+            temp_commands={
+                TempName("mobo"): Actions(
+                    panic=AlertCommands(enter_cmd=None, leave_cmd=None),
+                    threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
+                )
+            },
+        ),
+        fans={
+            FanName("hdd"): PWMFanNorm(
+                LinuxPWMFan(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
+                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
+                ),
+                pwm_line_start=PWMValue(100),
+                pwm_line_end=PWMValue(240),
+                never_stop=False,
+            )
+        },
+        temps={
+            TempName("mobo"): FileTemp(
+                "/sys/class/hwmon/hwmon0/device/temp1_input",
+                min=TempCelsius(30.0),
+                max=TempCelsius(40.0),
+                panic=None,
+                threshold=None,
+            )
+        },
+        mappings={
+            MappingName("1"): FansTempsRelation(
+                temps=[TempName("mobo")],
+                fans=[FanSpeedModifier(fan=FanName("hdd"), modifier=0.6)],
+            )
+        },
+    )
 
 
 @pytest.mark.skipif(not pyserial_available, reason="pyserial is not installed")
@@ -56,7 +120,7 @@ def test_example_conf(example_conf: Path):
         daemon=DaemonConfig(
             pidfile="/var/run/afancontrol.pid",
             logfile="/var/log/afancontrol.log",
-            exporter_listen_host=None,
+            exporter_listen_host="127.0.0.1:8083",
             interval=5,
         ),
         report_cmd=(
