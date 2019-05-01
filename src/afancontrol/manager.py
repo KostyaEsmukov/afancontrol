@@ -113,10 +113,9 @@ class Manager:
                 pwm_norm = min(pwm_norm, PWMValueNorm(1.0))
                 res[fan_modifier.fan] = max(pwm_norm, res[fan_modifier.fan])
 
-        for name in self.fans.fans.keys():
-            if name not in res:
-                # This fan was missing in the mapping
-                res[name] = PWMValueNorm(1.0)
+        # Ensure that all fans have been referenced through the mappings.
+        # This is also enforced in the `config.py` module.
+        assert len(res) == len(self.fans.fans)
 
         return res
 
