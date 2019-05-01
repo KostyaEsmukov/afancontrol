@@ -1,3 +1,15 @@
+afancontrol (2.0.0~b3-1) stretch; urgency=medium
+
+  * Manager: remove a redundant processing of the fans which are absent in mappings
+
+  * Fans: fix a bug when a single failing fan would prevent other fans' speed change
+
+  * afancontrol daemon: remove the `--daemon` switch (it doesn't work correctly)
+
+  * Config parser: strip spaces around fan name and speed modifier in mappings
+
+ -- Kostya Esmukov <kostya@esmukov.ru>  Wed, 01 May 2019 12:40:13 +0000
+
 afancontrol (2.0.0~b2-1) stretch; urgency=medium
 
   * Fix hddtemp not expanding glob
