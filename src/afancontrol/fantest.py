@@ -196,11 +196,11 @@ controlling the fan you're going to test.
                     default=arduino_baudrate,
                     show_default=True,
                 )
-            if not arduino_pwm_pin:
+            if not arduino_pwm_pin and arduino_pwm_pin != 0:
                 arduino_pwm_pin = click.prompt(
                     "\n%s\nArduino PWM pin" % HELP_ARDUINO_PWM_PIN, type=int
                 )
-            if not arduino_tacho_pin:
+            if not arduino_tacho_pin and arduino_tacho_pin != 0:
                 arduino_tacho_pin = click.prompt(
                     "\n%s\nArduino Tachometer pin" % HELP_ARDUINO_TACHO_PIN, type=int
                 )
