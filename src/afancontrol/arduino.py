@@ -337,7 +337,13 @@ class _AutoRetriedReaderThread:
                 elif item is self._QUEUE_CHECK:
                     if self._reader_thread.alive:
                         continue
-                    self._reader_thread.close()
+                    try:
+                        self._reader_thread.close()
+                    except Exception:
+                        logger.error(
+                            "Unable to cleanly close the Serial connection",
+                            exc_info=True,
+                        )
                     self._reader_thread, self._transport = self._new_reader_thread()
             except Exception:  # `_thread_run` should not raise
                 logger.error(
@@ -351,3 +357,13 @@ class _ReaderThreadWithFlush(ReaderThread):
     def flush(self):
         with self._lock:
             self.serial.flush()
+
+    def close(self):
+        try:
+            super().close()
+        except Exception:
+            # `super().close()` also calls `self.stop()` which might raise
+            # and prevent `self.serial.close()` from being called.
+            with self._lock:
+                self.serial.close()
+            raise
