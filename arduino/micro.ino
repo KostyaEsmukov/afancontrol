@@ -58,16 +58,38 @@ int pulsesBufferPosition = 0;
 // Be sure to select the dividers which yield an integer result after each division.
 #define PULSES_MULTIPLIER (1L * 60 * 1000 / MEASUREMENT_TIME_MS / PULSES_BUFFER_LEN)
 
+// When a PWM wire goes near the Tachometer wire, the Tachometer one might
+// receive interference, which would be sensed by the interruptions,
+// spoiling the RPM measurements.
+//
+// PWM works at 25kHz, Tachometer is in the range ~4hz - ~200hz (120 RPM - 6000 RPM),
+// so the extraneous PWM pulses would have delay ~0.04 - 1ms, while
+// the genuine Tachometer pulses would have delay 5ms-250ms.
+//
+// This problem is similar to the common one occurring with the switches
+// (http://www.gammon.com.au/switches), when a click on a switch produces
+// many short pulses instead of a single long one.
+//
+// This var defines the minimum delay (in ms) between the two RISING
+// interrupts, which should be treated as a valid Tachometer pulse.
+#define PULSES_ACCEPT_MIN_DURATION_MS 3
 
 #define TACHO_PULSES_INT_FUNCTION(PIN) \
 volatile int tachoPulses##PIN [PULSES_BUFFER_LEN]; \
-void incTachoPulses##PIN () { tachoPulses##PIN [pulsesBufferPosition] ++; }
+volatile unsigned long lastPulse##PIN; \
+void incTachoPulses##PIN () { \
+  unsigned long now = millis(); \
+  if (now - lastPulse##PIN < PULSES_ACCEPT_MIN_DURATION_MS) { lastPulse##PIN = now; return; } \
+  lastPulse##PIN = now; \
+  tachoPulses##PIN [pulsesBufferPosition] ++; \
+}
 
 #define TACHO_PULSES_ATTACH_INT(PIN) \
 pinMode(PIN, INPUT); \
 attachInterrupt(digitalPinToInterrupt(PIN), incTachoPulses##PIN, RISING); \
 { \
   for (int i = 0; i < PULSES_BUFFER_LEN; i++) tachoPulses##PIN[i] = 0; \
+  lastPulse##PIN = 0; \
 }
 
 #define TACHO_PULSES_NEXT_BUCKET \
