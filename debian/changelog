@@ -1,3 +1,11 @@
+afancontrol (2.0.0~b4-1) stretch; urgency=medium
+
+  * Fix Arduino connection recovery not working
+
+  * Fantest: fix arduino pins being asked when they equal 0
+
+ -- Kostya Esmukov <kostya@esmukov.ru>  Thu, 02 May 2019 11:55:29 +0000
+
 afancontrol (2.0.0~b3-1) stretch; urgency=medium
 
   * Manager: remove a redundant processing of the fans which are absent in mappings
