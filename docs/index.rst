@@ -31,7 +31,7 @@ Key features:
 - OS-agnostic (`afancontrol` is written in Python3 and might be run on any OS
   which can run Python).
 
-afancontrol might be helpful in the following scenarios:
+`afancontrol` might be helpful in the following scenarios:
 
 - You have built a custom PC case with many different heat-generating parts
   (like HDDs and GPUs) which you want to keep as quiet as possible, yet
@@ -147,7 +147,7 @@ PWM Fan Line
 
 Each PWM fan has a PWM value associated with it which sets the speed of
 the fan, where ``0`` PWM means that the fan is stopped, and ``255`` PWM
-means that the fan is running on full speed.
+means that the fan is running at full speed.
 
 The correlation between the PWM value and the speed is usually not linear.
 When computing the PWM value from a temperature, `afancontrol` uses
@@ -317,7 +317,7 @@ the pins in the firmware. Refer to its code for the hints on the places
 which should be modified.
 
 Once the board is flashed and connected, you may start using its pins
-in afancontrol to control the PWM fans connected to the board.
+in `afancontrol` to control the PWM fans connected to the board.
 
 
 Indices and tables
