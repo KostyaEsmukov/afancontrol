@@ -6,6 +6,7 @@ Welcome to afancontrol's documentation!
 :Issue Tracker: https://github.com/KostyaEsmukov/afancontrol/issues
 :PyPI: https://pypi.org/project/afancontrol/
 
+
 Introduction
 ~~~~~~~~~~~~
 
@@ -40,6 +41,7 @@ Key features:
   available on your motherboard (with an Arduino board
   connected via USB).
 
+
 How it works
 ~~~~~~~~~~~~
 
@@ -48,6 +50,7 @@ How it works
 the temperatures are gathered and the required fan speeds are calculated
 and set to the fans. Upon receiving a SIGTERM signal the program would
 exit and the fans would be restored to the maximum speeds.
+
 
 Installation
 ~~~~~~~~~~~~
@@ -75,6 +78,7 @@ the hassle.
 
 To upgrade, the similar steps should be performed on an up to date
 `master` branch.
+
 
 From PyPI
 ---------
@@ -118,6 +122,7 @@ manually:
 To upgrade, ``pip install --upgrade afancontrol`` and
 ``systemctl restart afancontrol`` should be enough.
 
+
 Getting Started
 ~~~~~~~~~~~~~~~
 
@@ -131,6 +136,7 @@ is already installed):
 
 - `Prepare an Arduino board <index.html#pwm-fans-via-arduino>`_, if necessary
 - Prepare and connect the PWM fans and temperature sensors
+- `Set up lm-sensors <index.html#lm-sensors>`_, if necessary
 - Edit the configuration file
 - Start the daemon and enable autostart on system boot:
 
@@ -141,6 +147,7 @@ is already installed):
 
 The configuration file should be pretty self-explanatory.
 However, there's a concept which might not be explained good enough there:
+
 
 PWM Fan Line
 ------------
@@ -185,6 +192,68 @@ in this case would be:
 
 .. image:: ./_static/arctic_motherboard.svg
    :target: ./_static/arctic_motherboard.svg
+
+
+lm-sensors
+----------
+
+`lm-sensors` is a Linux package which provides ability to access and control
+the temperature and PWM fan sensors attached to a motherboard in userspace.
+
+Run the following command to make `lm-sensors` detect the available
+sensors hardware:
+
+::
+
+    sudo sensors-detect
+
+Once configured, use the ``sensors`` command to get the current measurements.
+
+Then you'd have to manually map the sensors with their actual physical location.
+
+For example:
+
+::
+
+    $ sensors
+    it8728-isa-0228
+    Adapter: ISA adapter
+    in0:          +0.92 V  (min =  +0.00 V, max =  +3.06 V)
+    in1:          +1.46 V  (min =  +0.00 V, max =  +3.06 V)
+    in2:          +2.03 V  (min =  +0.00 V, max =  +3.06 V)
+    in3:          +2.04 V  (min =  +0.00 V, max =  +3.06 V)
+    in4:          +2.03 V  (min =  +0.00 V, max =  +3.06 V)
+    in5:          +2.22 V  (min =  +0.00 V, max =  +3.06 V)
+    in6:          +2.22 V  (min =  +0.00 V, max =  +3.06 V)
+    3VSB:         +3.34 V  (min =  +0.00 V, max =  +6.12 V)
+    Vbat:         +3.31 V
+    fan1:         571 RPM  (min =    0 RPM)
+    fan2:        1268 RPM  (min =    0 RPM)
+    fan3:           0 RPM  (min =    0 RPM)
+    fan4:           0 RPM  (min =    0 RPM)
+    fan5:           0 RPM  (min =    0 RPM)
+    temp1:        +34.0°C  (low  = +127.0°C, high = +127.0°C)  sensor = thermistor
+    temp2:         -8.0°C  (low  = +127.0°C, high = +127.0°C)  sensor = thermistor
+    temp3:        +16.0°C  (low  = +127.0°C, high = +127.0°C)  sensor = Intel PECI
+
+
+There ``fan1`` corresponds to the CPU fan which is managed by BIOS,
+``fan2`` corresponds to the single PWM fan attached to the motherboard
+(which is typically called a "case" fan), ``temp1`` is a sensor (probably
+in a chipset) yielding reasonable measurements (unlike ``temp2`` and ``temp3``).
+
+So the case fan's settings would be:
+
+- ``pwm = /sys/class/hwmon/hwmon0/pwm2``
+- ``fan_input = /sys/class/hwmon/hwmon0/fan2_input``
+
+The ``temp1`` temperature sensor:
+
+- ``path = /sys/class/hwmon/hwmon0/temp1_input``
+
+This was an old cheap motherboard, so you would probably be more lucky
+and have the sensors which are yielding more trustworthy measurements.
+
 
 Metrics
 -------
