@@ -40,9 +40,12 @@ deb-stretch-local: clean sdist
 	docker build -t afancontrol-debuild -f ./Dockerfile.debian .
 	docker run -it --rm \
 		-v `pwd`/dist:/afancontrol/dist \
+		-v `pwd`/debian:/afancontrol/debian \
 		afancontrol-debuild sh -ex -c '\
 			tar xaf /afancontrol/dist/afancontrol-*.tar.gz --strip 1; \
+			dch -v `python3 setup.py --version`; \
 			debuild -us -uc -b; \
+			cp debian/changelog /afancontrol/debian/; \
 			cd ../; \
 			ls -alh; \
 			mkdir /afancontrol/dist/debian; \
