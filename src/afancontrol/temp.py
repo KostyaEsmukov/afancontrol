@@ -195,7 +195,7 @@ class HDDTemp(Temp):
     def _call_hddtemp(self) -> str:
         # `disk_path` might be a glob, so it has to be executed with a shell.
         shell_command = "%s -n -u C -- %s" % (self._hddtemp_bin, self._disk_path)
-        return exec_shell_command(shell_command)
+        return exec_shell_command(shell_command, timeout=10)
 
     @staticmethod
     def _is_float(s: str) -> bool:
