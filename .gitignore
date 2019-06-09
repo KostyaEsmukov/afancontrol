@@ -11,3 +11,6 @@ __pycache__/
 .python-version
 
 .tox
+
+docs/_build
+
