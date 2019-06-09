@@ -1,0 +1,15 @@
+The files in the data_files list are already installed by the deb
+package, so they need not to be installed by the Python package.
+Index: afancontrol/setup.py
+===================================================================
+--- afancontrol.orig/setup.py
++++ afancontrol/setup.py
+@@ -9,8 +9,4 @@ with open("src/afancontrol/__init__.py",
+ 
+ setup(
+     version=version,
+-    data_files=[
+-        ("etc/afancontrol", ["pkg/afancontrol.conf"]),
+-        ("etc/systemd/system", ["pkg/afancontrol.service"]),
+-    ],
+ )

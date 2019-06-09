@@ -18,6 +18,11 @@ clean:
 	rm -Rf dist
 	rm -Rf *.egg-info
 
+.PHONY: develop
+develop:
+	pip install -U setuptools wheel
+	pip install -e '.[dev]'
+
 .PHONY: sdist
 sdist:
 	python setup.py sdist
@@ -55,6 +60,7 @@ deb-stretch-local: clean sdist
 			ls -alh; \
 			mkdir /afancontrol/dist/debian; \
 			cp afancontrol?* /afancontrol/dist/debian/; \
+			dpkg --contents afancontrol*.deb; \
 	'
 
 .PHONY: deb-stretch-from-pypi
