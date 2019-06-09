@@ -1,4 +1,5 @@
 from contextlib import ExitStack
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -46,9 +47,20 @@ def pwmfan_norm(pwmfan):
 
 @pytest.fixture
 def pwmfan(pwm_path, fan_input_path):
-    return LinuxPWMFan(
+    fan = LinuxPWMFan(
         pwm=PWMDevice(str(pwm_path)), fan_input=FanInputDevice(str(fan_input_path))
     )
+
+    # We write to the pwm_enable file values without newlines,
+    # but when they're read back, they might contain newlines.
+    # This hack below is to simulate just that: the written values should
+    # contain newlines.
+    original_pwm_enable = fan._pwm_enable
+    pwm_enable = MagicMock(wraps=original_pwm_enable)
+    pwm_enable.write_text = lambda text: original_pwm_enable.write_text(text + "\n")
+    fan._pwm_enable = pwm_enable
+
+    return fan
 
 
 @pytest.mark.parametrize("pwmfan_fixture", ["pwmfan", "pwmfan_norm"])
@@ -73,19 +85,19 @@ def test_enter_exit(
             stack.enter_context(pytest.raises(Exc))
         stack.enter_context(fan)
 
-        assert "1" == pwm_enable_path.read_text()
+        assert "1" == pwm_enable_path.read_text().strip()
         assert "255" == pwm_path.read_text()
 
         value = dict(pwmfan=100, pwmfan_norm=0.39)[pwmfan_fixture]  # 100/255 ~= 0.39
         fan.set(value)
 
-        assert "1" == pwm_enable_path.read_text()
+        assert "1" == pwm_enable_path.read_text().strip()
         assert "100" == pwm_path.read_text()
 
         if raises:
             raise Exc()
 
-    assert "0" == pwm_enable_path.read_text()
+    assert "0" == pwm_enable_path.read_text().strip()
     assert "100" == pwm_path.read_text()  # `fancontrol` doesn't reset speed
 
 

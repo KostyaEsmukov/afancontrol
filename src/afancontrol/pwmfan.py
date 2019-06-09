@@ -91,13 +91,16 @@ class LinuxPWMFan(BasePWMFan):
             return
 
         self._pwm_enable.write_text("0")
-        if self._pwm_enable.read_text() == "0":
+        if self._pwm_enable.read_text().strip() == "0":
             return
 
         self._pwm_enable.write_text("1")
         self.set_full_speed()
 
-        if self._pwm_enable.read_text() == "1" and self.get() >= type(self).max_pwm:
+        if (
+            self._pwm_enable.read_text().strip() == "1"
+            and self.get() >= type(self).max_pwm
+        ):
             return
 
         raise RuntimeError("Couldn't disable PWM on the fan %r" % self)
