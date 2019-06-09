@@ -1,0 +1,23 @@
+afancontrol
+===========
+
+.. image:: https://img.shields.io/pypi/v/afancontrol.svg?style=flat-square
+    :target: https://pypi.python.org/pypi/afancontrol/
+    :alt: Latest Version
+
+.. image:: https://img.shields.io/travis/KostyaEsmukov/afancontrol.svg?style=flat-square
+    :target: https://travis-ci.org/KostyaEsmukov/afancontrol
+    :alt: Build Status
+
+.. image:: https://img.shields.io/github/license/KostyaEsmukov/afancontrol.svg?style=flat-square
+    :target: https://pypi.python.org/pypi/afancontrol/
+    :alt: License
+
+`afancontrol` stands for "Advanced fancontrol". Think of it as
+`fancontrol <https://github.com/lm-sensors/lm-sensors/blob/master/prog/pwm/fancontrol>`_
+with more advanced configuration abilities.
+
+`afancontrol` measures temperature from the sensors, computes the required
+airflow and sets the PWM fan speeds accordingly.
+
+The docs are available at `<https://afancontrol.readthedocs.io/>`_.
