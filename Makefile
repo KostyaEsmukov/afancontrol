@@ -31,9 +31,14 @@ release: clean sdist wheel
 	twine --version
 	twine upload -s dist/*
 
+.PHONY: docs
+docs:
+	make -C docs html
+
 .PHONY: check-docs
 check-docs:
-	echo TODO
+	# Doesn't generate any output but prints out errors and warnings.
+	make -C docs dummy
 
 .PHONY: deb-stretch-local
 deb-stretch-local: clean sdist
