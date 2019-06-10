@@ -164,7 +164,7 @@ and PWM is close to linear (these are the ``pwm_line_start`` and
 
 The bundled ``afancontrol fantest`` interactive command helps to determine
 that range, which is specific to a pair of a PWM fan and a motherboard.
-Here are some examples to give an idea of the difference:
+Here are some examples to give you an idea of the difference:
 
 1) A Noctua fan connected to an Arduino board. The correct settings in
 this case would be:
@@ -197,8 +197,9 @@ in this case would be:
 lm-sensors
 ----------
 
-`lm-sensors` is a Linux package which provides ability to access and control
-the temperature and PWM fan sensors attached to a motherboard in userspace.
+`lm-sensors` is a Linux package which provides an ability to access and
+control the temperature and PWM fan sensors attached to a motherboard
+in userspace.
 
 Run the following command to make `lm-sensors` detect the available
 sensors hardware:
