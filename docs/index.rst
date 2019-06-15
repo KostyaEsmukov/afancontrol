@@ -134,28 +134,28 @@ The temperature sensors might look like this:
 
 ::
 
-    [temp:cpu]
+    [temp: cpu]
     type = file
     path = /sys/class/hwmon/hwmon1/temp1_input
     min = 50
     max = 65
     panic = 80
 
-    [temp:mobo]
+    [temp: mobo]
     type = file
     path = /sys/class/hwmon/hwmon0/temp1_input
     min = 55
     max = 65
     panic = 80
 
-    [temp:gpu]
+    [temp: gpu]
     type = exec
     command = nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits -i 0
     min = 55
     max = 65
     panic = 85
 
-    [temp:hdds]
+    [temp: hdds]
     type = hdd
     path = /dev/sd?
     min = 38
