@@ -88,39 +88,37 @@ class Manager:
     def _map_temps_to_fan_speeds(
         self, temps: Mapping[TempName, Optional[TempStatus]]
     ) -> Mapping[FanName, PWMValueNorm]:
-        res = defaultdict(
+
+        temp_speeds = {
+            temp_name: self._temp_speed(temp_status)
+            for temp_name, temp_status in temps.items()
+        }
+
+        fan_speeds = defaultdict(
             lambda: PWMValueNorm(0.0)
         )  # type: Dict[FanName, PWMValueNorm]
 
         for mapping_name, relation in self.mappings.items():
-            max_speed = None  # type: Optional[PWMValueNorm]
-            for temp_name in relation.temps:
-                temp = temps[temp_name]
-                if temp is None:
-                    # Failing sensor -- this is the panic mode.
-                    max_speed = PWMValueNorm(1.0)
-                else:
-                    speed = self._speed_for_temp_status(temp)
-                    if max_speed is None:
-                        max_speed = speed
-                    max_speed = max(max_speed, speed)
-
-            assert max_speed is not None
-
+            mapping_speed = max(temp_speeds[temp_name] for temp_name in relation.temps)
             for fan_modifier in relation.fans:
-                pwm_norm = PWMValueNorm(max_speed * fan_modifier.modifier)
+                pwm_norm = PWMValueNorm(mapping_speed * fan_modifier.modifier)
                 pwm_norm = max(pwm_norm, PWMValueNorm(0.0))
                 pwm_norm = min(pwm_norm, PWMValueNorm(1.0))
-                res[fan_modifier.fan] = max(pwm_norm, res[fan_modifier.fan])
+                fan_speeds[fan_modifier.fan] = max(
+                    pwm_norm, fan_speeds[fan_modifier.fan]
+                )
 
         # Ensure that all fans have been referenced through the mappings.
         # This is also enforced in the `config.py` module.
-        assert len(res) == len(self.fans.fans)
+        assert len(fan_speeds) == len(self.fans.fans)
 
-        return res
+        return fan_speeds
 
-    def _speed_for_temp_status(self, temp: TempStatus) -> PWMValueNorm:
+    def _temp_speed(self, temp: Optional[TempStatus]) -> PWMValueNorm:
+        if temp is None:
+            # Failing sensor -- this is the panic mode.
+            return PWMValueNorm(1.0)
         speed = PWMValueNorm((temp.temp - temp.min) / (temp.max - temp.min))
-        speed = max(speed, PWMValueNorm(0))
-        speed = min(speed, PWMValueNorm(1))
+        speed = max(speed, PWMValueNorm(0.0))
+        speed = min(speed, PWMValueNorm(1.0))
         return speed
