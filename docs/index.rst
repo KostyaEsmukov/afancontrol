@@ -19,10 +19,11 @@ airflow and sets the PWM fan speeds accordingly.
 
 Key features:
 
-- Configurable temperature sources (currently supported ones are lm-sensors
-  temps, hddtemp and arbitrary shell commands);
+- Configurable temperature sources (currently supported ones are `lm-sensors`
+  temps, `hddtemp` and arbitrary shell commands);
 - Configurable PWM fan implementations (currently supported ones are
-  lm-sensors PWM fans and `a custom Arduino-based solution <index.html#pwm-fans-via-arduino>`_);
+  `lm-sensors` PWM fans and
+  `a custom Arduino-based solution <index.html#pwm-fans-via-arduino>`_);
 - Configurable mappings between the temp sensors and the fans (e.g. fans
   would be more sensitive to the closely located sensors than to
   the farther-located ones);
@@ -36,10 +37,11 @@ Key features:
 
 - You have built a custom PC case with many different heat-generating parts
   (like HDDs and GPUs) which you want to keep as quiet as possible, yet
-  being kept cool enough when required (at the cost of increased noise);
+  being kept cool enough when required (at the cost of increased fan noise);
 - You need to control more 4-pin PWM fans than there're connectors
   available on your motherboard (with an Arduino board
-  connected via USB).
+  connected via USB);
+- You simply want to control a PWM fan with HDD temperatures.
 
 
 How it works
@@ -50,6 +52,155 @@ How it works
 the temperatures are gathered and the required fan speeds are calculated
 and set to the fans. Upon receiving a SIGTERM signal the program would
 exit and the fans would be restored to the maximum speeds.
+
+
+PWM Fan Line
+------------
+
+Each PWM fan has a PWM value associated with it which sets the speed of
+the fan, where ``0`` PWM means that the fan is stopped, and ``255`` PWM
+means that the fan is running at full speed.
+
+The correlation between the PWM value and the speed is usually not linear.
+When computing the PWM value from a temperature, `afancontrol` uses
+a specified range of the PWM values where the correlation between speed
+and PWM is close to linear (these are the ``pwm_line_start`` and
+``pwm_line_end`` config params).
+
+The bundled ``afancontrol fantest`` interactive command helps to determine
+that range, which is specific to a pair of a PWM fan and a motherboard.
+Here are some examples to give you an idea of the difference:
+
+1) A Noctua fan connected to an Arduino board. The correct settings in
+this case would be:
+
+- ``pwm_line_start = 40``
+- ``pwm_line_end = 245``
+
+.. image:: ./_static/noctua_arduino.svg
+   :target: ./_static/noctua_arduino.svg
+
+2) The same fan connected to a motherboard. The correct settings in this
+case would be:
+
+- ``pwm_line_start = 110``
+- ``pwm_line_end = 235``
+
+.. image:: ./_static/noctua_motherboard.svg
+   :target: ./_static/noctua_motherboard.svg
+
+3) Another fan connected to the same motherboard. The correct settings
+in this case would be:
+
+- ``pwm_line_start = 70``
+- ``pwm_line_end = 235``
+
+.. image:: ./_static/arctic_motherboard.svg
+   :target: ./_static/arctic_motherboard.svg
+
+
+Mappings
+--------
+
+Consider the following almost typical PC case as an example:
+
+.. image:: ./_static/pc_case_example.svg
+   :target: ./_static/pc_case_example.svg
+
+Assuming that `Intake Fans` share the same PWM wire and are connected to
+a `Fan 2` connector on the motherboard, and `Outtake Fans` share the PWM
+wire of a `Fan 3` motherboard connector, the fans config might look
+like the following:
+
+::
+
+    [fan: intake]
+    type = linux
+    pwm = /sys/class/hwmon/hwmon0/device/pwm2
+    fan_input = /sys/class/hwmon/hwmon0/device/fan2_input
+    pwm_line_start = 100
+    pwm_line_end = 240
+    never_stop = no
+
+    [fan: outtake]
+    type = linux
+    pwm = /sys/class/hwmon/hwmon0/device/pwm3
+    fan_input = /sys/class/hwmon/hwmon0/device/fan3_input
+    pwm_line_start = 100
+    pwm_line_end = 240
+    never_stop = yes
+
+The temperature sensors might look like this:
+
+::
+
+    [temp:cpu]
+    type = file
+    path = /sys/class/hwmon/hwmon1/temp1_input
+    min = 50
+    max = 65
+    panic = 80
+
+    [temp:mobo]
+    type = file
+    path = /sys/class/hwmon/hwmon0/temp1_input
+    min = 55
+    max = 65
+    panic = 80
+
+    [temp:gpu]
+    type = exec
+    command = nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits -i 0
+    min = 55
+    max = 65
+    panic = 85
+
+    [temp:hdds]
+    type = hdd
+    path = /dev/sd?
+    min = 38
+    max = 45
+    panic = 50
+
+Now we need to create the mappings between the temps and the fans.
+The simplest mapping would be:
+
+::
+
+    [mapping: all]
+    fans = intake, outtake
+    temps = cpu, mobo, gpu, hdds
+
+
+The more fine-grained mappings configuration:
+
+::
+
+    [mapping: hdd]
+    fans = intake, outtake * 0.6
+    temps = hdds
+
+    [mapping: mobo]
+    fans = intake, outtake
+    temps = cpu, mobo, gpu
+
+Fan speeds are calculated as following (this is a simplified
+version for the matter of brevity):
+
+- For each temperature compute a desired `temperature speed` as
+  ``(current_temperature - min) / (max - min)``.
+- For each mapping compute a desired `mapping speed` as a maximum across
+  all of the mapping's `temperature speeds`.
+- For each fan compute a desired `fan speed` as a maximum across
+  all of the `mapping speeds`, multiplied by the fan modifier of that
+  mapping.
+- For each fan apply a PWM value computed roughly
+  as ``max(pwm_line_start, fan_speed * pwm_line_end)``.
+
+If at least one fan reports a zero RPM when non-zero PWM is set (i.e.
+the fan has jammed) or at least one temperature sensor reaches its `panic`
+value, the `panic` mode is activated, which would cause all fans to run
+at full speed until the issue is resolved.
 
 
 Installation
@@ -131,13 +282,15 @@ refer to it.
 
 .. _configuration file: https://github.com/KostyaEsmukov/afancontrol/blob/master/pkg/afancontrol.conf
 
-Generally, the following steps are required (assuming that the package
-is already installed):
+Generally speaking, the following steps are required (assuming that
+the package is already installed):
 
-- `Prepare an Arduino board <index.html#pwm-fans-via-arduino>`_, if necessary
-- Prepare and connect the PWM fans and temperature sensors
-- `Set up lm-sensors <index.html#lm-sensors>`_, if necessary
-- Edit the configuration file
+- `Prepare an Arduino board <index.html#pwm-fans-via-arduino>`_, if
+  extra PWM fan connectors are needed;
+- Prepare and connect the PWM fans and temperature sensors;
+- `Set up lm-sensors <index.html#lm-sensors>`_, if you want to use
+  sensors or fans connected to a motherboard on Linux;
+- Edit the configuration file;
 - Start the daemon and enable autostart on system boot:
 
 ::
@@ -145,53 +298,27 @@ is already installed):
     sudo systemctl start afancontrol.service
     sudo systemctl enable afancontrol.service
 
-The configuration file should be pretty self-explanatory.
-However, there's a concept which might not be explained good enough there:
 
+PWM fans via Arduino
+--------------------
 
-PWM Fan Line
-------------
+An Arduino board might be used to control some PWM fans.
 
-Each PWM fan has a PWM value associated with it which sets the speed of
-the fan, where ``0`` PWM means that the fan is stopped, and ``255`` PWM
-means that the fan is running at full speed.
+Here is a `firmware`_ and schematics for Arduino Micro:
 
-The correlation between the PWM value and the speed is usually not linear.
-When computing the PWM value from a temperature, `afancontrol` uses
-a specified range of the PWM values where the correlation between speed
-and PWM is close to linear (these are the ``pwm_line_start`` and
-``pwm_line_end`` config params).
+.. _firmware: https://github.com/KostyaEsmukov/afancontrol/blob/master/arduino/micro.ino
 
-The bundled ``afancontrol fantest`` interactive command helps to determine
-that range, which is specific to a pair of a PWM fan and a motherboard.
-Here are some examples to give you an idea of the difference:
+.. image:: ./_static/micro_schematics.svg
+   :target: ./_static/micro_schematics.svg
 
-1) A Noctua fan connected to an Arduino board. The correct settings in
-this case would be:
+The given firmware can be flashed as-is on a Genuine Arduino Micro
+without any tweaks. It is important to use Micro, because the firmware
+was designed specifically for it. For other boards you might need to change
+the pins in the firmware. Refer to its code for the hints on the places
+which should be modified.
 
-- ``pwm_line_start = 40``
-- ``pwm_line_end = 245``
-
-.. image:: ./_static/noctua_arduino.svg
-   :target: ./_static/noctua_arduino.svg
-
-2) The same fan connected to a motherboard. The correct settings in this
-case would be:
-
-- ``pwm_line_start = 110``
-- ``pwm_line_end = 235``
-
-.. image:: ./_static/noctua_motherboard.svg
-   :target: ./_static/noctua_motherboard.svg
-
-3) Another fan connected to the same motherboard. The correct settings
-in this case would be:
-
-- ``pwm_line_start = 70``
-- ``pwm_line_end = 235``
-
-.. image:: ./_static/arctic_motherboard.svg
-   :target: ./_static/arctic_motherboard.svg
+Once the board is flashed and connected, you may start using its pins
+in `afancontrol` to control the PWM fans connected to the board.
 
 
 lm-sensors
@@ -366,28 +493,6 @@ The metrics response would look like this:
     temperature_panic{temp_name="hdds"} 50.0
     # HELP arduino_status_age_seconds Seconds since the last `status` message from the Arduino board (measured at the latest tick)
     # TYPE arduino_status_age_seconds gauge
-
-
-PWM fans via Arduino
-~~~~~~~~~~~~~~~~~~~~
-
-An Arduino board might be used to control some PWM fans.
-
-Here is a `firmware`_ and schematics for Arduino Micro:
-
-.. _firmware: https://github.com/KostyaEsmukov/afancontrol/blob/master/arduino/micro.ino
-
-.. image:: ./_static/micro_schematics.svg
-   :target: ./_static/micro_schematics.svg
-
-The given firmware can be flashed as-is on a Genuine Arduino Micro
-without any tweaks. It is important to use Micro, because the firmware
-was designed specifically for it. For other boards you might need to change
-the pins in the firmware. Refer to its code for the hints on the places
-which should be modified.
-
-Once the board is flashed and connected, you may start using its pins
-in `afancontrol` to control the PWM fans connected to the board.
 
 
 Indices and tables
