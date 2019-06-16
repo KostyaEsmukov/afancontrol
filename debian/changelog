@@ -1,3 +1,9 @@
+afancontrol (2.0.0~b5-1) stretch; urgency=medium
+
+  * Fix LinuxPWMFan spuriously raising "Couldn't disable PWM on the fan"
+
+ -- Kostya Esmukov <kostya@esmukov.ru>  Sat, 15 Jun 2019 23:18:33 +0000
+
 afancontrol (2.0.0~b4-1) stretch; urgency=medium
 
   * Fix Arduino connection recovery not working
