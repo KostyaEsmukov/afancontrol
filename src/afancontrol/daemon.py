@@ -107,14 +107,12 @@ def daemon(
     with ExitStack() as stack:
         if pidfile_instance is not None:
             stack.enter_context(pidfile_instance)
-            # Ensure that pidfile is writable before forking:
             pidfile_instance.save_pid(os.getpid())
 
         stack.enter_context(manager)
 
-        # Make a first tick without forking. If something is wrong,
-        # (e.g. bad fan/temp file paths), an exception would be raised
-        # here.
+        # Make a first tick. If something is wrong, (e.g. bad fan/temp
+        # file paths), an exception would be raised here.
         manager.tick()
 
         while not signals.wait_for_term_queued(parsed_config.daemon.interval):
