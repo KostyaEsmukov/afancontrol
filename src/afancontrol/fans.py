@@ -1,5 +1,5 @@
 from contextlib import ExitStack
-from typing import Mapping, MutableSet
+from typing import Mapping, MutableSet, Optional
 
 from afancontrol.config import FanName
 from afancontrol.logger import logger
@@ -11,7 +11,7 @@ class Fans:
     def __init__(self, fans: Mapping[FanName, PWMFanNorm], *, report: Report) -> None:
         self.fans = fans
         self.report = report
-        self._stack = None
+        self._stack = None  # type: Optional[ExitStack]
 
         # Set of fans marked as failing (which speed is 0)
         self._failed_fans = set()  # type: MutableSet[FanName]
@@ -37,6 +37,7 @@ class Fans:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
+        assert self._stack is not None
         logger.info("Disabling PWM on fans...")
         self._stack.close()
         logger.info("Done. Fans should be returned to full speed")

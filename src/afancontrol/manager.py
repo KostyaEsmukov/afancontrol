@@ -35,7 +35,7 @@ class Manager:
         self.mappings = mappings
         self.triggers = Triggers(triggers_config, report)
         self.metrics = metrics
-        self._stack = None
+        self._stack = None  # type: Optional[ExitStack]
 
     def __enter__(self):  # reusable
         self._stack = ExitStack()
@@ -49,6 +49,7 @@ class Manager:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
+        assert self._stack is not None
         self._stack.close()
         return None
 

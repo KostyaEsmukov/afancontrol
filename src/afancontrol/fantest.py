@@ -193,7 +193,7 @@ controlling the fan you're going to test.
                 arduino_baudrate = click.prompt(  # type: ignore
                     "\n%s\nBaudrate" % HELP_ARDUINO_BAUDRATE,
                     type=int,
-                    default=arduino_baudrate,
+                    default=str(arduino_baudrate),
                     show_default=True,
                 )
             if not arduino_pwm_pin and arduino_pwm_pin != 0:

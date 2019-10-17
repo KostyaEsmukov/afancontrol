@@ -257,6 +257,7 @@ class PrometheusMetrics(Metrics):
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
+        assert self._http_server is not None
         self._http_server.shutdown()  # stop serve_forever()
         self._http_server.server_close()
         self._http_server = None

@@ -184,7 +184,7 @@ class Triggers:
             },
             report=report,
         )
-        self._stack = None
+        self._stack = None  # type: Optional[ExitStack]
 
     def __enter__(self):  # reusable
         self._stack = ExitStack()
@@ -197,6 +197,7 @@ class Triggers:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
+        assert self._stack is not None
         self._stack.close()
         return None
 

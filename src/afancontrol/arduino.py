@@ -306,6 +306,8 @@ class _AutoRetriedReaderThread:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
+        assert self._reader_thread is not None
+        assert self._watchdog_thread is not None
         self._watchdog_queue.put(self._QUEUE_STOP)
         self._watchdog_thread.join()
         self._reader_thread.close()
