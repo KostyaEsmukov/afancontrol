@@ -12,7 +12,7 @@ matrix:
   allow_failures:
     - python: "3.9-dev"
 
-install: pip install tox-travis tox
+install: pip install tox-travis tox tox-venv
 
 # Used by the `test` stage.
 script: tox
