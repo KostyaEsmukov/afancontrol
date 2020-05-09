@@ -1,3 +1,9 @@
+afancontrol (2.0.0-1) unstable; urgency=medium
+
+  * Switch Debian distribution from stretch to unstable
+
+ -- Kostya Esmukov <kostya@esmukov.ru>  Sat, 09 May 2020 13:30:44 +0000
+
 afancontrol (2.0.0~b5-1) unstable; urgency=medium
 
   * Fix LinuxPWMFan spuriously raising "Couldn't disable PWM on the fan"

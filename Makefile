@@ -55,7 +55,7 @@ deb-local: clean sdist
 		-v `pwd`/debian:/afancontrol/debian \
 		afancontrol-debuild sh -ex -c '\
 			tar xaf /afancontrol/dist/afancontrol-*.tar.gz --strip 1; \
-			dch -v `python3 setup.py --version` --distribution=unstable; \
+			dch -v `python3 setup.py --version` -b --distribution=unstable; \
 			debuild -us -uc -b; \
 			cp debian/changelog /afancontrol/debian/; \
 			cd ../; \
