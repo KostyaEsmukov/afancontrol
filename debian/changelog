@@ -1,10 +1,10 @@
-afancontrol (2.0.0~b5-1) stretch; urgency=medium
+afancontrol (2.0.0~b5-1) unstable; urgency=medium
 
   * Fix LinuxPWMFan spuriously raising "Couldn't disable PWM on the fan"
 
  -- Kostya Esmukov <kostya@esmukov.ru>  Sat, 15 Jun 2019 23:18:33 +0000
 
-afancontrol (2.0.0~b4-1) stretch; urgency=medium
+afancontrol (2.0.0~b4-1) unstable; urgency=medium
 
   * Fix Arduino connection recovery not working
 
@@ -12,7 +12,7 @@ afancontrol (2.0.0~b4-1) stretch; urgency=medium
 
  -- Kostya Esmukov <kostya@esmukov.ru>  Thu, 02 May 2019 11:55:29 +0000
 
-afancontrol (2.0.0~b3-1) stretch; urgency=medium
+afancontrol (2.0.0~b3-1) unstable; urgency=medium
 
   * Manager: remove a redundant processing of the fans which are absent in mappings
 
@@ -24,13 +24,13 @@ afancontrol (2.0.0~b3-1) stretch; urgency=medium
 
  -- Kostya Esmukov <kostya@esmukov.ru>  Wed, 01 May 2019 12:40:13 +0000
 
-afancontrol (2.0.0~b2-1) stretch; urgency=medium
+afancontrol (2.0.0~b2-1) unstable; urgency=medium
 
   * Fix hddtemp not expanding glob
 
  -- Kostya Esmukov <kostya@esmukov.ru>  Mon, 29 Apr 2019 19:04:42 +0000
 
-afancontrol (2.0.0~b1-1) stretch; urgency=medium
+afancontrol (2.0.0~b1-1) unstable; urgency=medium
 
   * Initial release
 

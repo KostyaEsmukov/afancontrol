@@ -45,8 +45,8 @@ check-docs:
 	# Doesn't generate any output but prints out errors and warnings.
 	make -C docs dummy
 
-.PHONY: deb-stretch-local
-deb-stretch-local: clean sdist
+.PHONY: deb-local
+deb-local: clean sdist
 	docker build -t afancontrol-debuild -f ./Dockerfile.debian .
 	docker run -it --rm \
 		-v `pwd`/dist:/afancontrol/dist \
@@ -63,8 +63,8 @@ deb-stretch-local: clean sdist
 			dpkg --contents afancontrol*.deb; \
 	'
 
-.PHONY: deb-stretch-from-pypi
-deb-stretch-from-pypi: clean
+.PHONY: deb-from-pypi
+deb-from-pypi: clean
 	docker build -t afancontrol-debuild -f ./Dockerfile.debian .
 	docker run -it --rm \
 		-v `pwd`/dist:/afancontrol/dist \

@@ -1,6 +1,6 @@
-# Docker image for building an `afancontrol` package for Debian Stretch.
+# Docker image for building an `afancontrol` package for Debian.
 
-FROM debian:stretch
+FROM debian:unstable
 
 RUN apt-get update \
     && apt-get install -y \

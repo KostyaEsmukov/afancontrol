@@ -216,7 +216,7 @@ There's a Dockerfile which can be used to build a Debian `.deb` package:
     # Build the .deb from the latest PyPI release:
     git clone https://github.com/KostyaEsmukov/afancontrol.git
     cd afancontrol
-    make deb-stretch-from-pypi
+    make deb-from-pypi
 
     # Install the package:
     sudo dpkg -i dist/debian/*.deb
