@@ -38,7 +38,7 @@ def get_metadata_value(property_name):
 project = get_metadata_value("name")
 author = get_metadata_value("author")
 
-_copyright_year = 2019
+_copyright_year = 2020
 copyright = "%s, %s" % (_copyright_year, author)
 
 # The full version, including alpha/beta/rc tags
