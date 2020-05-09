@@ -247,7 +247,7 @@ def _parse_actions(config: configparser.ConfigParser) -> Tuple[str, Actions]:
 
 
 def _parse_arduino_connections(
-    config: configparser.ConfigParser
+    config: configparser.ConfigParser,
 ) -> Mapping[ArduinoName, ArduinoConnection]:
     arduino_connections = {}  # type: Dict[ArduinoName, ArduinoConnection]
     for section_name in config.sections():

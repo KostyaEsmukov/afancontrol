@@ -27,7 +27,7 @@ DEFAULT_STATUS_TTL = 5
 
 
 def arduino_connection_from_pwmfan_norm(
-    pwmfan_norm: PWMFanNorm
+    pwmfan_norm: PWMFanNorm,
 ) -> Optional["ArduinoConnection"]:
     # Used in metrics
     pwmfan = pwmfan_norm.pwmfan
