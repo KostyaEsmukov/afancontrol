@@ -21,7 +21,7 @@ clean:
 .PHONY: develop
 develop:
 	pip install -U setuptools wheel
-	pip install -e '.[dev]'
+	pip install -e '.[arduino,metrics,dev]'
 
 .PHONY: sdist
 sdist:
