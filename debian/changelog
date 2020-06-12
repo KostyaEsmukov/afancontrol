@@ -1,3 +1,9 @@
+afancontrol (2.1.0-1) unstable; urgency=medium
+
+  * Move PID file under /run (#3)
+
+ -- Kostya Esmukov <kostya@esmukov.ru>  Fri, 12 Jun 2020 15:12:15 +0000
+
 afancontrol (2.0.0-1) unstable; urgency=medium
 
   * Switch Debian distribution from stretch to unstable
