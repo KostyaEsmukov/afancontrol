@@ -30,7 +30,7 @@ from afancontrol.pwmfan import (
 from afancontrol.temp import CommandTemp, FileTemp, HDDTemp, Temp, TempCelsius
 
 DEFAULT_CONFIG = "/etc/afancontrol/afancontrol.conf"
-DEFAULT_PIDFILE = "/var/run/afancontrol.pid"
+DEFAULT_PIDFILE = "/run/afancontrol.pid"
 DEFAULT_INTERVAL = 5
 DEFAULT_FANS_SPEED_CHECK_INTERVAL = 3
 DEFAULT_HDDTEMP = "hddtemp"

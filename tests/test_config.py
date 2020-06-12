@@ -59,7 +59,7 @@ def test_pkg_conf(pkg_conf: Path):
     parsed = parse_config(pkg_conf, daemon_cli_config)
     assert parsed == ParsedConfig(
         daemon=DaemonConfig(
-            pidfile="/var/run/afancontrol.pid",
+            pidfile="/run/afancontrol.pid",
             logfile="/var/log/afancontrol.log",
             interval=5,
             exporter_listen_host=None,
@@ -118,7 +118,7 @@ def test_example_conf(example_conf: Path):
     parsed = parse_config(example_conf, daemon_cli_config)
     assert parsed == ParsedConfig(
         daemon=DaemonConfig(
-            pidfile="/var/run/afancontrol.pid",
+            pidfile="/run/afancontrol.pid",
             logfile="/var/log/afancontrol.log",
             exporter_listen_host="127.0.0.1:8083",
             interval=5,
@@ -238,7 +238,7 @@ temps = mobo
     parsed = parse_config(path_from_str(config), daemon_cli_config)
     assert parsed == ParsedConfig(
         daemon=DaemonConfig(
-            pidfile="/var/run/afancontrol.pid",
+            pidfile="/run/afancontrol.pid",
             logfile=None,
             exporter_listen_host=None,
             interval=5,
