@@ -19,6 +19,12 @@ from afancontrol.arduino import (
     ArduinoName,
     ArduinoPin,
 )
+from afancontrol.filters import (
+    MovingMedianFilter,
+    MovingQuantileFilter,
+    NullFilter,
+    TempFilter,
+)
 from afancontrol.logger import logger
 from afancontrol.pwmfan import (
     ArduinoFanPWMRead,
@@ -55,6 +61,9 @@ DEFAULT_PWM_LINE_END = 240
 
 DEFAULT_NEVER_STOP = True
 
+DEFAULT_WINDOW_SIZE = 3
+
+FilterName = NewType("FilterName", str)
 TempName = NewType("TempName", str)
 FanName = NewType("FanName", str)
 ReadonlyFanName = NewType("ReadonlyFanName", str)
@@ -140,6 +149,16 @@ DaemonConfig = NamedTuple(
     # fmt: on
 )
 
+FilteredTemp = NamedTuple(
+    "FilteredTemp",
+    # fmt: off
+    [
+        ("temp", Temp),
+        ("filter", TempFilter),
+    ]
+    # fmt: on
+)
+
 ParsedConfig = NamedTuple(
     "ParsedConfig",
     # fmt: off
@@ -150,7 +169,7 @@ ParsedConfig = NamedTuple(
         ("arduino_connections", Mapping[ArduinoName, ArduinoConnection]),
         ("fans", Mapping[FanName, PWMFanNorm]),
         ("readonly_fans", Mapping[ReadonlyFanName, ReadonlyPWMFanNorm]),
-        ("temps", Mapping[TempName, Temp]),
+        ("temps", Mapping[TempName, FilteredTemp]),
         ("mappings", Mapping[MappingName, FansTempsRelation]),
     ]
     # fmt: on
@@ -167,7 +186,8 @@ def parse_config(config_path: Path, daemon_cli_config: DaemonCLIConfig) -> Parse
     daemon, hddtemp = _parse_daemon(config, daemon_cli_config)
     report_cmd, global_commands = _parse_actions(config)
     arduino_connections = _parse_arduino_connections(config)
-    temps, temp_commands = _parse_temps(config, hddtemp)
+    filters = _parse_filters(config)
+    temps, temp_commands = _parse_temps(config, hddtemp, filters)
     fans = _parse_fans(config, arduino_connections)
     readonly_fans = _parse_readonly_fans(config, arduino_connections)
     _check_fans_namespace(fans, readonly_fans)
@@ -305,10 +325,63 @@ def _parse_arduino_connections(
     return arduino_connections
 
 
+def _parse_filters(
+    config: configparser.ConfigParser,
+) -> Mapping[FilterName, TempFilter]:
+    filters = {}  # type: Dict[FilterName, TempFilter]
+    for section_name in config.sections():
+        section_name_parts = section_name.split(":", 1)
+
+        if section_name_parts[0].strip().lower() != "filter":
+            continue
+
+        filter_name = FilterName(section_name_parts[1].strip())
+        filter = config[section_name]
+        keys = set(filter.keys())
+
+        filter_type = filter["type"]
+        keys.discard("type")
+
+        if filter_type == "moving_median":
+            window_size = filter.getint("window_size", fallback=DEFAULT_WINDOW_SIZE)
+            keys.discard("window_size")
+
+            f = MovingMedianFilter(window_size=window_size)  # type: TempFilter
+        elif filter_type == "moving_quantile":
+            window_size = filter.getint("window_size", fallback=DEFAULT_WINDOW_SIZE)
+            keys.discard("window_size")
+
+            quantile = filter.getfloat("quantile")
+            keys.discard("quantile")
+            f = MovingQuantileFilter(quantile=quantile, window_size=window_size)
+        else:
+            raise RuntimeError(
+                "Unsupported filter type '%s' for filter '%s'. "
+                "Supported types: `moving_median`, `moving_quantile`."
+                % (filter_type, filter_name)
+            )
+
+        if keys:
+            raise RuntimeError(
+                "Unknown options in the [%s] section: %s" % (section_name, keys)
+            )
+
+        if filter_name in filters:
+            raise RuntimeError(
+                "Duplicate filter section declaration for '%s'" % filter_name
+            )
+        filters[filter_name] = f
+
+    # Empty filters is ok
+    return filters
+
+
 def _parse_temps(
-    config: configparser.ConfigParser, hddtemp: str
-) -> Tuple[Mapping[TempName, Temp], Mapping[TempName, Actions]]:
-    temps = {}  # type: Dict[TempName, Temp]
+    config: configparser.ConfigParser,
+    hddtemp: str,
+    filters: Mapping[FilterName, TempFilter],
+) -> Tuple[Mapping[TempName, FilteredTemp], Mapping[TempName, Actions]]:
+    temps = {}  # type: Dict[TempName, FilteredTemp]
     temp_commands = {}  # type: Dict[TempName, Actions]
     for section_name in config.sections():
         section_name_parts = section_name.split(":", 1)
@@ -376,6 +449,14 @@ def _parse_temps(
                 "Unsupported temp type '%s' for temp '%s'" % (type, temp_name)
             )
 
+        filter_name = temp.get("filter")
+        keys.discard("filter")
+
+        if filter_name is None:
+            filter = NullFilter()
+        else:
+            filter = filters[FilterName(filter_name.strip())].copy()
+
         if keys:
             raise RuntimeError(
                 "Unknown options in the [%s] section: %s" % (section_name, keys)
@@ -385,7 +466,7 @@ def _parse_temps(
             raise RuntimeError(
                 "Duplicate temp section declaration for '%s'" % temp_name
             )
-        temps[temp_name] = t
+        temps[temp_name] = FilteredTemp(temp=t, filter=filter)
         temp_commands[temp_name] = Actions(
             panic=actions_panic, threshold=actions_threshold
         )
@@ -581,7 +662,7 @@ def _check_fans_namespace(
 def _parse_mappings(
     config: configparser.ConfigParser,
     fans: Mapping[FanName, PWMFanNorm],
-    temps: Mapping[TempName, Temp],
+    temps: Mapping[TempName, FilteredTemp],
 ) -> Mapping[MappingName, FansTempsRelation]:
 
     mappings = {}  # type: Dict[MappingName, FansTempsRelation]

@@ -12,7 +12,7 @@ from afancontrol.config import AnyFanName, FanName, ReadonlyFanName, TempName
 from afancontrol.fans import Fans
 from afancontrol.logger import logger
 from afancontrol.pwmfannorm import PWMFanNorm, ReadonlyPWMFanNorm
-from afancontrol.temp import TempStatus
+from afancontrol.temps import ObservedTempStatus
 from afancontrol.trigger import Triggers
 
 if TYPE_CHECKING:
@@ -38,7 +38,7 @@ class Metrics(abc.ABC):
     @abc.abstractmethod
     def tick(
         self,
-        temps: Mapping[TempName, Optional[TempStatus]],
+        temps: Mapping[TempName, ObservedTempStatus],
         fans: Fans,
         triggers: Triggers,
         arduino_connections: Mapping[ArduinoName, ArduinoConnection],
@@ -59,7 +59,7 @@ class NullMetrics(Metrics):
 
     def tick(
         self,
-        temps: Mapping[TempName, Optional[TempStatus]],
+        temps: Mapping[TempName, ObservedTempStatus],
         fans: Fans,
         triggers: Triggers,
         arduino_connections: Mapping[ArduinoName, ArduinoConnection],
@@ -111,7 +111,8 @@ class PrometheusMetrics(Metrics):
         )
         self.temperature_current = prom.Gauge(
             "temperature_current",
-            "The current temperature value (in Celsius) from a temperature sensor",
+            "The current (filtered) temperature value (in Celsius) "
+            "from a temperature sensor",
             ["temp_name"],
             registry=self.registry,
         )
@@ -148,6 +149,14 @@ class PrometheusMetrics(Metrics):
         self.temperature_is_threshold = prom.Gauge(
             "temperature_is_threshold",
             "Is threshold temperature reached for a temperature sensor",
+            ["temp_name"],
+            registry=self.registry,
+        )
+
+        self.temperature_current_raw = prom.Gauge(
+            "temperature_current_raw",
+            "The current (unfiltered) temperature value (in Celsius) "
+            "from a temperature sensor",
             ["temp_name"],
             registry=self.registry,
         )
@@ -268,12 +277,13 @@ class PrometheusMetrics(Metrics):
 
     def tick(
         self,
-        temps: Mapping[TempName, Optional[TempStatus]],
+        temps: Mapping[TempName, ObservedTempStatus],
         fans: Fans,
         triggers: Triggers,
         arduino_connections: Mapping[ArduinoName, ArduinoConnection],
     ) -> None:
-        for temp_name, temp_status in temps.items():
+        for temp_name, observed_temp_status in temps.items():
+            temp_status = observed_temp_status.filtered
             if temp_status is None:
                 self.temperature_is_failing.labels(temp_name).set(1)
                 self.temperature_current.labels(temp_name).set(none_to_nan(None))
@@ -298,6 +308,12 @@ class PrometheusMetrics(Metrics):
                 self.temperature_is_threshold.labels(temp_name).set(
                     temp_status.is_threshold
                 )
+
+            temp_status = observed_temp_status.raw
+            if temp_status is None:
+                self.temperature_current_raw.labels(temp_name).set(none_to_nan(None))
+            else:
+                self.temperature_current_raw.labels(temp_name).set(temp_status.temp)
 
         for fan_name, pwmfan_norm in fans.fans.items():
             self._collect_fan_metrics(fans, fan_name, pwmfan_norm)

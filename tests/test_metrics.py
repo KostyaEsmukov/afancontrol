@@ -12,6 +12,7 @@ from afancontrol.metrics import PrometheusMetrics, prometheus_available
 from afancontrol.pwmfannorm import PWMFanNorm
 from afancontrol.report import Report
 from afancontrol.temp import TempCelsius, TempStatus
+from afancontrol.temps import ObservedTempStatus
 from afancontrol.trigger import Triggers
 
 
@@ -58,16 +59,27 @@ def test_prometheus_metrics(requests_session):
 
         metrics.tick(
             temps={
-                TempName("goodtemp"): TempStatus(
-                    temp=TempCelsius(74.0),
-                    min=TempCelsius(40.0),
-                    max=TempCelsius(50.0),
-                    panic=TempCelsius(60.0),
-                    threshold=None,
-                    is_panic=True,
-                    is_threshold=False,
+                TempName("goodtemp"): ObservedTempStatus(
+                    filtered=TempStatus(
+                        temp=TempCelsius(74.0),
+                        min=TempCelsius(40.0),
+                        max=TempCelsius(50.0),
+                        panic=TempCelsius(60.0),
+                        threshold=None,
+                        is_panic=True,
+                        is_threshold=False,
+                    ),
+                    raw=TempStatus(
+                        temp=TempCelsius(72.0),
+                        min=TempCelsius(40.0),
+                        max=TempCelsius(50.0),
+                        panic=TempCelsius(60.0),
+                        threshold=None,
+                        is_panic=True,
+                        is_threshold=False,
+                    ),
                 ),
-                TempName("failingtemp"): None,
+                TempName("failingtemp"): ObservedTempStatus(filtered=None, raw=None),
             },
             fans=Fans(
                 fans={FanName("test"): mocked_fan},
@@ -82,7 +94,9 @@ def test_prometheus_metrics(requests_session):
         assert resp.status_code == 200
         print(resp.text)
         assert 'temperature_current{temp_name="failingtemp"} NaN' in resp.text
+        assert 'temperature_current_raw{temp_name="failingtemp"} NaN' in resp.text
         assert 'temperature_current{temp_name="goodtemp"} 74.0' in resp.text
+        assert 'temperature_current_raw{temp_name="goodtemp"} 72.0' in resp.text
         assert 'temperature_is_failing{temp_name="failingtemp"} 1.0' in resp.text
         assert 'temperature_is_failing{temp_name="goodtemp"} 0.0' in resp.text
         assert 'fan_rpm{fan_name="test"} 999.0' in resp.text
@@ -118,7 +132,9 @@ def test_prometheus_faulty_fans_dont_break_metrics_collection(requests_session):
 
         # Must not raise despite the PWMFan methods raising above:
         metrics.tick(
-            temps={TempName("failingtemp"): None},
+            temps={
+                TempName("failingtemp"): ObservedTempStatus(filtered=None, raw=None)
+            },
             fans=Fans(
                 fans={FanName("test"): mocked_fan},
                 readonly_fans={},

@@ -27,6 +27,7 @@ Key features:
 - Configurable mappings between the temp sensors and the fans (e.g. fans
   would be more sensitive to the closely located sensors than to
   the farther-located ones);
+- Temperature filters to smoothen fan reactions;
 - Prometheus-compatible metrics exporter;
 - Custom shell commands might be run when temperature reaches configured
   thresholds;

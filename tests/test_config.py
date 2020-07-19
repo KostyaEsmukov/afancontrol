@@ -17,6 +17,7 @@ from afancontrol.config import (
     FanName,
     FanSpeedModifier,
     FansTempsRelation,
+    FilteredTemp,
     MappingName,
     ParsedConfig,
     ReadonlyFanName,
@@ -24,6 +25,7 @@ from afancontrol.config import (
     TriggerConfig,
     parse_config,
 )
+from afancontrol.filters import MovingMedianFilter, NullFilter
 from afancontrol.pwmfan import (
     ArduinoFanPWMRead,
     ArduinoFanPWMWrite,
@@ -110,12 +112,15 @@ def test_pkg_conf(pkg_conf: Path):
             ),
         },
         temps={
-            TempName("mobo"): FileTemp(
-                "/sys/class/hwmon/hwmon0/device/temp1_input",
-                min=TempCelsius(30.0),
-                max=TempCelsius(40.0),
-                panic=None,
-                threshold=None,
+            TempName("mobo"): FilteredTemp(
+                temp=FileTemp(
+                    "/sys/class/hwmon/hwmon0/device/temp1_input",
+                    min=TempCelsius(30.0),
+                    max=TempCelsius(40.0),
+                    panic=None,
+                    threshold=None,
+                ),
+                filter=MovingMedianFilter(window_size=3),
             )
         },
         mappings={
@@ -233,20 +238,26 @@ def test_example_conf(example_conf: Path):
         },
         readonly_fans={},
         temps={
-            TempName("hdds"): HDDTemp(
-                "/dev/sd?",
-                min=TempCelsius(35.0),
-                max=TempCelsius(48.0),
-                panic=TempCelsius(55.0),
-                threshold=None,
-                hddtemp_bin="hddtemp",
+            TempName("hdds"): FilteredTemp(
+                temp=HDDTemp(
+                    "/dev/sd?",
+                    min=TempCelsius(35.0),
+                    max=TempCelsius(48.0),
+                    panic=TempCelsius(55.0),
+                    threshold=None,
+                    hddtemp_bin="hddtemp",
+                ),
+                filter=NullFilter(),
             ),
-            TempName("mobo"): FileTemp(
-                "/sys/class/hwmon/hwmon0/device/temp1_input",
-                min=TempCelsius(30.0),
-                max=TempCelsius(40.0),
-                panic=None,
-                threshold=None,
+            TempName("mobo"): FilteredTemp(
+                temp=FileTemp(
+                    "/sys/class/hwmon/hwmon0/device/temp1_input",
+                    min=TempCelsius(30.0),
+                    max=TempCelsius(40.0),
+                    panic=None,
+                    threshold=None,
+                ),
+                filter=NullFilter(),
             ),
         },
         mappings={
@@ -331,12 +342,15 @@ temps = mobo
         },
         readonly_fans={},
         temps={
-            TempName("mobo"): FileTemp(
-                "/sys/class/hwmon/hwmon0/device/temp1_input",
-                min=None,
-                max=None,
-                panic=None,
-                threshold=None,
+            TempName("mobo"): FilteredTemp(
+                temp=FileTemp(
+                    "/sys/class/hwmon/hwmon0/device/temp1_input",
+                    min=None,
+                    max=None,
+                    panic=None,
+                    threshold=None,
+                ),
+                filter=NullFilter(),
             )
         },
         mappings={
@@ -403,12 +417,15 @@ fan_input = /sys/class/hwmon/hwmon0/device/fan1_input
             )
         },
         temps={
-            TempName("mobo"): FileTemp(
-                "/sys/class/hwmon/hwmon0/device/temp1_input",
-                min=None,
-                max=None,
-                panic=None,
-                threshold=None,
+            TempName("mobo"): FilteredTemp(
+                temp=FileTemp(
+                    "/sys/class/hwmon/hwmon0/device/temp1_input",
+                    min=None,
+                    max=None,
+                    panic=None,
+                    threshold=None,
+                ),
+                filter=NullFilter(),
             )
         },
         mappings={},

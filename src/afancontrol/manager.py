@@ -16,7 +16,8 @@ from afancontrol.logger import logger
 from afancontrol.metrics import Metrics
 from afancontrol.pwmfannorm import PWMFanNorm, PWMValueNorm, ReadonlyPWMFanNorm
 from afancontrol.report import Report
-from afancontrol.temp import Temp, TempStatus
+from afancontrol.temp import TempStatus
+from afancontrol.temps import FilteredTemp, Temps, filtered_temps
 from afancontrol.trigger import Triggers
 
 
@@ -27,7 +28,7 @@ class Manager:
         arduino_connections: Mapping[ArduinoName, ArduinoConnection],
         fans: Mapping[FanName, PWMFanNorm],
         readonly_fans: Mapping[ReadonlyFanName, ReadonlyPWMFanNorm],
-        temps: Mapping[TempName, Temp],
+        temps: Mapping[TempName, FilteredTemp],
         mappings: Mapping[MappingName, FansTempsRelation],
         report: Report,
         triggers_config: TriggerConfig,
@@ -36,7 +37,7 @@ class Manager:
         self.report = report
         self.arduino_connections = arduino_connections
         self.fans = Fans(fans=fans, readonly_fans=readonly_fans, report=report)
-        self.temps = temps
+        self.temps = Temps(temps)
         self.mappings = mappings
         self.triggers = Triggers(triggers_config, report)
         self.metrics = metrics
@@ -46,6 +47,7 @@ class Manager:
         self._stack = ExitStack()
         try:
             self._stack.enter_context(self.fans)
+            self._stack.enter_context(self.temps)
             self._stack.enter_context(self.triggers)
             self._stack.enter_context(self.metrics)
         except Exception:
@@ -60,36 +62,22 @@ class Manager:
 
     def tick(self) -> None:
         with self.metrics.measure_tick():
-            temps = self._get_temps()
+            temps = self.temps.get_temps()
+            _filtered_temps = filtered_temps(temps)
             self.fans.check_speeds()
 
-            self.triggers.check(temps)
+            self.triggers.check(_filtered_temps)
 
             if self.triggers.is_alerting:
                 self.fans.set_all_to_full_speed()
             else:
-                speeds = self._map_temps_to_fan_speeds(temps)
+                speeds = self._map_temps_to_fan_speeds(_filtered_temps)
                 self.fans.set_fan_speeds(speeds)
 
         try:
             self.metrics.tick(temps, self.fans, self.triggers, self.arduino_connections)
         except Exception:
             logger.warning("Failed to collect metrics", exc_info=True)
-
-    def _get_temps(self) -> Mapping[TempName, Optional[TempStatus]]:
-        result = {}
-        for name, temp in self.temps.items():
-            try:
-                status = temp.get()  # type: Optional[TempStatus]
-            except Exception as e:
-                status = None
-                logger.warning(
-                    "Temp sensor [%s] has failed: %s", name, e, exc_info=True
-                )
-            else:
-                logger.debug("Temp status [%s]: %s", name, status)
-            result[name] = status
-        return result
 
     def _map_temps_to_fan_speeds(
         self, temps: Mapping[TempName, Optional[TempStatus]]
