@@ -112,6 +112,26 @@ def test_file_temp_min_max_numbers(file_temp_path):
     print(repr(temp))
 
 
+def test_file_temp_glob(file_temp_path):
+    temp = FileTemp(
+        temp_path=str(file_temp_path).replace("/temp1", "/temp?"),
+        min=TempCelsius(40.0),
+        max=None,
+        panic=None,
+        threshold=None,
+    )
+    assert temp.get() == TempStatus(
+        temp=TempCelsius(34.0),
+        min=TempCelsius(40.0),
+        max=TempCelsius(127.0),
+        panic=None,
+        threshold=None,
+        is_panic=False,
+        is_threshold=False,
+    )
+    print(repr(temp))
+
+
 def test_file_temp_min_max_files(temp_path, file_temp_path):
     with pytest.raises(RuntimeError):
         # min == max is an error

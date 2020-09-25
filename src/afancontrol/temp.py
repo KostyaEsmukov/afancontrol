@@ -1,4 +1,5 @@
 import abc
+import glob
 import re
 from pathlib import Path
 from typing import NamedTuple, NewType, Optional, Tuple
@@ -19,6 +20,15 @@ TempStatus = NamedTuple(
         ("is_threshold", bool),
     ],
 )
+
+
+def _expand_glob(path: str):
+    matches = glob.glob(path)
+    if not matches:
+        return path  # a FileNotFoundError will be raised on a first read attempt
+    if len(matches) == 1:
+        return matches[0]
+    raise ValueError("Expected glob to expand to a single path, got %r" % (matches,))
 
 
 class Temp(abc.ABC):
@@ -63,6 +73,14 @@ class FileTemp(Temp):
     ) -> None:
         super().__init__(panic=panic, threshold=threshold)
         temp_path = re.sub(r"_input$", "", temp_path)
+
+        # Allow paths looking like this (this one is from an nvme drive):
+        #  /sys/devices/pci0000:00/0000:00:01.3/[...]/hwmon/hwmon*/temp1_input
+        # The `hwmon*` might change after reboot, but it is always a single
+        # directory within the device.
+        temp_path = _expand_glob(temp_path + "_input")
+        temp_path = re.sub(r"_input$", "", temp_path)
+
         self._temp_input = Path(temp_path + "_input")
         self._temp_min = Path(temp_path + "_min")
         self._temp_max = Path(temp_path + "_max")
