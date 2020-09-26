@@ -3,10 +3,12 @@ import queue
 import struct
 import threading
 from timeit import default_timer
-from typing import Any, Dict, NewType, Optional
+from typing import TYPE_CHECKING, Any, Dict, NewType, Optional
 
 from afancontrol.logger import logger
-from afancontrol.pwmfan import BasePWMFan, FanValue, PWMFanNorm, PWMValue
+
+if TYPE_CHECKING:
+    from afancontrol.pwmfan.base import PWMValue
 
 try:
     from serial import serial_for_url
@@ -24,83 +26,6 @@ ArduinoPin = NewType("ArduinoPin", int)
 
 DEFAULT_BAUDRATE = 115200
 DEFAULT_STATUS_TTL = 5
-
-
-def arduino_connection_from_pwmfan_norm(
-    pwmfan_norm: PWMFanNorm,
-) -> Optional["ArduinoConnection"]:
-    # Used in metrics
-    pwmfan = pwmfan_norm.pwmfan
-    if isinstance(pwmfan, ArduinoPWMFan):
-        return pwmfan._conn
-    return None
-
-
-class ArduinoPWMFan(BasePWMFan):
-    def __init__(
-        self,
-        arduino_connection: "ArduinoConnection",
-        *,
-        pwm_pin: ArduinoPin,
-        tacho_pin: ArduinoPin
-    ) -> None:
-        super().__init__()
-        self._conn = arduino_connection
-        self._pwm_pin = pwm_pin
-        self._tacho_pin = tacho_pin
-
-    def get(self) -> PWMValue:
-        return PWMValue(int(self._conn.get_pwm(self._pwm_pin)))
-
-    def _set_raw(self, pwm: PWMValue) -> None:
-        self._conn.set_pwm(self._pwm_pin, pwm)
-
-    def get_speed(self) -> FanValue:
-        return FanValue(self._conn.get_rpm(self._tacho_pin))
-
-    def __enter__(self):  # reusable
-        self._conn.__enter__()
-        super().__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_tb):
-        try:
-            super().__exit__(exc_type, exc_value, exc_tb)
-        finally:
-            self._conn.__exit__(exc_type, exc_value, exc_tb)
-
-    def _enable_pwm(self) -> None:
-        self.set_full_speed()
-
-    def _disable_pwm(self) -> None:
-        self.set_full_speed()
-        self._conn.wait_for_status()
-
-        if self.get() >= type(self).max_pwm:
-            return
-
-        raise RuntimeError("Couldn't disable PWM on the fan %r" % self)
-
-    def __eq__(self, other):
-        if isinstance(other, type(self)):
-            return (
-                self._conn == other._conn
-                and self._pwm_pin == other._pwm_pin
-                and self._tacho_pin == other._tacho_pin
-            )
-
-        return NotImplemented
-
-    def __ne__(self, other):
-        return not (self == other)
-
-    def __repr__(self):
-        return "%s(%r, pwm_pin=%r, tacho_pin=%r)" % (
-            type(self).__name__,
-            self._conn,
-            self._pwm_pin,
-            self._tacho_pin,
-        )
 
 
 class ArduinoConnection:
@@ -226,7 +151,7 @@ class ArduinoConnection:
                 return float("nan")
             return self._clock() - self._status_clock
 
-    def set_pwm(self, pin: ArduinoPin, pwm: PWMValue) -> None:
+    def set_pwm(self, pin: ArduinoPin, pwm: "PWMValue") -> None:
         command = SetPWMCommand(pwm_pin=pin, pwm=pwm).to_bytes()
         transport = self._reader_thread.transport
         try:
@@ -247,7 +172,7 @@ class ArduinoConnection:
 class SetPWMCommand:
     command = b"\xf1"
 
-    def __init__(self, *, pwm_pin: ArduinoPin, pwm: PWMValue) -> None:
+    def __init__(self, *, pwm_pin: ArduinoPin, pwm: "PWMValue") -> None:
         self.pwm_pin = pwm_pin
         self.pwm = pwm
 
@@ -264,7 +189,7 @@ class SetPWMCommand:
             raise ValueError(
                 "Invalid command marker. Expected %r, got %r" % (cls.command, command)
             )
-        return cls(pwm_pin=ArduinoPin(pwm_pin), pwm=PWMValue(pwm))
+        return cls(pwm_pin=ArduinoPin(pwm_pin), pwm=pwm)
 
 
 class _StatusProtocol(LineReader):

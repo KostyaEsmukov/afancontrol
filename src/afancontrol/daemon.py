@@ -73,6 +73,7 @@ def daemon(
         metrics = NullMetrics()
 
     manager = Manager(
+        arduino_connections=parsed_config.arduino_connections,
         fans=parsed_config.fans,
         temps=parsed_config.temps,
         mappings=parsed_config.mappings,

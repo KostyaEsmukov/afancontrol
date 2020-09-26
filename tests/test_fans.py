@@ -5,7 +5,8 @@ import pytest
 
 from afancontrol.config import FanName
 from afancontrol.fans import Fans
-from afancontrol.pwmfan import BasePWMFan, PWMFanNorm, PWMValueNorm
+from afancontrol.pwmfan import BasePWMFan
+from afancontrol.pwmfannorm import PWMFanNorm, PWMValueNorm
 from afancontrol.report import Report
 
 

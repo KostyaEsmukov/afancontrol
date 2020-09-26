@@ -3,13 +3,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from afancontrol.pwmfan import (
-    FanInputDevice,
-    LinuxPWMFan,
-    PWMDevice,
-    PWMFanNorm,
-    PWMValue,
-)
+from afancontrol.pwmfan import FanInputDevice, LinuxPWMFan, PWMDevice, PWMValue
+from afancontrol.pwmfannorm import PWMFanNorm
 
 
 @pytest.fixture

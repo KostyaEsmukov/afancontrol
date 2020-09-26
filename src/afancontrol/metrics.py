@@ -7,7 +7,7 @@ from timeit import default_timer
 from typing import TYPE_CHECKING, Mapping, Optional
 from urllib.parse import parse_qs, urlparse
 
-from afancontrol.arduino import arduino_connection_from_pwmfan_norm
+from afancontrol.arduino import ArduinoConnection, ArduinoName
 from afancontrol.config import TempName
 from afancontrol.fans import Fans
 from afancontrol.logger import logger
@@ -40,6 +40,7 @@ class Metrics(abc.ABC):
         temps: Mapping[TempName, Optional[TempStatus]],
         fans: Fans,
         triggers: Triggers,
+        arduino_connections: Mapping[ArduinoName, ArduinoConnection],
     ) -> None:
         pass
 
@@ -60,6 +61,7 @@ class NullMetrics(Metrics):
         temps: Mapping[TempName, Optional[TempStatus]],
         fans: Fans,
         triggers: Triggers,
+        arduino_connections: Mapping[ArduinoName, ArduinoConnection],
     ) -> None:
         pass
 
@@ -268,6 +270,7 @@ class PrometheusMetrics(Metrics):
         temps: Mapping[TempName, Optional[TempStatus]],
         fans: Fans,
         triggers: Triggers,
+        arduino_connections: Mapping[ArduinoName, ArduinoConnection],
     ) -> None:
         for temp_name, temp_status in temps.items():
             if temp_status is None:
@@ -298,14 +301,6 @@ class PrometheusMetrics(Metrics):
         for fan_name, pwmfan_norm in fans.fans.items():
             self._collect_fan_metrics(fans, fan_name, pwmfan_norm)
 
-        arduino_connections = {
-            arduino_connection.name: arduino_connection
-            for arduino_connection in (
-                arduino_connection_from_pwmfan_norm(pwmfan_norm)
-                for pwmfan_norm in fans.fans.values()
-            )
-            if arduino_connection is not None
-        }
         for arduino_name, arduino_connection in arduino_connections.items():
             self.arduino_is_connected.labels(arduino_name).set(
                 arduino_connection.is_connected

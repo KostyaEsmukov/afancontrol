@@ -12,11 +12,10 @@ from afancontrol.arduino import (
     ArduinoConnection,
     ArduinoName,
     ArduinoPin,
-    ArduinoPWMFan,
     SetPWMCommand,
     pyserial_available,
 )
-from afancontrol.pwmfan import PWMValue
+from afancontrol.pwmfan import ArduinoPWMFan, PWMValue
 
 pytestmark = pytest.mark.skipif(
     not pyserial_available, reason="pyserial is not installed"

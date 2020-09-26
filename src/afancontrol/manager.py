@@ -2,6 +2,7 @@ from collections import defaultdict
 from contextlib import ExitStack
 from typing import Dict, Mapping, Optional
 
+from afancontrol.arduino import ArduinoConnection, ArduinoName
 from afancontrol.config import (
     FanName,
     FansTempsRelation,
@@ -12,7 +13,7 @@ from afancontrol.config import (
 from afancontrol.fans import Fans
 from afancontrol.logger import logger
 from afancontrol.metrics import Metrics
-from afancontrol.pwmfan import PWMFanNorm, PWMValueNorm
+from afancontrol.pwmfannorm import PWMFanNorm, PWMValueNorm
 from afancontrol.report import Report
 from afancontrol.temp import Temp, TempStatus
 from afancontrol.trigger import Triggers
@@ -22,6 +23,7 @@ class Manager:
     def __init__(
         self,
         *,
+        arduino_connections: Mapping[ArduinoName, ArduinoConnection],
         fans: Mapping[FanName, PWMFanNorm],
         temps: Mapping[TempName, Temp],
         mappings: Mapping[MappingName, FansTempsRelation],
@@ -30,6 +32,7 @@ class Manager:
         metrics: Metrics
     ) -> None:
         self.report = report
+        self.arduino_connections = arduino_connections
         self.fans = Fans(fans, report=report)
         self.temps = temps
         self.mappings = mappings
@@ -67,7 +70,7 @@ class Manager:
                 self.fans.set_fan_speeds(speeds)
 
         try:
-            self.metrics.tick(temps, self.fans, self.triggers)
+            self.metrics.tick(temps, self.fans, self.triggers, self.arduino_connections)
         except Exception:
             logger.warning("Failed to collect metrics", exc_info=True)
 

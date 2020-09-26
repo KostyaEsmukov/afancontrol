@@ -17,16 +17,16 @@ from afancontrol.arduino import (
     ArduinoConnection,
     ArduinoName,
     ArduinoPin,
-    ArduinoPWMFan,
 )
 from afancontrol.pwmfan import (
+    ArduinoPWMFan,
     BasePWMFan,
     FanInputDevice,
     LinuxPWMFan,
     PWMDevice,
-    PWMFanNorm,
     PWMValue,
 )
+from afancontrol.pwmfannorm import PWMFanNorm
 from afancontrol.temp import CommandTemp, FileTemp, HDDTemp, Temp, TempCelsius
 
 DEFAULT_CONFIG = "/etc/afancontrol/afancontrol.conf"
@@ -136,6 +136,7 @@ ParsedConfig = NamedTuple(
         ("daemon", DaemonConfig),
         ("report_cmd", str),
         ("triggers", TriggerConfig),
+        ("arduino_connections", Mapping[ArduinoName, ArduinoConnection]),
         ("fans", Mapping[FanName, PWMFanNorm]),
         ("temps", Mapping[TempName, Temp]),
         ("mappings", Mapping[MappingName, FansTempsRelation]),
@@ -164,6 +165,7 @@ def parse_config(config_path: Path, daemon_cli_config: DaemonCLIConfig) -> Parse
         triggers=TriggerConfig(
             global_commands=global_commands, temp_commands=temp_commands
         ),
+        arduino_connections=arduino_connections,
         fans=fans,
         temps=temps,
         mappings=mappings,

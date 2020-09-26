@@ -7,7 +7,6 @@ from afancontrol.arduino import (
     ArduinoConnection,
     ArduinoName,
     ArduinoPin,
-    ArduinoPWMFan,
     pyserial_available,
 )
 from afancontrol.config import (
@@ -25,12 +24,13 @@ from afancontrol.config import (
     parse_config,
 )
 from afancontrol.pwmfan import (
+    ArduinoPWMFan,
     FanInputDevice,
     LinuxPWMFan,
     PWMDevice,
-    PWMFanNorm,
     PWMValue,
 )
+from afancontrol.pwmfannorm import PWMFanNorm
 from afancontrol.temp import FileTemp, HDDTemp, TempCelsius
 
 
@@ -58,6 +58,7 @@ def test_pkg_conf(pkg_conf: Path):
 
     parsed = parse_config(pkg_conf, daemon_cli_config)
     assert parsed == ParsedConfig(
+        arduino_connections={},
         daemon=DaemonConfig(
             pidfile="/run/afancontrol.pid",
             logfile="/var/log/afancontrol.log",
@@ -117,6 +118,11 @@ def test_example_conf(example_conf: Path):
 
     parsed = parse_config(example_conf, daemon_cli_config)
     assert parsed == ParsedConfig(
+        arduino_connections={
+            ArduinoName("mymicro"): ArduinoConnection(
+                ArduinoName("mymicro"), "/dev/ttyACM0", baudrate=115200, status_ttl=5
+            )
+        },
         daemon=DaemonConfig(
             pidfile="/run/afancontrol.pid",
             logfile="/var/log/afancontrol.log",
@@ -237,6 +243,7 @@ temps = mobo
 """
     parsed = parse_config(path_from_str(config), daemon_cli_config)
     assert parsed == ParsedConfig(
+        arduino_connections={},
         daemon=DaemonConfig(
             pidfile="/run/afancontrol.pid",
             logfile=None,

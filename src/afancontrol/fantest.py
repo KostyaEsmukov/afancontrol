@@ -10,9 +10,9 @@ from afancontrol.arduino import (
     ArduinoConnection,
     ArduinoName,
     ArduinoPin,
-    ArduinoPWMFan,
 )
 from afancontrol.pwmfan import (
+    ArduinoPWMFan,
     BasePWMFan,
     FanInputDevice,
     FanValue,

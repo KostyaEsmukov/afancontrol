@@ -9,7 +9,7 @@ import requests
 from afancontrol.config import FanName, TempName
 from afancontrol.fans import Fans
 from afancontrol.metrics import PrometheusMetrics, prometheus_available
-from afancontrol.pwmfan import PWMFanNorm
+from afancontrol.pwmfannorm import PWMFanNorm
 from afancontrol.report import Report
 from afancontrol.temp import TempCelsius, TempStatus
 from afancontrol.trigger import Triggers
@@ -71,6 +71,7 @@ def test_prometheus_metrics(requests_session):
             },
             fans=Fans(fans={FanName("test"): mocked_fan}, report=mocked_report),
             triggers=mocked_triggers,
+            arduino_connections={},
         )
 
         resp = requests_session.get("http://127.0.0.1:%s/metrics" % port)
@@ -116,6 +117,7 @@ def test_prometheus_faulty_fans_dont_break_metrics_collection(requests_session):
             temps={TempName("failingtemp"): None},
             fans=Fans(fans={FanName("test"): mocked_fan}, report=mocked_report),
             triggers=mocked_triggers,
+            arduino_connections={},
         )
 
         resp = requests_session.get("http://127.0.0.1:%s/metrics" % port)
