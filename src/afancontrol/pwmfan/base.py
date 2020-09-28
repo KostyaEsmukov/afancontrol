@@ -40,8 +40,8 @@ class BaseFanSpeed(abc.ABC, _SlotsReprMixin):
 
 
 class BaseFanPWMRead(abc.ABC, _SlotsReprMixin):
-    max_pwm: PWMValue
-    min_pwm: PWMValue
+    max_pwm = None  # type: PWMValue
+    min_pwm = None  # type: PWMValue
 
     def is_stopped(self) -> bool:
         return type(self).is_pwm_stopped(self.get())
@@ -62,7 +62,7 @@ class BaseFanPWMRead(abc.ABC, _SlotsReprMixin):
 
 
 class BaseFanPWMWrite(abc.ABC, _SlotsReprMixin):
-    read_cls: Type[BaseFanPWMRead]
+    read_cls = None  # type: Type[BaseFanPWMRead]
 
     def set(self, pwm: PWMValue) -> None:
         if not (self.read_cls.min_pwm <= pwm <= self.read_cls.max_pwm):
