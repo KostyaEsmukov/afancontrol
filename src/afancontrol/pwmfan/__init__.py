@@ -1,19 +1,35 @@
-from afancontrol.pwmfan.arduino import ArduinoPWMFan
+from afancontrol.pwmfan.arduino import (
+    ArduinoFanPWMRead,
+    ArduinoFanPWMWrite,
+    ArduinoFanSpeed,
+)
 from afancontrol.pwmfan.base import (
-    BasePWMFan,
-    FanInputDevice,
+    BaseFanPWMRead,
+    BaseFanPWMWrite,
+    BaseFanSpeed,
     FanValue,
-    PWMDevice,
     PWMValue,
 )
-from afancontrol.pwmfan.linux import LinuxPWMFan
+from afancontrol.pwmfan.linux import (
+    FanInputDevice,
+    LinuxFanPWMRead,
+    LinuxFanPWMWrite,
+    LinuxFanSpeed,
+    PWMDevice,
+)
 
 __all__ = (
-    "ArduinoPWMFan",
-    "BasePWMFan",
+    "ArduinoFanPWMRead",
+    "ArduinoFanPWMWrite",
+    "ArduinoFanSpeed",
+    "BaseFanPWMRead",
+    "BaseFanPWMWrite",
+    "BaseFanSpeed",
     "FanInputDevice",
     "FanValue",
-    "LinuxPWMFan",
+    "LinuxFanPWMRead",
+    "LinuxFanPWMWrite",
+    "LinuxFanSpeed",
     "PWMDevice",
     "PWMValue",
 )

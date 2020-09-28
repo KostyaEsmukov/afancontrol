@@ -54,7 +54,7 @@ def test_prometheus_metrics(requests_session):
         mocked_fan.get_speed.return_value = 999
         mocked_fan.get_raw.return_value = 142
         mocked_fan.get = types.MethodType(PWMFanNorm.get, mocked_fan)
-        mocked_fan.pwmfan.max_pwm = 255
+        mocked_fan.pwm_read.max_pwm = 255
 
         metrics.tick(
             temps={
@@ -69,7 +69,11 @@ def test_prometheus_metrics(requests_session):
                 ),
                 TempName("failingtemp"): None,
             },
-            fans=Fans(fans={FanName("test"): mocked_fan}, report=mocked_report),
+            fans=Fans(
+                fans={FanName("test"): mocked_fan},
+                readonly_fans={},
+                report=mocked_report,
+            ),
             triggers=mocked_triggers,
             arduino_connections={},
         )
@@ -115,7 +119,11 @@ def test_prometheus_faulty_fans_dont_break_metrics_collection(requests_session):
         # Must not raise despite the PWMFan methods raising above:
         metrics.tick(
             temps={TempName("failingtemp"): None},
-            fans=Fans(fans={FanName("test"): mocked_fan}, report=mocked_report),
+            fans=Fans(
+                fans={FanName("test"): mocked_fan},
+                readonly_fans={},
+                report=mocked_report,
+            ),
             triggers=mocked_triggers,
             arduino_connections={},
         )

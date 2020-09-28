@@ -19,18 +19,23 @@ from afancontrol.config import (
     FansTempsRelation,
     MappingName,
     ParsedConfig,
+    ReadonlyFanName,
     TempName,
     TriggerConfig,
     parse_config,
 )
 from afancontrol.pwmfan import (
-    ArduinoPWMFan,
+    ArduinoFanPWMRead,
+    ArduinoFanPWMWrite,
+    ArduinoFanSpeed,
     FanInputDevice,
-    LinuxPWMFan,
+    LinuxFanPWMRead,
+    LinuxFanPWMWrite,
+    LinuxFanSpeed,
     PWMDevice,
     PWMValue,
 )
-from afancontrol.pwmfannorm import PWMFanNorm
+from afancontrol.pwmfannorm import PWMFanNorm, ReadonlyPWMFanNorm
 from afancontrol.temp import FileTemp, HDDTemp, TempCelsius
 
 
@@ -83,14 +88,26 @@ def test_pkg_conf(pkg_conf: Path):
         ),
         fans={
             FanName("hdd"): PWMFanNorm(
-                LinuxPWMFan(
-                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
-                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
+                fan_speed=LinuxFanSpeed(
+                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input")
+                ),
+                pwm_read=LinuxFanPWMRead(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2")
+                ),
+                pwm_write=LinuxFanPWMWrite(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2")
                 ),
                 pwm_line_start=PWMValue(100),
                 pwm_line_end=PWMValue(240),
                 never_stop=False,
             )
+        },
+        readonly_fans={
+            ReadonlyFanName("cpu"): ReadonlyPWMFanNorm(
+                fan_speed=LinuxFanSpeed(
+                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan1_input")
+                ),
+            ),
         },
         temps={
             TempName("mobo"): FileTemp(
@@ -151,25 +168,45 @@ def test_example_conf(example_conf: Path):
         ),
         fans={
             FanName("cpu"): PWMFanNorm(
-                LinuxPWMFan(
-                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm1"),
-                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan1_input"),
+                fan_speed=LinuxFanSpeed(
+                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan1_input")
+                ),
+                pwm_read=LinuxFanPWMRead(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm1")
+                ),
+                pwm_write=LinuxFanPWMWrite(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm1")
                 ),
                 pwm_line_start=PWMValue(100),
                 pwm_line_end=PWMValue(240),
                 never_stop=True,
             ),
             FanName("hdd"): PWMFanNorm(
-                LinuxPWMFan(
-                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
-                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
+                fan_speed=LinuxFanSpeed(
+                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input")
+                ),
+                pwm_read=LinuxFanPWMRead(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2")
+                ),
+                pwm_write=LinuxFanPWMWrite(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2")
                 ),
                 pwm_line_start=PWMValue(100),
                 pwm_line_end=PWMValue(240),
                 never_stop=False,
             ),
             FanName("my_arduino_fan"): PWMFanNorm(
-                ArduinoPWMFan(
+                fan_speed=ArduinoFanSpeed(
+                    ArduinoConnection(
+                        ArduinoName("mymicro"),
+                        "/dev/ttyACM0",  # linux
+                        # "/dev/cu.usbmodem14201",  # macos
+                        baudrate=115200,
+                        status_ttl=5,
+                    ),
+                    tacho_pin=ArduinoPin(3),
+                ),
+                pwm_read=ArduinoFanPWMRead(
                     ArduinoConnection(
                         ArduinoName("mymicro"),
                         "/dev/ttyACM0",  # linux
@@ -178,13 +215,23 @@ def test_example_conf(example_conf: Path):
                         status_ttl=5,
                     ),
                     pwm_pin=ArduinoPin(9),
-                    tacho_pin=ArduinoPin(3),
+                ),
+                pwm_write=ArduinoFanPWMWrite(
+                    ArduinoConnection(
+                        ArduinoName("mymicro"),
+                        "/dev/ttyACM0",  # linux
+                        # "/dev/cu.usbmodem14201",  # macos
+                        baudrate=115200,
+                        status_ttl=5,
+                    ),
+                    pwm_pin=ArduinoPin(9),
                 ),
                 pwm_line_start=PWMValue(100),
                 pwm_line_end=PWMValue(240),
                 never_stop=True,
             ),
         },
+        readonly_fans={},
         temps={
             TempName("hdds"): HDDTemp(
                 "/dev/sd?",
@@ -268,15 +315,21 @@ temps = mobo
         ),
         fans={
             FanName("case"): PWMFanNorm(
-                LinuxPWMFan(
-                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2"),
-                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input"),
+                fan_speed=LinuxFanSpeed(
+                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan2_input")
+                ),
+                pwm_read=LinuxFanPWMRead(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2")
+                ),
+                pwm_write=LinuxFanPWMWrite(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm2")
                 ),
                 pwm_line_start=PWMValue(100),
                 pwm_line_end=PWMValue(240),
                 never_stop=True,
             )
         },
+        readonly_fans={},
         temps={
             TempName("mobo"): FileTemp(
                 "/sys/class/hwmon/hwmon0/device/temp1_input",
@@ -292,4 +345,71 @@ temps = mobo
                 fans=[FanSpeedModifier(fan=FanName("case"), modifier=0.6)],
             )
         },
+    )
+
+
+def test_readonly_config() -> None:
+    daemon_cli_config = DaemonCLIConfig(
+        pidfile=None, logfile=None, exporter_listen_host=None
+    )
+
+    config = """
+[daemon]
+
+[actions]
+
+[temp:mobo]
+type = file
+path = /sys/class/hwmon/hwmon0/device/temp1_input
+
+[readonly_fan: cpu]
+pwm = /sys/class/hwmon/hwmon0/device/pwm1
+fan_input = /sys/class/hwmon/hwmon0/device/fan1_input
+"""
+    parsed = parse_config(path_from_str(config), daemon_cli_config)
+    assert parsed == ParsedConfig(
+        arduino_connections={},
+        daemon=DaemonConfig(
+            pidfile="/run/afancontrol.pid",
+            logfile=None,
+            exporter_listen_host=None,
+            interval=5,
+        ),
+        report_cmd=(
+            'printf "Subject: %s\nTo: %s\n\n%b" '
+            '"afancontrol daemon report: %REASON%" root "%MESSAGE%" | sendmail -t'
+        ),
+        triggers=TriggerConfig(
+            global_commands=Actions(
+                panic=AlertCommands(enter_cmd=None, leave_cmd=None),
+                threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
+            ),
+            temp_commands={
+                TempName("mobo"): Actions(
+                    panic=AlertCommands(enter_cmd=None, leave_cmd=None),
+                    threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
+                )
+            },
+        ),
+        fans={},
+        readonly_fans={
+            ReadonlyFanName("cpu"): ReadonlyPWMFanNorm(
+                fan_speed=LinuxFanSpeed(
+                    FanInputDevice("/sys/class/hwmon/hwmon0/device/fan1_input")
+                ),
+                pwm_read=LinuxFanPWMRead(
+                    PWMDevice("/sys/class/hwmon/hwmon0/device/pwm1")
+                ),
+            )
+        },
+        temps={
+            TempName("mobo"): FileTemp(
+                "/sys/class/hwmon/hwmon0/device/temp1_input",
+                min=None,
+                max=None,
+                panic=None,
+                threshold=None,
+            )
+        },
+        mappings={},
     )

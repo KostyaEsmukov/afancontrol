@@ -75,6 +75,7 @@ def daemon(
     manager = Manager(
         arduino_connections=parsed_config.arduino_connections,
         fans=parsed_config.fans,
+        readonly_fans=parsed_config.readonly_fans,
         temps=parsed_config.temps,
         mappings=parsed_config.mappings,
         report=Report(report_command=parsed_config.report_cmd),

@@ -4,13 +4,14 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from timeit import default_timer
-from typing import TYPE_CHECKING, Mapping, Optional
+from typing import TYPE_CHECKING, Mapping, Optional, Union
 from urllib.parse import parse_qs, urlparse
 
 from afancontrol.arduino import ArduinoConnection, ArduinoName
-from afancontrol.config import TempName
+from afancontrol.config import AnyFanName, FanName, ReadonlyFanName, TempName
 from afancontrol.fans import Fans
 from afancontrol.logger import logger
+from afancontrol.pwmfannorm import PWMFanNorm, ReadonlyPWMFanNorm
 from afancontrol.temp import TempStatus
 from afancontrol.trigger import Triggers
 
@@ -300,6 +301,10 @@ class PrometheusMetrics(Metrics):
 
         for fan_name, pwmfan_norm in fans.fans.items():
             self._collect_fan_metrics(fans, fan_name, pwmfan_norm)
+        for readonly_fan_name, readonly_pwmfan_norm in fans.readonly_fans.items():
+            self._collect_readonly_fan_metrics(
+                fans, readonly_fan_name, readonly_pwmfan_norm
+            )
 
         for arduino_name, arduino_connection in arduino_connections.items():
             self.arduino_is_connected.labels(arduino_name).set(
@@ -317,15 +322,32 @@ class PrometheusMetrics(Metrics):
     def measure_tick(self) -> "ContextManager[None]":
         return self.tick_duration.time()
 
-    def _collect_fan_metrics(self, fans, fan_name, pwm_fan_norm):
+    def _collect_fan_metrics(
+        self, fans: Fans, fan_name: FanName, pwm_fan_norm: PWMFanNorm
+    ):
         self.fan_pwm_line_start.labels(fan_name).set(pwm_fan_norm.pwm_line_start)
         self.fan_pwm_line_end.labels(fan_name).set(pwm_fan_norm.pwm_line_end)
+        self._collect_any_fan_metrics(fans, fan_name, pwm_fan_norm)
+
+    def _collect_readonly_fan_metrics(
+        self, fans: Fans, fan_name: ReadonlyFanName, pwm_fan_norm: ReadonlyPWMFanNorm
+    ):
+        self._collect_any_fan_metrics(fans, fan_name, pwm_fan_norm)
+
+    def _collect_any_fan_metrics(
+        self,
+        fans: Fans,
+        fan_name: AnyFanName,
+        pwm_fan_norm: Union[PWMFanNorm, ReadonlyPWMFanNorm],
+    ):
         self.fan_is_stopped.labels(fan_name).set(fans.is_fan_stopped(fan_name))
         self.fan_is_failing.labels(fan_name).set(fans.is_fan_failing(fan_name))
         try:
             self.fan_rpm.labels(fan_name).set(pwm_fan_norm.get_speed())
-            self.fan_pwm.labels(fan_name).set(pwm_fan_norm.get_raw())
-            self.fan_pwm_normalized.labels(fan_name).set(pwm_fan_norm.get())
+            self.fan_pwm.labels(fan_name).set(none_to_nan(pwm_fan_norm.get_raw()))
+            self.fan_pwm_normalized.labels(fan_name).set(
+                none_to_nan(pwm_fan_norm.get())
+            )
         except Exception:
             logger.warning(
                 "Failed to collect metrics for fan %s", fan_name, exc_info=True

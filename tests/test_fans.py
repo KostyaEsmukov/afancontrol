@@ -5,7 +5,7 @@ import pytest
 
 from afancontrol.config import FanName
 from afancontrol.fans import Fans
-from afancontrol.pwmfan import BasePWMFan
+from afancontrol.pwmfan import BaseFanPWMRead
 from afancontrol.pwmfannorm import PWMFanNorm, PWMValueNorm
 from afancontrol.report import Report
 
@@ -18,11 +18,11 @@ def report():
 @pytest.mark.parametrize("is_fan_failing", [False, True])
 def test_smoke(report, is_fan_failing):
     fan = MagicMock(spec=PWMFanNorm)
-    fans = Fans({FanName("test"): fan}, report=report)
+    fans = Fans(fans={FanName("test"): fan}, readonly_fans={}, report=report)
 
     fan.set = lambda pwm_norm: int(255 * pwm_norm)
     fan.get_speed.return_value = 0 if is_fan_failing else 942
-    fan.is_pwm_stopped = BasePWMFan.is_pwm_stopped
+    fan.is_pwm_stopped = BaseFanPWMRead.is_pwm_stopped
 
     with fans:
         assert 1 == fan.__enter__.call_count
@@ -53,9 +53,9 @@ def test_set_fan_speeds(report):
     for fan in mocked_fans.values():
         fan.set.return_value = 240
         fan.get_speed.return_value = 942
-        fan.is_pwm_stopped = BasePWMFan.is_pwm_stopped
+        fan.is_pwm_stopped = BaseFanPWMRead.is_pwm_stopped
 
-    fans = Fans(mocked_fans, report=report)
+    fans = Fans(fans=mocked_fans, readonly_fans={}, report=report)
     with fans:
         fans._ensure_fan_is_failing(FanName("test2"), Exception("test"))
         fans.set_fan_speeds(

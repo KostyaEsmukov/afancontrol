@@ -1,5 +1,5 @@
 from contextlib import ExitStack
-from typing import Type
+from typing import Any, Type
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -8,15 +8,20 @@ from click.testing import CliRunner
 from afancontrol import fantest
 from afancontrol.fantest import (
     CSVMeasurementsOutput,
+    Fan,
     HumanMeasurementsOutput,
     MeasurementsOutput,
     fantest as main,
     run_fantest,
 )
 from afancontrol.pwmfan import (
-    BasePWMFan,
+    BaseFanPWMRead,
+    BaseFanPWMWrite,
+    BaseFanSpeed,
     FanInputDevice,
-    LinuxPWMFan,
+    LinuxFanPWMRead,
+    LinuxFanPWMWrite,
+    LinuxFanSpeed,
     PWMDevice,
     PWMValue,
 )
@@ -60,8 +65,10 @@ def test_main_smoke(temp_path):
         args, kwargs = mocked_fantest.call_args
         assert not args
         assert kwargs.keys() == {"fan", "pwm_step_size", "output"}
-        assert kwargs["fan"] == LinuxPWMFan(
-            PWMDevice(str(pwm_path)), FanInputDevice(str(fan_input_path))
+        assert kwargs["fan"] == Fan(
+            fan_speed=LinuxFanSpeed(FanInputDevice(str(fan_input_path))),
+            pwm_read=LinuxFanPWMRead(PWMDevice(str(pwm_path))),
+            pwm_write=LinuxFanPWMWrite(PWMDevice(str(pwm_path))),
         )
         assert kwargs["pwm_step_size"] == 5
         assert isinstance(kwargs["output"], HumanMeasurementsOutput)
@@ -70,19 +77,23 @@ def test_main_smoke(temp_path):
 @pytest.mark.parametrize("pwm_step_size", [5, -5])
 @pytest.mark.parametrize("output_cls", [HumanMeasurementsOutput, CSVMeasurementsOutput])
 def test_fantest(output_cls: Type[MeasurementsOutput], pwm_step_size: PWMValue):
-    mocked_fan = MagicMock(spec=BasePWMFan)
-    mocked_fan.min_pwm = 0
-    mocked_fan.max_pwm = 255
+    fan: Any = Fan(
+        fan_speed=MagicMock(spec=BaseFanSpeed),
+        pwm_read=MagicMock(spec=BaseFanPWMRead),
+        pwm_write=MagicMock(spec=BaseFanPWMWrite),
+    )
+    fan.pwm_read.min_pwm = 0
+    fan.pwm_read.max_pwm = 255
     output = output_cls()
 
     with ExitStack() as stack:
         mocked_sleep = stack.enter_context(patch.object(fantest, "sleep"))
-        mocked_fan.get_speed.return_value = 999
+        fan.fan_speed.get_speed.return_value = 999
 
-        run_fantest(fan=mocked_fan, pwm_step_size=pwm_step_size, output=output)
+        run_fantest(fan=fan, pwm_step_size=pwm_step_size, output=output)
 
-        assert mocked_fan.set.call_count == (255 // abs(pwm_step_size)) + 1
-        assert mocked_fan.get_speed.call_count == (255 // abs(pwm_step_size))
+        assert fan.pwm_write.set.call_count == (255 // abs(pwm_step_size)) + 1
+        assert fan.fan_speed.get_speed.call_count == (255 // abs(pwm_step_size))
         assert mocked_sleep.call_count == (255 // abs(pwm_step_size)) + 1
 
         if pwm_step_size > 0:
@@ -91,4 +102,4 @@ def test_fantest(output_cls: Type[MeasurementsOutput], pwm_step_size: PWMValue):
         else:
             # decrease
             expected_set = [255] + list(range(255, 0, pwm_step_size))
-        assert [pwm for (pwm,), _ in mocked_fan.set.call_args_list] == expected_set
+        assert [pwm for (pwm,), _ in fan.pwm_write.set.call_args_list] == expected_set

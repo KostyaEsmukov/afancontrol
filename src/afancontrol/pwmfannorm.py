@@ -1,46 +1,111 @@
 import math
-from typing import NewType
+from contextlib import ExitStack
+from typing import NewType, Optional
 
-from afancontrol.pwmfan import BasePWMFan, FanValue, PWMValue
+from afancontrol.pwmfan import (
+    BaseFanPWMRead,
+    BaseFanPWMWrite,
+    BaseFanSpeed,
+    FanValue,
+    PWMValue,
+)
 
 PWMValueNorm = NewType("PWMValueNorm", float)  # [0..1]
+
+
+class ReadonlyPWMFanNorm:
+    def __init__(
+        self, fan_speed: BaseFanSpeed, pwm_read: Optional[BaseFanPWMRead] = None
+    ) -> None:
+        self.fan_speed = fan_speed
+        self.pwm_read = pwm_read
+        self._stack = None  # type: Optional[ExitStack]
+
+    def __enter__(self):
+        self._stack = ExitStack()
+        try:
+            self._stack.enter_context(self.fan_speed)
+            if self.pwm_read is not None:
+                self._stack.enter_context(self.pwm_read)
+        except Exception:
+            self._stack.close()
+            raise
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        assert self._stack is not None
+        self._stack.close()
+
+    def get_speed(self) -> FanValue:
+        return self.fan_speed.get_speed()
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.fan_speed == other.fan_speed and self.pwm_read == other.pwm_read
+
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __repr__(self):
+        return "%s(%r, %r)" % (type(self).__name__, self.fan_speed, self.pwm_read)
+
+    def is_pwm_stopped(self, pwm: Optional[PWMValue]) -> Optional[bool]:
+        if self.pwm_read is None:
+            return None
+        if pwm is None:
+            return None
+        return type(self.pwm_read).is_pwm_stopped(pwm)
+
+    def get_raw(self) -> Optional[PWMValue]:
+        if self.pwm_read is None:
+            return None
+        return self.pwm_read.get()
+
+    def get(self) -> Optional[PWMValueNorm]:
+        if self.pwm_read is None:
+            return None
+        raw = self.get_raw()
+        assert raw is not None
+        return PWMValueNorm(raw / self.pwm_read.max_pwm)
 
 
 class PWMFanNorm:
     def __init__(
         self,
-        pwmfan: BasePWMFan,
+        fan_speed: BaseFanSpeed,
+        pwm_read: BaseFanPWMRead,
+        pwm_write: BaseFanPWMWrite,
         *,
         pwm_line_start: PWMValue,
         pwm_line_end: PWMValue,
         never_stop: bool = False
     ) -> None:
-        self.pwmfan = pwmfan
+        self.fan_speed = fan_speed
+        self.pwm_read = pwm_read
+        self.pwm_write = pwm_write
         self.pwm_line_start = pwm_line_start
         self.pwm_line_end = pwm_line_end
         self.never_stop = never_stop
-        if type(self.pwmfan).min_pwm > self.pwm_line_start:
+        if type(self.pwm_read).min_pwm > self.pwm_line_start:
             raise ValueError(
                 "Invalid pwm_line_start. Expected: min_pwm <= pwm_line_start. "
-                "Got: %s <= %s" % (type(self.pwmfan).min_pwm, self.pwm_line_start)
+                "Got: %s <= %s" % (type(self.pwm_read).min_pwm, self.pwm_line_start)
             )
-        if self.pwm_line_end > type(self.pwmfan).max_pwm:
+        if self.pwm_line_end > type(self.pwm_read).max_pwm:
             raise ValueError(
                 "Invalid pwm_line_end. Expected: pwm_line_end <= max_pwm. "
-                "Got: %s <= %s" % (self.pwm_line_end, type(self.pwmfan).max_pwm)
+                "Got: %s <= %s" % (self.pwm_line_end, type(self.pwm_read).max_pwm)
             )
-
-    def __enter__(self):
-        self.pwmfan.__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_tb):
-        return self.pwmfan.__exit__(exc_type, exc_value, exc_tb)
+        self._stack = None  # type: Optional[ExitStack]
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
             return (
-                self.pwmfan == other.pwmfan
+                self.fan_speed == other.fan_speed
+                and self.pwm_read == other.pwm_read
+                and self.pwm_write == other.pwm_write
                 and self.pwm_line_start == other.pwm_line_start
                 and self.pwm_line_end == other.pwm_line_end
                 and self.never_stop == other.never_stop
@@ -52,28 +117,45 @@ class PWMFanNorm:
         return not (self == other)
 
     def __repr__(self):
-        return "%s(%r, pwm_line_start=%r, pwm_line_end=%r, never_stop=%r)" % (
+        return "%s(%r, %r, %r, pwm_line_start=%r, pwm_line_end=%r, never_stop=%r)" % (
             type(self).__name__,
-            self.pwmfan,
+            self.fan_speed,
+            self.pwm_read,
+            self.pwm_write,
             self.pwm_line_start,
             self.pwm_line_end,
             self.never_stop,
         )
 
-    def is_pwm_stopped(self, pwm: PWMValue) -> bool:
-        return type(self.pwmfan).is_pwm_stopped(pwm)
+    def __enter__(self):
+        self._stack = ExitStack()
+        try:
+            self._stack.enter_context(self.fan_speed)
+            self._stack.enter_context(self.pwm_read)
+            self._stack.enter_context(self.pwm_write)
+        except Exception:
+            self._stack.close()
+            raise
+        return self
 
-    def set_full_speed(self) -> None:
-        self.pwmfan.set_full_speed()
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        assert self._stack is not None
+        self._stack.close()
 
     def get_speed(self) -> FanValue:
-        return self.pwmfan.get_speed()
+        return self.fan_speed.get_speed()
+
+    def is_pwm_stopped(self, pwm: PWMValue) -> bool:
+        return type(self.pwm_read).is_pwm_stopped(pwm)
+
+    def set_full_speed(self) -> None:
+        self.pwm_write.set_full_speed()
 
     def get_raw(self) -> PWMValue:
-        return self.pwmfan.get()
+        return self.pwm_read.get()
 
     def get(self) -> PWMValueNorm:
-        return PWMValueNorm(self.get_raw() / self.pwmfan.max_pwm)
+        return PWMValueNorm(self.get_raw() / self.pwm_read.max_pwm)
 
     def set(self, pwm_norm: PWMValueNorm) -> PWMValue:
         # TODO validate this formula
@@ -85,8 +167,8 @@ class PWMFanNorm:
         if pwm <= 0 and self.never_stop:
             pwm = self.pwm_line_start
         if pwm_norm >= 1.0:
-            pwm = self.pwmfan.max_pwm
+            pwm = self.pwm_read.max_pwm
 
         pwm = PWMValue(int(math.ceil(pwm)))
-        self.pwmfan.set(pwm)
+        self.pwm_write.set(pwm)
         return pwm

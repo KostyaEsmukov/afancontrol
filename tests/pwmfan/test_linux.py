@@ -3,7 +3,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from afancontrol.pwmfan import FanInputDevice, LinuxPWMFan, PWMDevice, PWMValue
+from afancontrol.pwmfan import (
+    FanInputDevice,
+    LinuxFanPWMRead,
+    LinuxFanPWMWrite,
+    LinuxFanSpeed,
+    PWMDevice,
+    PWMValue,
+)
 from afancontrol.pwmfannorm import PWMFanNorm
 
 
@@ -31,44 +38,54 @@ def fan_input_path(temp_path):
 
 
 @pytest.fixture
-def pwmfan_norm(pwmfan):
+def fan_speed(fan_input_path):
+    return LinuxFanSpeed(fan_input=FanInputDevice(str(fan_input_path)))
+
+
+@pytest.fixture
+def pwm_read(pwm_path):
+    return LinuxFanPWMRead(pwm=PWMDevice(str(pwm_path)))
+
+
+@pytest.fixture
+def pwm_write(pwm_path):
+    pwm_write = LinuxFanPWMWrite(pwm=PWMDevice(str(pwm_path)))
+
+    # We write to the pwm_enable file values without newlines,
+    # but when they're read back, they might contain newlines.
+    # This hack below is to simulate just that: the written values should
+    # contain newlines.
+    original_pwm_enable = pwm_write._pwm_enable
+    pwm_enable = MagicMock(wraps=original_pwm_enable)
+    pwm_enable.write_text = lambda text: original_pwm_enable.write_text(text + "\n")
+    pwm_write._pwm_enable = pwm_enable
+
+    return pwm_write
+
+
+@pytest.fixture
+def pwmfan_norm(fan_speed, pwm_read, pwm_write):
     return PWMFanNorm(
-        pwmfan,
+        fan_speed,
+        pwm_read,
+        pwm_write,
         pwm_line_start=PWMValue(100),
         pwm_line_end=PWMValue(240),
         never_stop=False,
     )
 
 
-@pytest.fixture
-def pwmfan(pwm_path, fan_input_path):
-    fan = LinuxPWMFan(
-        pwm=PWMDevice(str(pwm_path)), fan_input=FanInputDevice(str(fan_input_path))
-    )
-
-    # We write to the pwm_enable file values without newlines,
-    # but when they're read back, they might contain newlines.
-    # This hack below is to simulate just that: the written values should
-    # contain newlines.
-    original_pwm_enable = fan._pwm_enable
-    pwm_enable = MagicMock(wraps=original_pwm_enable)
-    pwm_enable.write_text = lambda text: original_pwm_enable.write_text(text + "\n")
-    fan._pwm_enable = pwm_enable
-
-    return fan
-
-
-@pytest.mark.parametrize("pwmfan_fixture", ["pwmfan", "pwmfan_norm"])
-def test_get_speed(pwmfan_fixture, pwmfan, pwmfan_norm, fan_input_path):
+@pytest.mark.parametrize("pwmfan_fixture", ["fan_speed", "pwmfan_norm"])
+def test_get_speed(pwmfan_fixture, fan_speed, pwmfan_norm, fan_input_path):
     fan = locals()[pwmfan_fixture]
     fan_input_path.write_text("721\n")
     assert 721 == fan.get_speed()
 
 
-@pytest.mark.parametrize("pwmfan_fixture", ["pwmfan", "pwmfan_norm"])
+@pytest.mark.parametrize("pwmfan_fixture", ["pwm_write", "pwmfan_norm"])
 @pytest.mark.parametrize("raises", [True, False])
 def test_enter_exit(
-    raises, pwmfan_fixture, pwmfan, pwmfan_norm, pwm_enable_path, pwm_path
+    raises, pwmfan_fixture, pwm_write, pwmfan_norm, pwm_enable_path, pwm_path
 ):
     fan = locals()[pwmfan_fixture]
 
@@ -83,7 +100,7 @@ def test_enter_exit(
         assert "1" == pwm_enable_path.read_text().strip()
         assert "255" == pwm_path.read_text()
 
-        value = dict(pwmfan=100, pwmfan_norm=0.39)[pwmfan_fixture]  # 100/255 ~= 0.39
+        value = dict(pwm_write=100, pwmfan_norm=0.39)[pwmfan_fixture]  # 100/255 ~= 0.39
         fan.set(value)
 
         assert "1" == pwm_enable_path.read_text().strip()
@@ -96,21 +113,21 @@ def test_enter_exit(
     assert "100" == pwm_path.read_text()  # `fancontrol` doesn't reset speed
 
 
-def test_get_set_pwmfan(pwmfan, pwm_path):
-    pwmfan.set(142)
+def test_get_set_pwmfan(pwm_read, pwm_write, pwm_path):
+    pwm_write.set(142)
     assert "142" == pwm_path.read_text()
 
     pwm_path.write_text("132\n")
-    assert 132 == pwmfan.get()
+    assert 132 == pwm_read.get()
 
-    pwmfan.set_full_speed()
+    pwm_write.set_full_speed()
     assert "255" == pwm_path.read_text()
 
     with pytest.raises(ValueError):
-        pwmfan.set(256)
+        pwm_write.set(256)
 
     with pytest.raises(ValueError):
-        pwmfan.set(-1)
+        pwm_write.set(-1)
 
 
 def test_get_set_pwmfan_norm(pwmfan_norm, pwm_path):

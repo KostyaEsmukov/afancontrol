@@ -7,13 +7,14 @@ from afancontrol.config import (
     FanName,
     FansTempsRelation,
     MappingName,
+    ReadonlyFanName,
     TempName,
     TriggerConfig,
 )
 from afancontrol.fans import Fans
 from afancontrol.logger import logger
 from afancontrol.metrics import Metrics
-from afancontrol.pwmfannorm import PWMFanNorm, PWMValueNorm
+from afancontrol.pwmfannorm import PWMFanNorm, PWMValueNorm, ReadonlyPWMFanNorm
 from afancontrol.report import Report
 from afancontrol.temp import Temp, TempStatus
 from afancontrol.trigger import Triggers
@@ -25,6 +26,7 @@ class Manager:
         *,
         arduino_connections: Mapping[ArduinoName, ArduinoConnection],
         fans: Mapping[FanName, PWMFanNorm],
+        readonly_fans: Mapping[ReadonlyFanName, ReadonlyPWMFanNorm],
         temps: Mapping[TempName, Temp],
         mappings: Mapping[MappingName, FansTempsRelation],
         report: Report,
@@ -33,7 +35,7 @@ class Manager:
     ) -> None:
         self.report = report
         self.arduino_connections = arduino_connections
-        self.fans = Fans(fans, report=report)
+        self.fans = Fans(fans=fans, readonly_fans=readonly_fans, report=report)
         self.temps = temps
         self.mappings = mappings
         self.triggers = Triggers(triggers_config, report)

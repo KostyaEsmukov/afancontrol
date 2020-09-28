@@ -1,7 +1,7 @@
 import abc
 import sys
 from time import sleep
-from typing import Optional
+from typing import NamedTuple, Optional
 
 import click
 
@@ -12,11 +12,17 @@ from afancontrol.arduino import (
     ArduinoPin,
 )
 from afancontrol.pwmfan import (
-    ArduinoPWMFan,
-    BasePWMFan,
+    ArduinoFanPWMRead,
+    ArduinoFanPWMWrite,
+    ArduinoFanSpeed,
+    BaseFanPWMRead,
+    BaseFanPWMWrite,
+    BaseFanSpeed,
     FanInputDevice,
     FanValue,
-    LinuxPWMFan,
+    LinuxFanPWMRead,
+    LinuxFanPWMWrite,
+    LinuxFanSpeed,
     PWMDevice,
     PWMValue,
 )
@@ -66,6 +72,15 @@ HELP_PWM_STEP_SIZE = (
     "A single step size for the PWM value. `accurate` equals to 5 and provides "
     "more accurate results, but is a slower option. `fast` equals to 25 and completes "
     "faster."
+)
+
+Fan = NamedTuple(
+    "Fan",
+    [
+        ("fan_speed", BaseFanSpeed),
+        ("pwm_read", BaseFanPWMRead),
+        ("pwm_write", BaseFanPWMWrite),
+    ],
 )
 
 
@@ -176,9 +191,11 @@ controlling the fan you're going to test.
 
             assert linux_fan_pwm is not None
             assert linux_fan_input is not None
-            fan = LinuxPWMFan(
-                pwm=PWMDevice(linux_fan_pwm), fan_input=FanInputDevice(linux_fan_input)
-            )  # type: BasePWMFan
+            fan = Fan(
+                fan_speed=LinuxFanSpeed(FanInputDevice(linux_fan_input)),
+                pwm_read=LinuxFanPWMRead(PWMDevice(linux_fan_pwm)),
+                pwm_write=LinuxFanPWMWrite(PWMDevice(linux_fan_pwm)),
+            )
         elif fan_type == "arduino":
             if not arduino_serial_url:
                 arduino_serial_url = click.prompt(
@@ -213,10 +230,16 @@ controlling the fan you're going to test.
             )
             assert arduino_pwm_pin is not None
             assert arduino_tacho_pin is not None
-            fan = ArduinoPWMFan(
-                arduino_connection,
-                pwm_pin=ArduinoPin(arduino_pwm_pin),
-                tacho_pin=ArduinoPin(arduino_tacho_pin),
+            fan = Fan(
+                fan_speed=ArduinoFanSpeed(
+                    arduino_connection, tacho_pin=ArduinoPin(arduino_tacho_pin)
+                ),
+                pwm_read=ArduinoFanPWMRead(
+                    arduino_connection, pwm_pin=ArduinoPin(arduino_pwm_pin)
+                ),
+                pwm_write=ArduinoFanPWMWrite(
+                    arduino_connection, pwm_pin=ArduinoPin(arduino_pwm_pin)
+                ),
             )
         else:
             raise AssertionError(
@@ -245,11 +268,11 @@ controlling the fan you're going to test.
 
 
 def run_fantest(
-    fan: BasePWMFan, pwm_step_size: PWMValue, output: "MeasurementsOutput"
+    fan: Fan, pwm_step_size: PWMValue, output: "MeasurementsOutput"
 ) -> None:
-    with fan:
-        start = fan.min_pwm
-        stop = fan.max_pwm
+    with fan.fan_speed, fan.pwm_read, fan.pwm_write:
+        start = fan.pwm_read.min_pwm
+        stop = fan.pwm_read.max_pwm
         if pwm_step_size > 0:
             print("Testing increase with step %s" % pwm_step_size)
             print("Waiting %s seconds for fan to stop..." % FAN_RESET_INTERVAL_SECONDS)
@@ -261,16 +284,16 @@ def run_fantest(
                 % FAN_RESET_INTERVAL_SECONDS
             )
 
-        fan.set(start)
+        fan.pwm_write.set(start)
         sleep(FAN_RESET_INTERVAL_SECONDS)
 
         print(output.header())
 
         prev_rpm = None
         for pwm_value in range(start, stop, pwm_step_size):
-            fan.set(PWMValue(pwm_value))
+            fan.pwm_write.set(PWMValue(pwm_value))
             sleep(STEP_INTERVAL_SECONDS)
-            rpm = fan.get_speed()
+            rpm = fan.fan_speed.get_speed()
 
             rpm_delta = None  # Optional[FanValue]
             if prev_rpm is not None:

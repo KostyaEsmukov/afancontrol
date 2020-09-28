@@ -15,7 +15,12 @@ from afancontrol.arduino import (
     SetPWMCommand,
     pyserial_available,
 )
-from afancontrol.pwmfan import ArduinoPWMFan, PWMValue
+from afancontrol.pwmfan import (
+    ArduinoFanPWMRead,
+    ArduinoFanPWMWrite,
+    ArduinoFanSpeed,
+    PWMValue,
+)
 
 pytestmark = pytest.mark.skipif(
     not pyserial_available, reason="pyserial is not installed"
@@ -138,27 +143,32 @@ def dummy_arduino():
 
 def test_smoke(dummy_arduino):
     conn = ArduinoConnection(ArduinoName("test"), dummy_arduino.pyserial_url)
-    fan = ArduinoPWMFan(conn, pwm_pin=ArduinoPin(9), tacho_pin=ArduinoPin(3))
+
+    fan_speed = ArduinoFanSpeed(conn, tacho_pin=ArduinoPin(3))
+    pwm_read = ArduinoFanPWMRead(conn, pwm_pin=ArduinoPin(9))
+    pwm_write = ArduinoFanPWMWrite(conn, pwm_pin=ArduinoPin(9))
 
     dummy_arduino.set_inner_state_pwms({"9": 42})
 
     with ExitStack() as stack:
         assert not dummy_arduino.is_connected
-        stack.enter_context(fan)
+        stack.enter_context(fan_speed)
+        stack.enter_context(pwm_read)
+        stack.enter_context(pwm_write)
         dummy_arduino.accept()
         assert dummy_arduino.is_connected
 
         dummy_arduino.set_speeds({"3": 1200})
         conn.wait_for_status()  # required only for synchronization in the tests
-        assert fan.get_speed() == 1200
-        assert fan.get() == 255
+        assert fan_speed.get_speed() == 1200
+        assert pwm_read.get() == 255
         assert dummy_arduino.inner_state_pwms["9"] == 255
 
-        fan.set(PWMValue(192))
+        pwm_write.set(PWMValue(192))
         dummy_arduino.set_speeds({"3": 998})
         conn.wait_for_status()  # required only for synchronization in the tests
-        assert fan.get_speed() == 998
-        assert fan.get() == 192
+        assert fan_speed.get_speed() == 998
+        assert pwm_read.get() == 192
         assert dummy_arduino.inner_state_pwms["9"] == 192
 
     dummy_arduino.wait_for_disconnected()

@@ -40,6 +40,7 @@ def test_manager(report):
         manager = Manager(
             arduino_connections={},
             fans={FanName("case"): mocked_case_fan},
+            readonly_fans={},
             temps={TempName("mobo"): mocked_mobo_temp},
             mappings={
                 MappingName("1"): FansTempsRelation(
@@ -235,6 +236,7 @@ def test_fan_speeds(report, temps, mappings, expected_fan_speeds):
         manager = Manager(
             arduino_connections={},
             fans={fan_name: mocked_case_fan for fan_name in expected_fan_speeds.keys()},
+            readonly_fans={},
             temps={temp_name: mocked_mobo_temp for temp_name in temps.keys()},
             mappings=mappings,
             report=report,

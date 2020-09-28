@@ -9,6 +9,7 @@ from typing import (
     Sequence,
     Tuple,
     TypeVar,
+    Union,
 )
 
 from afancontrol.arduino import (
@@ -18,15 +19,22 @@ from afancontrol.arduino import (
     ArduinoName,
     ArduinoPin,
 )
+from afancontrol.logger import logger
 from afancontrol.pwmfan import (
-    ArduinoPWMFan,
-    BasePWMFan,
+    ArduinoFanPWMRead,
+    ArduinoFanPWMWrite,
+    ArduinoFanSpeed,
+    BaseFanPWMRead,
+    BaseFanPWMWrite,
+    BaseFanSpeed,
     FanInputDevice,
-    LinuxPWMFan,
+    LinuxFanPWMRead,
+    LinuxFanPWMWrite,
+    LinuxFanSpeed,
     PWMDevice,
     PWMValue,
 )
-from afancontrol.pwmfannorm import PWMFanNorm
+from afancontrol.pwmfannorm import PWMFanNorm, ReadonlyPWMFanNorm
 from afancontrol.temp import CommandTemp, FileTemp, HDDTemp, Temp, TempCelsius
 
 DEFAULT_CONFIG = "/etc/afancontrol/afancontrol.conf"
@@ -48,6 +56,8 @@ DEFAULT_NEVER_STOP = True
 
 TempName = NewType("TempName", str)
 FanName = NewType("FanName", str)
+ReadonlyFanName = NewType("ReadonlyFanName", str)
+AnyFanName = Union[FanName, ReadonlyFanName]
 MappingName = NewType("MappingName", str)
 
 T = TypeVar("T")
@@ -138,6 +148,7 @@ ParsedConfig = NamedTuple(
         ("triggers", TriggerConfig),
         ("arduino_connections", Mapping[ArduinoName, ArduinoConnection]),
         ("fans", Mapping[FanName, PWMFanNorm]),
+        ("readonly_fans", Mapping[ReadonlyFanName, ReadonlyPWMFanNorm]),
         ("temps", Mapping[TempName, Temp]),
         ("mappings", Mapping[MappingName, FansTempsRelation]),
     ]
@@ -157,6 +168,8 @@ def parse_config(config_path: Path, daemon_cli_config: DaemonCLIConfig) -> Parse
     arduino_connections = _parse_arduino_connections(config)
     temps, temp_commands = _parse_temps(config, hddtemp)
     fans = _parse_fans(config, arduino_connections)
+    readonly_fans = _parse_readonly_fans(config, arduino_connections)
+    _check_fans_namespace(fans, readonly_fans)
     mappings = _parse_mappings(config, fans, temps)
 
     return ParsedConfig(
@@ -167,6 +180,7 @@ def parse_config(config_path: Path, daemon_cli_config: DaemonCLIConfig) -> Parse
         ),
         arduino_connections=arduino_connections,
         fans=fans,
+        readonly_fans=readonly_fans,
         temps=temps,
         mappings=mappings,
     )
@@ -375,8 +389,6 @@ def _parse_temps(
             panic=actions_panic, threshold=actions_threshold
         )
 
-    if not temps:
-        raise RuntimeError("No temps found in the config, at least 1 must be specified")
     return temps, temp_commands
 
 
@@ -404,7 +416,9 @@ def _parse_fans(
             keys.discard("pwm")
             keys.discard("fan_input")
 
-            pwmfan = LinuxPWMFan(pwm=pwm, fan_input=fan_input)  # type: BasePWMFan
+            fan_speed = LinuxFanSpeed(fan_input)  # type: BaseFanSpeed
+            pwm_read = LinuxFanPWMRead(pwm)  # type: BaseFanPWMRead
+            pwm_write = LinuxFanPWMWrite(pwm)  # type: BaseFanPWMWrite
         elif fan_type == "arduino":
             arduino_name = ArduinoName(fan["arduino_name"])
             keys.discard("arduino_name")
@@ -416,8 +430,14 @@ def _parse_fans(
             if arduino_name not in arduino_connections:
                 raise ValueError("[arduino:%s] section is missing" % arduino_name)
 
-            pwmfan = ArduinoPWMFan(
-                arduino_connections[arduino_name], pwm_pin=pwm_pin, tacho_pin=tacho_pin
+            fan_speed = ArduinoFanSpeed(
+                arduino_connections[arduino_name], tacho_pin=tacho_pin
+            )
+            pwm_read = ArduinoFanPWMRead(
+                arduino_connections[arduino_name], pwm_pin=pwm_pin
+            )
+            pwm_write = ArduinoFanPWMWrite(
+                arduino_connections[arduino_name], pwm_pin=pwm_pin
             )
         else:
             raise ValueError(
@@ -439,10 +459,10 @@ def _parse_fans(
         keys.discard("pwm_line_end")
 
         for pwm_value in (pwm_line_start, pwm_line_end):
-            if not (pwmfan.min_pwm <= pwm_value <= pwmfan.max_pwm):
+            if not (pwm_read.min_pwm <= pwm_value <= pwm_read.max_pwm):
                 raise RuntimeError(
                     "Incorrect PWM value '%s' for fan '%s': it must be within [%s;%s]"
-                    % (pwm_value, fan_name, pwmfan.min_pwm, pwmfan.max_pwm)
+                    % (pwm_value, fan_name, pwm_read.min_pwm, pwm_read.max_pwm)
                 )
         if pwm_line_start >= pwm_line_end:
             raise RuntimeError(
@@ -458,15 +478,93 @@ def _parse_fans(
         if fan_name in fans:
             raise RuntimeError("Duplicate fan section declaration for '%s'" % fan_name)
         fans[fan_name] = PWMFanNorm(
-            pwmfan,
+            fan_speed,
+            pwm_read,
+            pwm_write,
             pwm_line_start=pwm_line_start,
             pwm_line_end=pwm_line_end,
             never_stop=never_stop,
         )
 
-    if not fans:
-        raise RuntimeError("No fans found in the config, at least 1 must be specified")
     return fans
+
+
+def _parse_readonly_fans(
+    config: configparser.ConfigParser,
+    arduino_connections: Mapping[ArduinoName, ArduinoConnection],
+) -> Mapping[ReadonlyFanName, ReadonlyPWMFanNorm]:
+    readonly_fans = {}  # type: Dict[ReadonlyFanName, ReadonlyPWMFanNorm]
+    for section_name in config.sections():
+        section_name_parts = section_name.split(":", 1)
+
+        if section_name_parts[0].strip().lower() != "readonly_fan":
+            continue
+
+        fan_name = ReadonlyFanName(section_name_parts[1].strip())
+        fan = config[section_name]
+        keys = set(fan.keys())
+
+        fan_type = fan.get("type", fallback=DEFAULT_FAN_TYPE)
+        keys.discard("type")
+
+        if fan_type == "linux":
+            fan_input = FanInputDevice(fan["fan_input"])
+            keys.discard("fan_input")
+            fan_speed = LinuxFanSpeed(fan_input)  # type: BaseFanSpeed
+            pwm_read = None  # type: Optional[BaseFanPWMRead]
+            if "pwm" in fan:
+                pwm = PWMDevice(fan["pwm"])
+                keys.discard("pwm")
+                pwm_read = LinuxFanPWMRead(pwm)
+        elif fan_type == "arduino":
+            arduino_name = ArduinoName(fan["arduino_name"])
+            keys.discard("arduino_name")
+            tacho_pin = ArduinoPin(fan.getint("tacho_pin"))
+            keys.discard("tacho_pin")
+
+            if arduino_name not in arduino_connections:
+                raise ValueError("[arduino:%s] section is missing" % arduino_name)
+
+            fan_speed = ArduinoFanSpeed(
+                arduino_connections[arduino_name], tacho_pin=tacho_pin
+            )
+            pwm_read = None
+            if "pwm_pin" in fan:
+                pwm_pin = ArduinoPin(fan.getint("pwm_pin"))
+                keys.discard("pwm_pin")
+                pwm_read = ArduinoFanPWMRead(
+                    arduino_connections[arduino_name], pwm_pin=pwm_pin
+                )
+        else:
+            raise ValueError(
+                "Unsupported FAN type %s. Supported ones are "
+                "`linux` and `arduino`." % fan_type
+            )
+
+        if keys:
+            raise RuntimeError(
+                "Unknown options in the [%s] section: %s" % (section_name, keys)
+            )
+
+        if fan_name in readonly_fans:
+            raise RuntimeError(
+                "Duplicate readonly_fan section declaration for '%s'" % fan_name
+            )
+        readonly_fans[fan_name] = ReadonlyPWMFanNorm(fan_speed, pwm_read)
+
+    return readonly_fans
+
+
+def _check_fans_namespace(
+    fans: Mapping[FanName, PWMFanNorm],
+    readonly_fans: Mapping[ReadonlyFanName, ReadonlyPWMFanNorm],
+) -> None:
+    common_keys = fans.keys() & readonly_fans.keys()
+    if common_keys:
+        raise RuntimeError(
+            "Duplicate fan names has been found between `fan` "
+            "and `readonly_fan` sections: %r" % (list(common_keys),)
+        )
 
 
 def _parse_mappings(
@@ -579,9 +677,9 @@ def _parse_mappings(
             fan_speed_modifier.fan for fan_speed_modifier in relation.fans
         )
     if unused_temps:
-        raise RuntimeError(
-            "The following temps are defined but not used in any mapping: %s"
-            % unused_temps
+        logger.warning(
+            "The following temps are defined but not used in any mapping: %s",
+            unused_temps,
         )
     if unused_fans:
         raise RuntimeError(
