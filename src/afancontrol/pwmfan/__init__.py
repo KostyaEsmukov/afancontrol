@@ -10,6 +10,7 @@ from afancontrol.pwmfan.base import (
     FanValue,
     PWMValue,
 )
+from afancontrol.pwmfan.ipmi import FreeIPMIFanSpeed
 from afancontrol.pwmfan.linux import (
     FanInputDevice,
     LinuxFanPWMRead,
@@ -27,6 +28,7 @@ __all__ = (
     "BaseFanSpeed",
     "FanInputDevice",
     "FanValue",
+    "FreeIPMIFanSpeed",
     "LinuxFanPWMRead",
     "LinuxFanPWMWrite",
     "LinuxFanSpeed",

@@ -28,6 +28,7 @@ from afancontrol.pwmfan import (
     BaseFanPWMWrite,
     BaseFanSpeed,
     FanInputDevice,
+    FreeIPMIFanSpeed,
     LinuxFanPWMRead,
     LinuxFanPWMWrite,
     LinuxFanSpeed,
@@ -535,10 +536,20 @@ def _parse_readonly_fans(
                 pwm_read = ArduinoFanPWMRead(
                     arduino_connections[arduino_name], pwm_pin=pwm_pin
                 )
+        elif fan_type == "freeipmi":
+            name = fan["name"]
+            keys.discard("name")
+
+            ipmi_sensors_extra_args = fan.get("ipmi_sensors_extra_args", fallback="")
+
+            fan_speed = FreeIPMIFanSpeed(
+                name, ipmi_sensors_extra_args=ipmi_sensors_extra_args
+            )
+            pwm_read = None
         else:
             raise ValueError(
                 "Unsupported FAN type %s. Supported ones are "
-                "`linux` and `arduino`." % fan_type
+                "`linux`, `arduino`, `freeipmi`." % fan_type
             )
 
         if keys:

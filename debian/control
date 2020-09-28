@@ -29,6 +29,7 @@ Depends: ${python3:Depends},
          python3-pkg-resources,
          python3-prometheus-client,
          python3-serial
+Suggests: freeipmi-tools,
 Description: Advanced Fan Control program (Python 3)
  afancontrol is an Advanced Fan Control program, which controls PWM
  fans according to the current temperatures of the system components.

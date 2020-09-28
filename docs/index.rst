@@ -22,7 +22,7 @@ Key features:
 - Configurable temperature sources (currently supported ones are `lm-sensors`
   temps, `hddtemp` and arbitrary shell commands);
 - Configurable PWM fan implementations (currently supported ones are
-  `lm-sensors` PWM fans and
+  `lm-sensors` PWM fans, `freeipmi` (readonly) and
   `a custom Arduino-based solution <index.html#pwm-fans-via-arduino>`_);
 - Configurable mappings between the temp sensors and the fans (e.g. fans
   would be more sensitive to the closely located sensors than to
