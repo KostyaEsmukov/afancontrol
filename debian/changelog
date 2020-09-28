@@ -1,3 +1,15 @@
+afancontrol (2.2.0-1) unstable; urgency=medium
+
+  * FileTemp: add support for glob patterns in paths
+
+  * Add `readonly_fan` section, allow exporter-only mode (i.e. no fans and mappings)
+
+  * Add a readonly IPMI speed fan
+
+  * Add filters, collect temperatures simultaneously
+
+ -- Kostya Esmukov <kostya@esmukov.ru>  Mon, 28 Sep 2020 22:12:04 +0000
+
 afancontrol (2.1.0-1) unstable; urgency=medium
 
   * Move PID file under /run (#3)
