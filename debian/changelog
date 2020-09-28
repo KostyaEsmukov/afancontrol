@@ -1,3 +1,9 @@
+afancontrol (2.2.1-1) unstable; urgency=medium
+
+  * Fix compatibility with py3.5
+
+ -- Kostya Esmukov <kostya@esmukov.ru>  Mon, 28 Sep 2020 22:39:46 +0000
+
 afancontrol (2.2.0-1) unstable; urgency=medium
 
   * FileTemp: add support for glob patterns in paths
