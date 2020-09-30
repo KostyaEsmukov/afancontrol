@@ -50,8 +50,8 @@ class ArduinoConnection:
             lambda: _StatusProtocol(self), url=serial_url, baudrate=baudrate
         )
         self._context_manager_depth = 0
-        self._status = None  # type: Optional[Dict[str, Dict[str, int]]]
-        self._status_clock = None  # type: Optional[float]
+        self._status: Optional[Dict[str, Dict[str, int]]] = None
+        self._status_clock: Optional[float] = None
         self._status_lock = threading.Lock()
         self._status_event = threading.Event()
 
@@ -218,10 +218,10 @@ class _AutoRetriedReaderThread:
     def __init__(self, protocol_factory, **serial_for_url_kwargs) -> None:
         self.protocol_factory = protocol_factory
         self.serial_for_url_kwargs = serial_for_url_kwargs
-        self._reader_thread = None  # type: Optional[ReaderThread]
-        self._transport = None  # type: Optional[ReaderThread]
-        self._watchdog_thread = None  # type: Optional[threading.Thread]
-        self._watchdog_queue = queue.Queue()  # type: queue.Queue[Any]
+        self._reader_thread: Optional[ReaderThread] = None
+        self._transport: Optional[ReaderThread] = None
+        self._watchdog_thread: Optional[threading.Thread] = None
+        self._watchdog_queue: queue.Queue[Any] = queue.Queue()
 
     def __enter__(self):  # reusable
         # TODO ?? maybe clean the _watchdog_queue?

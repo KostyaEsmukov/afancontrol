@@ -53,7 +53,7 @@ class MovingQuantileFilter(TempFilter):
     def __init__(self, quantile: float, *, window_size: int) -> None:
         self.quantile = quantile
         self.window_size = window_size
-        self.history = None  # type: Optional[Deque[Optional[TempStatus]]]
+        self.history: Optional[Deque[Optional[TempStatus]]] = None
 
     def copy(self: T) -> T:
         return type(self)(  # type: ignore

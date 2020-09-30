@@ -68,7 +68,7 @@ def test_manager(report):
 
         manager.tick()
 
-        mocked_triggers = manager.triggers  # type: MagicMock
+        mocked_triggers: MagicMock = manager.triggers
         assert mocked_triggers.check.call_count == 1
         assert mocked_case_fan.__enter__.call_count == 1
         assert mocked_metrics.__enter__.call_count == 1

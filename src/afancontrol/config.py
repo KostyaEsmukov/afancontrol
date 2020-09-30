@@ -286,7 +286,7 @@ def _parse_actions(config: configparser.ConfigParser) -> Tuple[str, Actions]:
 def _parse_arduino_connections(
     config: configparser.ConfigParser,
 ) -> Mapping[ArduinoName, ArduinoConnection]:
-    arduino_connections = {}  # type: Dict[ArduinoName, ArduinoConnection]
+    arduino_connections: Dict[ArduinoName, ArduinoConnection] = {}
     for section_name in config.sections():
         section_name_parts = section_name.split(":", 1)
 
@@ -328,7 +328,7 @@ def _parse_arduino_connections(
 def _parse_filters(
     config: configparser.ConfigParser,
 ) -> Mapping[FilterName, TempFilter]:
-    filters = {}  # type: Dict[FilterName, TempFilter]
+    filters: Dict[FilterName, TempFilter] = {}
     for section_name in config.sections():
         section_name_parts = section_name.split(":", 1)
 
@@ -346,7 +346,7 @@ def _parse_filters(
             window_size = filter.getint("window_size", fallback=DEFAULT_WINDOW_SIZE)
             keys.discard("window_size")
 
-            f = MovingMedianFilter(window_size=window_size)  # type: TempFilter
+            f: TempFilter = MovingMedianFilter(window_size=window_size)
         elif filter_type == "moving_quantile":
             window_size = filter.getint("window_size", fallback=DEFAULT_WINDOW_SIZE)
             keys.discard("window_size")
@@ -381,8 +381,8 @@ def _parse_temps(
     hddtemp: str,
     filters: Mapping[FilterName, TempFilter],
 ) -> Tuple[Mapping[TempName, FilteredTemp], Mapping[TempName, Actions]]:
-    temps = {}  # type: Dict[TempName, FilteredTemp]
-    temp_commands = {}  # type: Dict[TempName, Actions]
+    temps: Dict[TempName, FilteredTemp] = {}
+    temp_commands: Dict[TempName, Actions] = {}
     for section_name in config.sections():
         section_name_parts = section_name.split(":", 1)
 
@@ -478,7 +478,7 @@ def _parse_fans(
     config: configparser.ConfigParser,
     arduino_connections: Mapping[ArduinoName, ArduinoConnection],
 ) -> Mapping[FanName, PWMFanNorm]:
-    fans = {}  # type: Dict[FanName, PWMFanNorm]
+    fans: Dict[FanName, PWMFanNorm] = {}
     for section_name in config.sections():
         section_name_parts = section_name.split(":", 1)
 
@@ -498,9 +498,9 @@ def _parse_fans(
             keys.discard("pwm")
             keys.discard("fan_input")
 
-            fan_speed = LinuxFanSpeed(fan_input)  # type: BaseFanSpeed
-            pwm_read = LinuxFanPWMRead(pwm)  # type: BaseFanPWMRead
-            pwm_write = LinuxFanPWMWrite(pwm)  # type: BaseFanPWMWrite
+            fan_speed: BaseFanSpeed = LinuxFanSpeed(fan_input)
+            pwm_read: BaseFanPWMRead = LinuxFanPWMRead(pwm)
+            pwm_write: BaseFanPWMWrite = LinuxFanPWMWrite(pwm)
         elif fan_type == "arduino":
             arduino_name = ArduinoName(fan["arduino_name"])
             keys.discard("arduino_name")
@@ -575,7 +575,7 @@ def _parse_readonly_fans(
     config: configparser.ConfigParser,
     arduino_connections: Mapping[ArduinoName, ArduinoConnection],
 ) -> Mapping[ReadonlyFanName, ReadonlyPWMFanNorm]:
-    readonly_fans = {}  # type: Dict[ReadonlyFanName, ReadonlyPWMFanNorm]
+    readonly_fans: Dict[ReadonlyFanName, ReadonlyPWMFanNorm] = {}
     for section_name in config.sections():
         section_name_parts = section_name.split(":", 1)
 
@@ -592,8 +592,8 @@ def _parse_readonly_fans(
         if fan_type == "linux":
             fan_input = FanInputDevice(fan["fan_input"])
             keys.discard("fan_input")
-            fan_speed = LinuxFanSpeed(fan_input)  # type: BaseFanSpeed
-            pwm_read = None  # type: Optional[BaseFanPWMRead]
+            fan_speed: BaseFanSpeed = LinuxFanSpeed(fan_input)
+            pwm_read: Optional[BaseFanPWMRead] = None
             if "pwm" in fan:
                 pwm = PWMDevice(fan["pwm"])
                 keys.discard("pwm")
@@ -665,7 +665,7 @@ def _parse_mappings(
     temps: Mapping[TempName, FilteredTemp],
 ) -> Mapping[MappingName, FansTempsRelation]:
 
-    mappings = {}  # type: Dict[MappingName, FansTempsRelation]
+    mappings: Dict[MappingName, FansTempsRelation] = {}
     for section_name in config.sections():
         section_name_parts = section_name.split(":", 1)
 

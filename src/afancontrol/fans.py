@@ -19,13 +19,13 @@ class Fans:
         self.fans = fans
         self.readonly_fans = readonly_fans
         self.report = report
-        self._stack = None  # type: Optional[ExitStack]
+        self._stack: Optional[ExitStack] = None
 
         # Set of fans marked as failing (which speed is 0)
-        self._failed_fans = set()  # type: MutableSet[AnyFanName]
+        self._failed_fans: MutableSet[AnyFanName] = set()
 
         # Set of fans that will be skipped on speed check
-        self._stopped_fans = set()  # type: MutableSet[AnyFanName]
+        self._stopped_fans: MutableSet[AnyFanName] = set()
 
     def is_fan_failing(self, fan_name: AnyFanName) -> bool:
         return fan_name in self._failed_fans

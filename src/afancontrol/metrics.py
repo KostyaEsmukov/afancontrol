@@ -81,7 +81,7 @@ class PrometheusMetrics(Metrics):
         self._listen_addr, port_str = listen_host.rsplit(":", 1)
         self._listen_port = int(port_str)
 
-        self._http_server = None  # type: Optional[HTTPServer]
+        self._http_server: Optional[HTTPServer] = None
 
         self._last_metrics_collect_clock = float("nan")
 

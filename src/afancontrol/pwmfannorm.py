@@ -19,7 +19,7 @@ class ReadonlyPWMFanNorm:
     ) -> None:
         self.fan_speed = fan_speed
         self.pwm_read = pwm_read
-        self._stack = None  # type: Optional[ExitStack]
+        self._stack: Optional[ExitStack] = None
 
     def __enter__(self):
         self._stack = ExitStack()
@@ -98,7 +98,7 @@ class PWMFanNorm:
                 "Invalid pwm_line_end. Expected: pwm_line_end <= max_pwm. "
                 "Got: %s <= %s" % (self.pwm_line_end, type(self.pwm_read).max_pwm)
             )
-        self._stack = None  # type: Optional[ExitStack]
+        self._stack: Optional[ExitStack] = None
 
     def __eq__(self, other):
         if isinstance(other, type(self)):

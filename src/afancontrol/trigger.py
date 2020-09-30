@@ -20,7 +20,7 @@ class Trigger(abc.ABC):
         self.global_commands = global_commands
         self.temp_commands = temp_commands
         self.report = report
-        self._alerting_temps = set()  # type: Set[TempName]
+        self._alerting_temps: Set[TempName] = set()
 
     @property
     @abc.abstractmethod
@@ -184,7 +184,7 @@ class Triggers:
             },
             report=report,
         )
-        self._stack = None  # type: Optional[ExitStack]
+        self._stack: Optional[ExitStack] = None
 
     def __enter__(self):  # reusable
         self._stack = ExitStack()

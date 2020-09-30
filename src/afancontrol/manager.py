@@ -41,7 +41,7 @@ class Manager:
         self.mappings = mappings
         self.triggers = Triggers(triggers_config, report)
         self.metrics = metrics
-        self._stack = None  # type: Optional[ExitStack]
+        self._stack: Optional[ExitStack] = None
 
     def __enter__(self):  # reusable
         self._stack = ExitStack()
@@ -88,9 +88,7 @@ class Manager:
             for temp_name, temp_status in temps.items()
         }
 
-        fan_speeds = defaultdict(
-            lambda: PWMValueNorm(0.0)
-        )  # type: Dict[FanName, PWMValueNorm]
+        fan_speeds: Dict[FanName, PWMValueNorm] = defaultdict(lambda: PWMValueNorm(0.0))
 
         for mapping_name, relation in self.mappings.items():
             mapping_speed = max(temp_speeds[temp_name] for temp_name in relation.temps)

@@ -66,9 +66,7 @@ def daemon(
     parsed_config = parse_config(config_path, daemon_cli_config)
 
     if parsed_config.daemon.exporter_listen_host:
-        metrics = PrometheusMetrics(
-            parsed_config.daemon.exporter_listen_host
-        )  # type: Metrics
+        metrics: Metrics = PrometheusMetrics(parsed_config.daemon.exporter_listen_host)
     else:
         metrics = NullMetrics()
 
@@ -83,7 +81,7 @@ def daemon(
         metrics=metrics,
     )
 
-    pidfile_instance = None  # type: Optional[PidFile]
+    pidfile_instance: Optional[PidFile] = None
     if parsed_config.daemon.pidfile is not None:
         pidfile_instance = PidFile(parsed_config.daemon.pidfile)
 

@@ -25,8 +25,8 @@ def filtered_temps(
 class Temps:
     def __init__(self, temps: Mapping[TempName, FilteredTemp]) -> None:
         self.temps = temps
-        self._stack = None  # type: Optional[ExitStack]
-        self._executor = None  # type: Optional[concurrent.futures.Executor]
+        self._stack: Optional[ExitStack] = None
+        self._executor: Optional[concurrent.futures.Executor] = None
 
     def __enter__(self):  # reusable
         self._stack = ExitStack()
@@ -64,7 +64,7 @@ def _get_temp_status(
     name: TempName, temp: Temp, filter: TempFilter
 ) -> ObservedTempStatus:
     try:
-        sensor_value = temp.get()  # type: Optional[TempStatus]
+        sensor_value: Optional[TempStatus] = temp.get()
     except Exception as e:
         sensor_value = None
         logger.warning("Temp sensor [%s] has failed: %s", name, e, exc_info=True)
