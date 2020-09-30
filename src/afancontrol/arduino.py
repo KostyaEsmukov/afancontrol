@@ -5,6 +5,7 @@ import threading
 from timeit import default_timer
 from typing import TYPE_CHECKING, Any, Dict, NewType, Optional
 
+from afancontrol.configparser import ConfigParserSection
 from afancontrol.logger import logger
 
 if TYPE_CHECKING:
@@ -54,6 +55,17 @@ class ArduinoConnection:
         self._status_clock: Optional[float] = None
         self._status_lock = threading.Lock()
         self._status_event = threading.Event()
+
+    @classmethod
+    def from_configparser(
+        cls, section: ConfigParserSection[ArduinoName]
+    ) -> "ArduinoConnection":
+        return cls(
+            name=section.name,
+            serial_url=section["serial_url"],
+            baudrate=section.getint("baudrate", fallback=DEFAULT_BAUDRATE),
+            status_ttl=section.getint("status_ttl", fallback=DEFAULT_STATUS_TTL),
+        )
 
     def __eq__(self, other):
         if isinstance(other, type(self)):

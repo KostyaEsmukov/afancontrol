@@ -35,15 +35,10 @@ class HDDTemp(Temp):
 
     @classmethod
     def from_configparser(cls, section: ConfigParserSection, *, hddtemp: str) -> Temp:
-        panic = TempCelsius(section.getfloat("panic"))
-        threshold = TempCelsius(section.getfloat("threshold"))
+        panic = TempCelsius(section.getfloat("panic", fallback=None))
+        threshold = TempCelsius(section.getfloat("threshold", fallback=None))
         min = TempCelsius(section.getfloat("min"))
         max = TempCelsius(section.getfloat("max"))
-        if min is None or max is None:
-            raise RuntimeError(
-                "hdd temp '%s' doesn't define the mandatory `min` and `max` temps"
-                % section.name
-            )
         return cls(
             section["path"],
             min=min,

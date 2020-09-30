@@ -12,12 +12,7 @@ from typing import (
     Union,
 )
 
-from afancontrol.arduino import (
-    DEFAULT_BAUDRATE,
-    DEFAULT_STATUS_TTL,
-    ArduinoConnection,
-    ArduinoName,
-)
+from afancontrol.arduino import ArduinoConnection, ArduinoName
 from afancontrol.configparser import ConfigParserSection
 from afancontrol.filters import (
     MovingMedianFilter,
@@ -166,23 +161,26 @@ def first_not_none(*parts: Optional[T]) -> Optional[T]:
 def _parse_daemon(
     config: configparser.ConfigParser, daemon_cli_config: DaemonCLIConfig
 ) -> Tuple[DaemonConfig, str]:
-    daemon = ConfigParserSection("daemon", config["daemon"])
+    daemon: ConfigParserSection[str] = ConfigParserSection(config["daemon"])
 
     pidfile = first_not_none(
-        daemon_cli_config.pidfile, daemon.get("pidfile"), DEFAULT_PIDFILE
+        daemon_cli_config.pidfile, daemon.get("pidfile", fallback=DEFAULT_PIDFILE)
     )
     if pidfile is not None and not pidfile.strip():
         pidfile = None
 
-    logfile = first_not_none(daemon_cli_config.logfile, daemon.get("logfile"))
+    logfile = first_not_none(
+        daemon_cli_config.logfile, daemon.get("logfile", fallback=None)
+    )
 
     interval = daemon.getint("interval", fallback=DEFAULT_INTERVAL)
 
     exporter_listen_host = first_not_none(
-        daemon_cli_config.exporter_listen_host, daemon.get("exporter_listen_host")
+        daemon_cli_config.exporter_listen_host,
+        daemon.get("exporter_listen_host", fallback=None),
     )
 
-    hddtemp = daemon.get("hddtemp") or DEFAULT_HDDTEMP
+    hddtemp = daemon.get("hddtemp", fallback=DEFAULT_HDDTEMP)
 
     daemon.ensure_no_unused_keys()
 
@@ -198,19 +196,19 @@ def _parse_daemon(
 
 
 def _parse_actions(config: configparser.ConfigParser) -> Tuple[str, Actions]:
-    actions = ConfigParserSection("actions", config["actions"])
+    actions: ConfigParserSection[str] = ConfigParserSection(config["actions"])
 
-    report_cmd = first_not_none(actions.get("report_cmd"), DEFAULT_REPORT_CMD)
+    report_cmd = actions.get("report_cmd", fallback=DEFAULT_REPORT_CMD)
     assert report_cmd is not None
 
     panic = AlertCommands(
-        enter_cmd=first_not_none(actions.get("panic_enter_cmd")),
-        leave_cmd=first_not_none(actions.get("panic_leave_cmd")),
+        enter_cmd=actions.get("panic_enter_cmd", fallback=None),
+        leave_cmd=actions.get("panic_leave_cmd", fallback=None),
     )
 
     threshold = AlertCommands(
-        enter_cmd=first_not_none(actions.get("threshold_enter_cmd")),
-        leave_cmd=first_not_none(actions.get("threshold_leave_cmd")),
+        enter_cmd=actions.get("threshold_enter_cmd", fallback=None),
+        leave_cmd=actions.get("threshold_leave_cmd", fallback=None),
     )
 
     actions.ensure_no_unused_keys()
@@ -229,25 +227,15 @@ def _parse_arduino_connections(
             continue
 
         arduino_name = ArduinoName(section_name_parts[1].strip())
-        arduino = ConfigParserSection(section_name, config[section_name])
-
-        serial_url = arduino["serial_url"]
-
-        baudrate = arduino.getint("baudrate", fallback=DEFAULT_BAUDRATE)
-        status_ttl = arduino.getint("status_ttl", fallback=DEFAULT_STATUS_TTL)
-
-        arduino.ensure_no_unused_keys()
+        arduino = ConfigParserSection(config[section_name], arduino_name)
 
         if arduino_name in arduino_connections:
             raise RuntimeError(
                 "Duplicate arduino section declaration for '%s'" % arduino_name
             )
-        arduino_connections[arduino_name] = ArduinoConnection(
-            name=arduino_name,
-            serial_url=serial_url,
-            baudrate=baudrate,
-            status_ttl=status_ttl,
-        )
+        arduino_connections[arduino_name] = ArduinoConnection.from_configparser(arduino)
+
+        arduino.ensure_no_unused_keys()
 
     # Empty arduino_connections is ok
     return arduino_connections
@@ -264,7 +252,7 @@ def _parse_filters(
             continue
 
         filter_name = FilterName(section_name_parts[1].strip())
-        filter = ConfigParserSection(section_name, config[section_name])
+        filter = ConfigParserSection(config[section_name], filter_name)
 
         filter_type = filter["type"]
 
@@ -309,16 +297,16 @@ def _parse_temps(
             continue
 
         temp_name = TempName(section_name_parts[1].strip())
-        temp = ConfigParserSection(section_name, config[section_name])
+        temp = ConfigParserSection(config[section_name], temp_name)
 
         actions_panic = AlertCommands(
-            enter_cmd=first_not_none(temp.get("panic_enter_cmd")),
-            leave_cmd=first_not_none(temp.get("panic_leave_cmd")),
+            enter_cmd=temp.get("panic_enter_cmd", fallback=None),
+            leave_cmd=temp.get("panic_leave_cmd", fallback=None),
         )
 
         actions_threshold = AlertCommands(
-            enter_cmd=first_not_none(temp.get("threshold_enter_cmd")),
-            leave_cmd=first_not_none(temp.get("threshold_leave_cmd")),
+            enter_cmd=temp.get("threshold_enter_cmd", fallback=None),
+            leave_cmd=temp.get("threshold_leave_cmd", fallback=None),
         )
 
         type = temp["type"]
@@ -334,10 +322,10 @@ def _parse_temps(
                 "Unsupported temp type '%s' for temp '%s'" % (type, temp_name)
             )
 
-        filter_name = temp.get("filter")
+        filter_name = temp.get("filter", fallback=None)
 
         if filter_name is None:
-            filter = NullFilter()
+            filter: TempFilter = NullFilter()
         else:
             filter = filters[FilterName(filter_name.strip())].copy()
 
@@ -367,7 +355,7 @@ def _parse_fans(
             continue
 
         fan_name = FanName(section_name_parts[1].strip())
-        fan = ConfigParserSection(section_name, config[section_name])
+        fan = ConfigParserSection(config[section_name], fan_name)
 
         fan_type = fan.get("type", fallback=DEFAULT_FAN_TYPE)
 
@@ -435,7 +423,7 @@ def _parse_readonly_fans(
             continue
 
         fan_name = ReadonlyFanName(section_name_parts[1].strip())
-        fan = ConfigParserSection(section_name, config[section_name])
+        fan = ConfigParserSection(config[section_name], fan_name)
 
         fan_type = fan.get("type", fallback=DEFAULT_FAN_TYPE)
 
@@ -494,7 +482,7 @@ def _parse_mappings(
             continue
 
         mapping_name = MappingName(section_name_parts[1])
-        mapping = ConfigParserSection(section_name, config[section_name])
+        mapping = ConfigParserSection(config[section_name], mapping_name)
 
         # temps:
 

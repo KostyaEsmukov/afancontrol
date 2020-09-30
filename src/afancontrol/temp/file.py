@@ -44,10 +44,10 @@ class FileTemp(Temp):
 
     @classmethod
     def from_configparser(cls, section: ConfigParserSection) -> Temp:
-        panic = TempCelsius(section.getfloat("panic"))
-        threshold = TempCelsius(section.getfloat("threshold"))
-        min = TempCelsius(section.getfloat("min"))
-        max = TempCelsius(section.getfloat("max"))
+        panic = TempCelsius(section.getfloat("panic", fallback=None))
+        threshold = TempCelsius(section.getfloat("threshold", fallback=None))
+        min = TempCelsius(section.getfloat("min", fallback=None))
+        max = TempCelsius(section.getfloat("max", fallback=None))
         return cls(section["path"], min=min, max=max, panic=panic, threshold=threshold)
 
     def __eq__(self, other):
