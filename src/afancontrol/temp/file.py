@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from typing import Optional, Tuple
 
+from afancontrol.configparser import ConfigParserSection
 from afancontrol.temp.base import Temp, TempCelsius
 
 
@@ -40,6 +41,14 @@ class FileTemp(Temp):
         self._temp_max = Path(temp_path + "_max")
         self._min = min
         self._max = max
+
+    @classmethod
+    def from_configparser(cls, section: ConfigParserSection) -> Temp:
+        panic = TempCelsius(section.getfloat("panic"))
+        threshold = TempCelsius(section.getfloat("threshold"))
+        min = TempCelsius(section.getfloat("min"))
+        max = TempCelsius(section.getfloat("max"))
+        return cls(section["path"], min=min, max=max, panic=panic, threshold=threshold)
 
     def __eq__(self, other):
         if isinstance(other, type(self)):

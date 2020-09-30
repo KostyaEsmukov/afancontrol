@@ -17,8 +17,8 @@ from afancontrol.arduino import (
     DEFAULT_STATUS_TTL,
     ArduinoConnection,
     ArduinoName,
-    ArduinoPin,
 )
+from afancontrol.configparser import ConfigParserSection
 from afancontrol.filters import (
     MovingMedianFilter,
     MovingQuantileFilter,
@@ -33,16 +33,14 @@ from afancontrol.pwmfan import (
     BaseFanPWMRead,
     BaseFanPWMWrite,
     BaseFanSpeed,
-    FanInputDevice,
     FreeIPMIFanSpeed,
     LinuxFanPWMRead,
     LinuxFanPWMWrite,
     LinuxFanSpeed,
-    PWMDevice,
     PWMValue,
 )
 from afancontrol.pwmfannorm import PWMFanNorm, ReadonlyPWMFanNorm
-from afancontrol.temp import CommandTemp, FileTemp, HDDTemp, Temp, TempCelsius
+from afancontrol.temp import CommandTemp, FileTemp, HDDTemp, Temp
 
 DEFAULT_CONFIG = "/etc/afancontrol/afancontrol.conf"
 DEFAULT_PIDFILE = "/run/afancontrol.pid"
@@ -168,32 +166,25 @@ def first_not_none(*parts: Optional[T]) -> Optional[T]:
 def _parse_daemon(
     config: configparser.ConfigParser, daemon_cli_config: DaemonCLIConfig
 ) -> Tuple[DaemonConfig, str]:
-    daemon = config["daemon"]
-    keys = set(daemon.keys())
+    daemon = ConfigParserSection("daemon", config["daemon"])
 
     pidfile = first_not_none(
         daemon_cli_config.pidfile, daemon.get("pidfile"), DEFAULT_PIDFILE
     )
     if pidfile is not None and not pidfile.strip():
         pidfile = None
-    keys.discard("pidfile")
 
     logfile = first_not_none(daemon_cli_config.logfile, daemon.get("logfile"))
-    keys.discard("logfile")
 
     interval = daemon.getint("interval", fallback=DEFAULT_INTERVAL)
-    keys.discard("interval")
 
     exporter_listen_host = first_not_none(
         daemon_cli_config.exporter_listen_host, daemon.get("exporter_listen_host")
     )
-    keys.discard("exporter_listen_host")
 
     hddtemp = daemon.get("hddtemp") or DEFAULT_HDDTEMP
-    keys.discard("hddtemp")
 
-    if keys:
-        raise RuntimeError("Unknown options in the [daemon] section: %s" % (keys,))
+    daemon.ensure_no_unused_keys()
 
     return (
         DaemonConfig(
@@ -207,29 +198,22 @@ def _parse_daemon(
 
 
 def _parse_actions(config: configparser.ConfigParser) -> Tuple[str, Actions]:
-    actions = config["actions"]
-    keys = set(actions.keys())
+    actions = ConfigParserSection("actions", config["actions"])
 
     report_cmd = first_not_none(actions.get("report_cmd"), DEFAULT_REPORT_CMD)
     assert report_cmd is not None
-    keys.discard("report_cmd")
 
     panic = AlertCommands(
         enter_cmd=first_not_none(actions.get("panic_enter_cmd")),
         leave_cmd=first_not_none(actions.get("panic_leave_cmd")),
     )
-    keys.discard("panic_enter_cmd")
-    keys.discard("panic_leave_cmd")
 
     threshold = AlertCommands(
         enter_cmd=first_not_none(actions.get("threshold_enter_cmd")),
         leave_cmd=first_not_none(actions.get("threshold_leave_cmd")),
     )
-    keys.discard("threshold_enter_cmd")
-    keys.discard("threshold_leave_cmd")
 
-    if keys:
-        raise RuntimeError("Unknown options in the [actions] section: %s" % (keys,))
+    actions.ensure_no_unused_keys()
 
     return report_cmd, Actions(panic=panic, threshold=threshold)
 
@@ -245,21 +229,14 @@ def _parse_arduino_connections(
             continue
 
         arduino_name = ArduinoName(section_name_parts[1].strip())
-        arduino = config[section_name]
-        keys = set(arduino.keys())
+        arduino = ConfigParserSection(section_name, config[section_name])
 
         serial_url = arduino["serial_url"]
-        keys.discard("serial_url")
 
         baudrate = arduino.getint("baudrate", fallback=DEFAULT_BAUDRATE)
-        keys.discard("baudrate")
         status_ttl = arduino.getint("status_ttl", fallback=DEFAULT_STATUS_TTL)
-        keys.discard("status_ttl")
 
-        if keys:
-            raise RuntimeError(
-                "Unknown options in the [%s] section: %s" % (section_name, keys)
-            )
+        arduino.ensure_no_unused_keys()
 
         if arduino_name in arduino_connections:
             raise RuntimeError(
@@ -287,23 +264,17 @@ def _parse_filters(
             continue
 
         filter_name = FilterName(section_name_parts[1].strip())
-        filter = config[section_name]
-        keys = set(filter.keys())
+        filter = ConfigParserSection(section_name, config[section_name])
 
         filter_type = filter["type"]
-        keys.discard("type")
 
         if filter_type == "moving_median":
             window_size = filter.getint("window_size", fallback=DEFAULT_WINDOW_SIZE)
-            keys.discard("window_size")
 
             f: TempFilter = MovingMedianFilter(window_size=window_size)
         elif filter_type == "moving_quantile":
             window_size = filter.getint("window_size", fallback=DEFAULT_WINDOW_SIZE)
-            keys.discard("window_size")
-
             quantile = filter.getfloat("quantile")
-            keys.discard("quantile")
             f = MovingQuantileFilter(quantile=quantile, window_size=window_size)
         else:
             raise RuntimeError(
@@ -312,10 +283,7 @@ def _parse_filters(
                 % (filter_type, filter_name)
             )
 
-        if keys:
-            raise RuntimeError(
-                "Unknown options in the [%s] section: %s" % (section_name, keys)
-            )
+        filter.ensure_no_unused_keys()
 
         if filter_name in filters:
             raise RuntimeError(
@@ -341,77 +309,39 @@ def _parse_temps(
             continue
 
         temp_name = TempName(section_name_parts[1].strip())
-        temp = config[section_name]
-        keys = set(temp.keys())
+        temp = ConfigParserSection(section_name, config[section_name])
 
         actions_panic = AlertCommands(
             enter_cmd=first_not_none(temp.get("panic_enter_cmd")),
             leave_cmd=first_not_none(temp.get("panic_leave_cmd")),
         )
-        keys.discard("panic_enter_cmd")
-        keys.discard("panic_leave_cmd")
 
         actions_threshold = AlertCommands(
             enter_cmd=first_not_none(temp.get("threshold_enter_cmd")),
             leave_cmd=first_not_none(temp.get("threshold_leave_cmd")),
         )
-        keys.discard("threshold_enter_cmd")
-        keys.discard("threshold_leave_cmd")
-
-        panic = TempCelsius(temp.getfloat("panic"))
-        threshold = TempCelsius(temp.getfloat("threshold"))
-        min = TempCelsius(temp.getfloat("min"))
-        max = TempCelsius(temp.getfloat("max"))
-        keys.discard("panic")
-        keys.discard("threshold")
-        keys.discard("min")
-        keys.discard("max")
 
         type = temp["type"]
-        keys.discard("type")
 
         if type == "file":
-            t = FileTemp(
-                temp["path"], min=min, max=max, panic=panic, threshold=threshold
-            )  # type: Temp
-            keys.discard("path")
+            t = FileTemp.from_configparser(temp)  # type: Temp
         elif type == "hdd":
-            if min is None or max is None:
-                raise RuntimeError(
-                    "hdd temp '%s' doesn't define the mandatory `min` and `max` temps"
-                    % temp_name
-                )
-            t = HDDTemp(
-                temp["path"],
-                min=min,
-                max=max,
-                panic=panic,
-                threshold=threshold,
-                hddtemp_bin=hddtemp,
-            )
-            keys.discard("path")
+            t = HDDTemp.from_configparser(temp, hddtemp=hddtemp)
         elif type == "exec":
-            t = CommandTemp(
-                temp["command"], min=min, max=max, panic=panic, threshold=threshold
-            )
-            keys.discard("command")
+            t = CommandTemp.from_configparser(temp)
         else:
             raise RuntimeError(
                 "Unsupported temp type '%s' for temp '%s'" % (type, temp_name)
             )
 
         filter_name = temp.get("filter")
-        keys.discard("filter")
 
         if filter_name is None:
             filter = NullFilter()
         else:
             filter = filters[FilterName(filter_name.strip())].copy()
 
-        if keys:
-            raise RuntimeError(
-                "Unknown options in the [%s] section: %s" % (section_name, keys)
-            )
+        temp.ensure_no_unused_keys()
 
         if temp_name in temps:
             raise RuntimeError(
@@ -437,41 +367,18 @@ def _parse_fans(
             continue
 
         fan_name = FanName(section_name_parts[1].strip())
-        fan = config[section_name]
-        keys = set(fan.keys())
+        fan = ConfigParserSection(section_name, config[section_name])
 
         fan_type = fan.get("type", fallback=DEFAULT_FAN_TYPE)
-        keys.discard("type")
 
         if fan_type == "linux":
-            pwm = PWMDevice(fan["pwm"])
-            fan_input = FanInputDevice(fan["fan_input"])
-            keys.discard("pwm")
-            keys.discard("fan_input")
-
-            fan_speed: BaseFanSpeed = LinuxFanSpeed(fan_input)
-            pwm_read: BaseFanPWMRead = LinuxFanPWMRead(pwm)
-            pwm_write: BaseFanPWMWrite = LinuxFanPWMWrite(pwm)
+            fan_speed: BaseFanSpeed = LinuxFanSpeed.from_configparser(fan)
+            pwm_read: BaseFanPWMRead = LinuxFanPWMRead.from_configparser(fan)
+            pwm_write: BaseFanPWMWrite = LinuxFanPWMWrite.from_configparser(fan)
         elif fan_type == "arduino":
-            arduino_name = ArduinoName(fan["arduino_name"])
-            keys.discard("arduino_name")
-            pwm_pin = ArduinoPin(fan.getint("pwm_pin"))
-            keys.discard("pwm_pin")
-            tacho_pin = ArduinoPin(fan.getint("tacho_pin"))
-            keys.discard("tacho_pin")
-
-            if arduino_name not in arduino_connections:
-                raise ValueError("[arduino:%s] section is missing" % arduino_name)
-
-            fan_speed = ArduinoFanSpeed(
-                arduino_connections[arduino_name], tacho_pin=tacho_pin
-            )
-            pwm_read = ArduinoFanPWMRead(
-                arduino_connections[arduino_name], pwm_pin=pwm_pin
-            )
-            pwm_write = ArduinoFanPWMWrite(
-                arduino_connections[arduino_name], pwm_pin=pwm_pin
-            )
+            fan_speed = ArduinoFanSpeed.from_configparser(fan, arduino_connections)
+            pwm_read = ArduinoFanPWMRead.from_configparser(fan, arduino_connections)
+            pwm_write = ArduinoFanPWMWrite.from_configparser(fan, arduino_connections)
         else:
             raise ValueError(
                 "Unsupported FAN type %s. Supported ones are "
@@ -479,17 +386,14 @@ def _parse_fans(
             )
 
         never_stop = fan.getboolean("never_stop", fallback=DEFAULT_NEVER_STOP)
-        keys.discard("never_stop")
 
         pwm_line_start = PWMValue(
             fan.getint("pwm_line_start", fallback=DEFAULT_PWM_LINE_START)
         )
-        keys.discard("pwm_line_start")
 
         pwm_line_end = PWMValue(
             fan.getint("pwm_line_end", fallback=DEFAULT_PWM_LINE_END)
         )
-        keys.discard("pwm_line_end")
 
         for pwm_value in (pwm_line_start, pwm_line_end):
             if not (pwm_read.min_pwm <= pwm_value <= pwm_read.max_pwm):
@@ -503,10 +407,7 @@ def _parse_fans(
                 % (fan_name,)
             )
 
-        if keys:
-            raise RuntimeError(
-                "Unknown options in the [%s] section: %s" % (section_name, keys)
-            )
+        fan.ensure_no_unused_keys()
 
         if fan_name in fans:
             raise RuntimeError("Duplicate fan section declaration for '%s'" % fan_name)
@@ -534,59 +435,28 @@ def _parse_readonly_fans(
             continue
 
         fan_name = ReadonlyFanName(section_name_parts[1].strip())
-        fan = config[section_name]
-        keys = set(fan.keys())
+        fan = ConfigParserSection(section_name, config[section_name])
 
         fan_type = fan.get("type", fallback=DEFAULT_FAN_TYPE)
-        keys.discard("type")
 
         if fan_type == "linux":
-            fan_input = FanInputDevice(fan["fan_input"])
-            keys.discard("fan_input")
-            fan_speed: BaseFanSpeed = LinuxFanSpeed(fan_input)
+            fan_speed: BaseFanSpeed = LinuxFanSpeed.from_configparser(fan)
+
             pwm_read: Optional[BaseFanPWMRead] = None
             if "pwm" in fan:
-                pwm = PWMDevice(fan["pwm"])
-                keys.discard("pwm")
-                pwm_read = LinuxFanPWMRead(pwm)
+                pwm_read = LinuxFanPWMRead.from_configparser(fan)
         elif fan_type == "arduino":
-            arduino_name = ArduinoName(fan["arduino_name"])
-            keys.discard("arduino_name")
-            tacho_pin = ArduinoPin(fan.getint("tacho_pin"))
-            keys.discard("tacho_pin")
-
-            if arduino_name not in arduino_connections:
-                raise ValueError("[arduino:%s] section is missing" % arduino_name)
-
-            fan_speed = ArduinoFanSpeed(
-                arduino_connections[arduino_name], tacho_pin=tacho_pin
-            )
+            fan_speed = ArduinoFanSpeed.from_configparser(fan, arduino_connections)
             pwm_read = None
             if "pwm_pin" in fan:
-                pwm_pin = ArduinoPin(fan.getint("pwm_pin"))
-                keys.discard("pwm_pin")
-                pwm_read = ArduinoFanPWMRead(
-                    arduino_connections[arduino_name], pwm_pin=pwm_pin
-                )
+                pwm_read = ArduinoFanPWMRead.from_configparser(fan, arduino_connections)
         elif fan_type == "freeipmi":
-            name = fan["name"]
-            keys.discard("name")
-
-            ipmi_sensors_extra_args = fan.get("ipmi_sensors_extra_args", fallback="")
-
-            fan_speed = FreeIPMIFanSpeed(
-                name, ipmi_sensors_extra_args=ipmi_sensors_extra_args
-            )
+            fan_speed = FreeIPMIFanSpeed.from_configparser(fan)
             pwm_read = None
         else:
             raise ValueError(
                 "Unsupported FAN type %s. Supported ones are "
                 "`linux`, `arduino`, `freeipmi`." % fan_type
-            )
-
-        if keys:
-            raise RuntimeError(
-                "Unknown options in the [%s] section: %s" % (section_name, keys)
             )
 
         if fan_name in readonly_fans:
@@ -624,8 +494,7 @@ def _parse_mappings(
             continue
 
         mapping_name = MappingName(section_name_parts[1])
-        mapping = config[section_name]
-        keys = set(mapping.keys())
+        mapping = ConfigParserSection(section_name, config[section_name])
 
         # temps:
 
@@ -633,7 +502,6 @@ def _parse_mappings(
             TempName(temp_name.strip()) for temp_name in mapping["temps"].split(",")
         ]
         mapping_temps = [s for s in mapping_temps if s]
-        keys.discard("temps")
         if not mapping_temps:
             raise RuntimeError(
                 "Temps must not be empty in the '%s' mapping" % mapping_name
@@ -654,7 +522,6 @@ def _parse_mappings(
             fan_with_speed.strip() for fan_with_speed in mapping["fans"].split(",")
         ]
         fans_with_speed = [s for s in fans_with_speed if s]
-        keys.discard("fans")
 
         fan_speed_pairs = [
             fan_with_speed.split("*") for fan_with_speed in fans_with_speed
@@ -699,10 +566,7 @@ def _parse_mappings(
                 "There are duplicate fans in mapping '%s'" % mapping_name
             )
 
-        if keys:
-            raise RuntimeError(
-                "Unknown options in the [%s] section: %s" % (section_name, keys)
-            )
+        mapping.ensure_no_unused_keys()
 
         if mapping_name in fans:
             raise RuntimeError(

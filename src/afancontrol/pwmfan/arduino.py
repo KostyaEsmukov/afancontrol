@@ -1,4 +1,7 @@
-from afancontrol.arduino import ArduinoConnection, ArduinoPin
+from typing import Mapping
+
+from afancontrol.arduino import ArduinoConnection, ArduinoName, ArduinoPin
+from afancontrol.configparser import ConfigParserSection
 from afancontrol.pwmfan.base import (
     BaseFanPWMRead,
     BaseFanPWMWrite,
@@ -6,6 +9,14 @@ from afancontrol.pwmfan.base import (
     FanValue,
     PWMValue,
 )
+
+
+def _ensure_arduino_connection(
+    arduino_name: ArduinoName,
+    arduino_connections: Mapping[ArduinoName, ArduinoConnection],
+) -> None:
+    if arduino_name not in arduino_connections:
+        raise ValueError("[arduino:%s] section is missing" % arduino_name)
 
 
 class ArduinoFanSpeed(BaseFanSpeed):
@@ -16,6 +27,17 @@ class ArduinoFanSpeed(BaseFanSpeed):
     ) -> None:
         self._conn = arduino_connection
         self._tacho_pin = tacho_pin
+
+    @classmethod
+    def from_configparser(
+        cls,
+        section: ConfigParserSection,
+        arduino_connections: Mapping[ArduinoName, ArduinoConnection],
+    ) -> BaseFanSpeed:
+        arduino_name = ArduinoName(section["arduino_name"])
+        _ensure_arduino_connection(arduino_name, arduino_connections)
+        tacho_pin = ArduinoPin(section.getint("tacho_pin"))
+        return cls(arduino_connections[arduino_name], tacho_pin=tacho_pin)
 
     def get_speed(self) -> FanValue:
         return FanValue(self._conn.get_rpm(self._tacho_pin))
@@ -40,6 +62,17 @@ class ArduinoFanPWMRead(BaseFanPWMRead):
         self._conn = arduino_connection
         self._pwm_pin = pwm_pin
 
+    @classmethod
+    def from_configparser(
+        cls,
+        section: ConfigParserSection,
+        arduino_connections: Mapping[ArduinoName, ArduinoConnection],
+    ) -> BaseFanPWMRead:
+        arduino_name = ArduinoName(section["arduino_name"])
+        _ensure_arduino_connection(arduino_name, arduino_connections)
+        pwm_pin = ArduinoPin(section.getint("pwm_pin"))
+        return cls(arduino_connections[arduino_name], pwm_pin=pwm_pin)
+
     def get(self) -> PWMValue:
         return PWMValue(int(self._conn.get_pwm(self._pwm_pin)))
 
@@ -61,6 +94,17 @@ class ArduinoFanPWMWrite(BaseFanPWMWrite):
     ) -> None:
         self._conn = arduino_connection
         self._pwm_pin = pwm_pin
+
+    @classmethod
+    def from_configparser(
+        cls,
+        section: ConfigParserSection,
+        arduino_connections: Mapping[ArduinoName, ArduinoConnection],
+    ) -> BaseFanPWMWrite:
+        arduino_name = ArduinoName(section["arduino_name"])
+        _ensure_arduino_connection(arduino_name, arduino_connections)
+        pwm_pin = ArduinoPin(section.getint("pwm_pin"))
+        return cls(arduino_connections[arduino_name], pwm_pin=pwm_pin)
 
     def _set_raw(self, pwm: PWMValue) -> None:
         self._conn.set_pwm(self._pwm_pin, pwm)

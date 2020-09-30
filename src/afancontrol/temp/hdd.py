@@ -1,5 +1,6 @@
 from typing import Optional, Tuple
 
+from afancontrol.configparser import ConfigParserSection
 from afancontrol.exec import exec_shell_command
 from afancontrol.temp.base import Temp, TempCelsius
 
@@ -31,6 +32,26 @@ class HDDTemp(Temp):
         self._min = min
         self._max = max
         self._hddtemp_bin = hddtemp_bin
+
+    @classmethod
+    def from_configparser(cls, section: ConfigParserSection, *, hddtemp: str) -> Temp:
+        panic = TempCelsius(section.getfloat("panic"))
+        threshold = TempCelsius(section.getfloat("threshold"))
+        min = TempCelsius(section.getfloat("min"))
+        max = TempCelsius(section.getfloat("max"))
+        if min is None or max is None:
+            raise RuntimeError(
+                "hdd temp '%s' doesn't define the mandatory `min` and `max` temps"
+                % section.name
+            )
+        return cls(
+            section["path"],
+            min=min,
+            max=max,
+            panic=panic,
+            threshold=threshold,
+            hddtemp_bin=hddtemp,
+        )
 
     def __eq__(self, other):
         if isinstance(other, type(self)):

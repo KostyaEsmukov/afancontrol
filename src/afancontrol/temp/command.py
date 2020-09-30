@@ -1,5 +1,6 @@
 from typing import Optional, Tuple
 
+from afancontrol.configparser import ConfigParserSection
 from afancontrol.exec import exec_shell_command
 from afancontrol.temp.base import Temp, TempCelsius
 
@@ -18,6 +19,16 @@ class CommandTemp(Temp):
         self._shell_command = shell_command
         self._min = min
         self._max = max
+
+    @classmethod
+    def from_configparser(cls, section: ConfigParserSection) -> Temp:
+        panic = TempCelsius(section.getfloat("panic"))
+        threshold = TempCelsius(section.getfloat("threshold"))
+        min = TempCelsius(section.getfloat("min"))
+        max = TempCelsius(section.getfloat("max"))
+        return cls(
+            section["command"], min=min, max=max, panic=panic, threshold=threshold
+        )
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
