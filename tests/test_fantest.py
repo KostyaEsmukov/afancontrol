@@ -77,11 +77,11 @@ def test_main_smoke(temp_path):
 @pytest.mark.parametrize("pwm_step_size", [5, -5])
 @pytest.mark.parametrize("output_cls", [HumanMeasurementsOutput, CSVMeasurementsOutput])
 def test_fantest(output_cls: Type[MeasurementsOutput], pwm_step_size: PWMValue):
-    fan = Fan(
+    fan: Any = Fan(
         fan_speed=MagicMock(spec=BaseFanSpeed),
         pwm_read=MagicMock(spec=BaseFanPWMRead),
         pwm_write=MagicMock(spec=BaseFanPWMWrite),
-    )  # type: Any
+    )
     fan.pwm_read.min_pwm = 0
     fan.pwm_read.max_pwm = 255
     output = output_cls()
