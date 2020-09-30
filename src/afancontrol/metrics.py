@@ -4,7 +4,7 @@ import threading
 from http.server import HTTPServer
 from socketserver import ThreadingMixIn
 from timeit import default_timer
-from typing import TYPE_CHECKING, Mapping, Optional, Union
+from typing import ContextManager, Mapping, Optional, Union
 
 from afancontrol.arduino import ArduinoConnection, ArduinoName
 from afancontrol.config import AnyFanName, FanName, ReadonlyFanName, TempName
@@ -13,9 +13,6 @@ from afancontrol.logger import logger
 from afancontrol.pwmfannorm import PWMFanNorm, ReadonlyPWMFanNorm
 from afancontrol.temps import ObservedTempStatus
 from afancontrol.trigger import Triggers
-
-if TYPE_CHECKING:
-    from typing import ContextManager  # Added in 3.6
 
 try:
     import prometheus_client as prom
@@ -45,7 +42,7 @@ class Metrics(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def measure_tick(self) -> "ContextManager[None]":
+    def measure_tick(self) -> ContextManager[None]:
         pass
 
 
@@ -65,7 +62,7 @@ class NullMetrics(Metrics):
     ) -> None:
         pass
 
-    def measure_tick(self) -> "ContextManager[None]":
+    def measure_tick(self) -> ContextManager[None]:
         @contextlib.contextmanager
         def null_context_manager():
             yield
@@ -334,7 +331,7 @@ class PrometheusMetrics(Metrics):
 
         self._last_metrics_collect_clock = self._clock()
 
-    def measure_tick(self) -> "ContextManager[None]":
+    def measure_tick(self) -> ContextManager[None]:
         return self.tick_duration.time()
 
     def _collect_fan_metrics(
