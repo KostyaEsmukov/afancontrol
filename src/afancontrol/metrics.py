@@ -1,11 +1,10 @@
 import abc
 import contextlib
 import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import HTTPServer
 from socketserver import ThreadingMixIn
 from timeit import default_timer
 from typing import TYPE_CHECKING, Mapping, Optional, Union
-from urllib.parse import parse_qs, urlparse
 
 from afancontrol.arduino import ArduinoConnection, ArduinoName
 from afancontrol.config import AnyFanName, FanName, ReadonlyFanName, TempName
@@ -255,7 +254,7 @@ class PrometheusMetrics(Metrics):
     def _start(self):
         # `prometheus_client.start_http_server` which persists a server reference
         # so it could be stopped later.
-        CustomMetricsHandler = MetricsHandler.factory(self.registry)
+        CustomMetricsHandler = prom.MetricsHandler.factory(self.registry)
         httpd = _ThreadingSimpleServer(
             (self._listen_addr, self._listen_port), CustomMetricsHandler
         )
@@ -393,40 +392,3 @@ class _ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
     # Enabling daemon threads virtually makes ``_ThreadingSimpleServer`` the
     # same as Python 3.7's ``ThreadingHTTPServer``.
     daemon_threads = True
-
-
-# `MetricsHandler` of `prometheus_client==0.0.18` doesn't support exposing
-# a custom registry. This is backported below:
-if prometheus_available:
-    if hasattr(prom.MetricsHandler, "factory"):
-        MetricsHandler = prom.MetricsHandler
-    else:
-        from prometheus_client.exposition import generate_latest, CONTENT_TYPE_LATEST
-
-        class MetricsHandler(BaseHTTPRequestHandler):  # type: ignore
-            # https://github.com/prometheus/client_python/blob/31f5557e2e84ca4ffa9a03abf6e3f4d0c8b8c3eb/prometheus_client/exposition.py#L141-L177  # noqa
-            registry = prom.REGISTRY
-
-            def do_GET(self):
-                registry = self.registry
-                params = parse_qs(urlparse(self.path).query)
-                if "name[]" in params:
-                    registry = registry.restricted_registry(params["name[]"])
-                try:
-                    output = generate_latest(registry)
-                except Exception:
-                    self.send_error(500, "error generating metric output")
-                    raise
-                self.send_response(200)
-                self.send_header("Content-Type", CONTENT_TYPE_LATEST)
-                self.end_headers()
-                self.wfile.write(output)
-
-            def log_message(self, format, *args):
-                """Log nothing."""
-
-            @classmethod
-            def factory(cls, registry):
-                cls_name = str(cls.__name__)
-                MyMetricsHandler = type(cls_name, (cls, object), {"registry": registry})
-                return MyMetricsHandler

@@ -9,7 +9,7 @@ Build-Depends: debhelper (>= 9),
 Build-Depends-Indep: python3-pytest,
                      python3-requests,
                      python3-click,
-                     python3-prometheus-client,
+                     python3-prometheus-client (>= 0.1.0),
                      python3-serial
 Standards-Version: 3.9.8
 Homepage: https://github.com/KostyaEsmukov/afancontrol
@@ -27,7 +27,7 @@ Depends: ${python3:Depends},
          lm-sensors,
          python3-click,
          python3-pkg-resources,
-         python3-prometheus-client,
+         python3-prometheus-client (>= 0.1.0),
          python3-serial
 Suggests: freeipmi-tools,
 Description: Advanced Fan Control program (Python 3)
