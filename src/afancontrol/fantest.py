@@ -74,14 +74,11 @@ HELP_PWM_STEP_SIZE = (
     "faster."
 )
 
-Fan = NamedTuple(
-    "Fan",
-    [
-        ("fan_speed", BaseFanSpeed),
-        ("pwm_read", BaseFanPWMRead),
-        ("pwm_write", BaseFanPWMWrite),
-    ],
-)
+
+class Fan(NamedTuple):
+    fan_speed: BaseFanSpeed
+    pwm_read: BaseFanPWMRead
+    pwm_write: BaseFanPWMWrite
 
 
 @click.command()

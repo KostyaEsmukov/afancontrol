@@ -73,107 +73,58 @@ MappingName = NewType("MappingName", str)
 T = TypeVar("T")
 
 
-FanSpeedModifier = NamedTuple(
-    "FanSpeedModifier",
-    # fmt: off
-    [
-        ("fan", FanName),
-        ("modifier", float),  # [0..1]
-    ]
-    # fmt: on
-)
-
-FansTempsRelation = NamedTuple(
-    "FansTempsRelation",
-    # fmt: off
-    [
-        ("temps", Sequence[TempName]),
-        ("fans", Sequence[FanSpeedModifier]),
-    ]
-    # fmt: on
-)
-
-AlertCommands = NamedTuple(
-    "AlertCommands",
-    # fmt: off
-    [
-        ("enter_cmd", Optional[str]),
-        ("leave_cmd", Optional[str]),
-    ]
-    # fmt: on
-)
+class FanSpeedModifier(NamedTuple):
+    fan: FanName
+    modifier: float  # [0..1]
 
 
-Actions = NamedTuple(
-    "Actions",
-    # fmt: off
-    [
-        ("panic", AlertCommands),
-        ("threshold", AlertCommands),
-    ]
-    # fmt: on
-)
+class FansTempsRelation(NamedTuple):
+    temps: Sequence[TempName]
+    fans: Sequence[FanSpeedModifier]
 
 
-TriggerConfig = NamedTuple(
-    "TriggerConfig",
-    # fmt: off
-    [
-        ("global_commands", Actions),
-        ("temp_commands", Mapping[TempName, Actions]),
-    ]
-    # fmt: on
-)
+class AlertCommands(NamedTuple):
+    enter_cmd: Optional[str]
+    leave_cmd: Optional[str]
 
 
-DaemonCLIConfig = NamedTuple(
-    "DaemonCLIConfig",
-    # fmt: off
-    [
-        ("pidfile", Optional[str]),
-        ("logfile", Optional[str]),
-        ("exporter_listen_host", Optional[str]),
-    ]
-    # fmt: on
-)
+class Actions(NamedTuple):
+    panic: AlertCommands
+    threshold: AlertCommands
 
-DaemonConfig = NamedTuple(
-    "DaemonConfig",
-    # fmt: off
-    [
-        ("pidfile", Optional[str]),
-        ("logfile", Optional[str]),
-        ("interval", int),
-        ("exporter_listen_host", Optional[str]),
-    ]
-    # fmt: on
-)
 
-FilteredTemp = NamedTuple(
-    "FilteredTemp",
-    # fmt: off
-    [
-        ("temp", Temp),
-        ("filter", TempFilter),
-    ]
-    # fmt: on
-)
+class TriggerConfig(NamedTuple):
+    global_commands: Actions
+    temp_commands: Mapping[TempName, Actions]
 
-ParsedConfig = NamedTuple(
-    "ParsedConfig",
-    # fmt: off
-    [
-        ("daemon", DaemonConfig),
-        ("report_cmd", str),
-        ("triggers", TriggerConfig),
-        ("arduino_connections", Mapping[ArduinoName, ArduinoConnection]),
-        ("fans", Mapping[FanName, PWMFanNorm]),
-        ("readonly_fans", Mapping[ReadonlyFanName, ReadonlyPWMFanNorm]),
-        ("temps", Mapping[TempName, FilteredTemp]),
-        ("mappings", Mapping[MappingName, FansTempsRelation]),
-    ]
-    # fmt: on
-)
+
+class DaemonCLIConfig(NamedTuple):
+    pidfile: Optional[str]
+    logfile: Optional[str]
+    exporter_listen_host: Optional[str]
+
+
+class DaemonConfig(NamedTuple):
+    pidfile: Optional[str]
+    logfile: Optional[str]
+    interval: int
+    exporter_listen_host: Optional[str]
+
+
+class FilteredTemp(NamedTuple):
+    temp: Temp
+    filter: TempFilter
+
+
+class ParsedConfig(NamedTuple):
+    daemon: DaemonConfig
+    report_cmd: str
+    triggers: TriggerConfig
+    arduino_connections: Mapping[ArduinoName, ArduinoConnection]
+    fans: Mapping[FanName, PWMFanNorm]
+    readonly_fans: Mapping[ReadonlyFanName, ReadonlyPWMFanNorm]
+    temps: Mapping[TempName, FilteredTemp]
+    mappings: Mapping[MappingName, FansTempsRelation]
 
 
 def parse_config(config_path: Path, daemon_cli_config: DaemonCLIConfig) -> ParsedConfig:

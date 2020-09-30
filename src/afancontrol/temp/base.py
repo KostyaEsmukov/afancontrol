@@ -3,18 +3,15 @@ from typing import NamedTuple, NewType, Optional, Tuple
 
 TempCelsius = NewType("TempCelsius", float)
 
-TempStatus = NamedTuple(
-    "TempStatus",
-    [
-        ("temp", TempCelsius),
-        ("min", TempCelsius),
-        ("max", TempCelsius),
-        ("panic", Optional[TempCelsius]),
-        ("threshold", Optional[TempCelsius]),
-        ("is_panic", bool),
-        ("is_threshold", bool),
-    ],
-)
+
+class TempStatus(NamedTuple):
+    temp: TempCelsius
+    min: TempCelsius
+    max: TempCelsius
+    panic: Optional[TempCelsius]
+    threshold: Optional[TempCelsius]
+    is_panic: bool
+    is_threshold: bool
 
 
 class Temp(abc.ABC):

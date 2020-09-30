@@ -7,10 +7,10 @@ from afancontrol.filters import TempFilter
 from afancontrol.logger import logger
 from afancontrol.temp import Temp, TempStatus
 
-ObservedTempStatus = NamedTuple(
-    "ObservedTempStatus",
-    [("raw", Optional[TempStatus]), ("filtered", Optional[TempStatus])],
-)
+
+class ObservedTempStatus(NamedTuple):
+    raw: Optional[TempStatus]
+    filtered: Optional[TempStatus]
 
 
 def filtered_temps(
