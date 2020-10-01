@@ -39,8 +39,6 @@ from afancontrol.temp import CommandTemp, FileTemp, HDDTemp, Temp
 
 DEFAULT_CONFIG = "/etc/afancontrol/afancontrol.conf"
 DEFAULT_PIDFILE = "/run/afancontrol.pid"
-DEFAULT_INTERVAL = 5
-DEFAULT_FANS_SPEED_CHECK_INTERVAL = 3
 DEFAULT_HDDTEMP = "hddtemp"
 DEFAULT_REPORT_CMD = (
     'printf "Subject: %s\nTo: %s\n\n%b"'
@@ -85,6 +83,20 @@ class Actions(NamedTuple):
     panic: AlertCommands
     threshold: AlertCommands
 
+    @classmethod
+    def from_configparser(cls, section: ConfigParserSection) -> "Actions":
+        panic = AlertCommands(
+            enter_cmd=section.get("panic_enter_cmd", fallback=None),
+            leave_cmd=section.get("panic_leave_cmd", fallback=None),
+        )
+
+        threshold = AlertCommands(
+            enter_cmd=section.get("threshold_enter_cmd", fallback=None),
+            leave_cmd=section.get("threshold_leave_cmd", fallback=None),
+        )
+
+        return cls(panic=panic, threshold=threshold)
+
 
 class TriggerConfig(NamedTuple):
     global_commands: Actions
@@ -102,6 +114,34 @@ class DaemonConfig(NamedTuple):
     logfile: Optional[str]
     interval: int
     exporter_listen_host: Optional[str]
+
+    @classmethod
+    def from_configparser(
+        cls, section: ConfigParserSection, daemon_cli_config: DaemonCLIConfig
+    ) -> "DaemonConfig":
+        pidfile = first_not_none(
+            daemon_cli_config.pidfile, section.get("pidfile", fallback=DEFAULT_PIDFILE)
+        )
+        if pidfile is not None and not pidfile.strip():
+            pidfile = None
+
+        logfile = first_not_none(
+            daemon_cli_config.logfile, section.get("logfile", fallback=None)
+        )
+
+        interval = section.getint("interval", fallback=5)
+
+        exporter_listen_host = first_not_none(
+            daemon_cli_config.exporter_listen_host,
+            section.get("exporter_listen_host", fallback=None),
+        )
+
+        return cls(
+            pidfile=pidfile,
+            logfile=logfile,
+            interval=interval,
+            exporter_listen_host=exporter_listen_host,
+        )
 
 
 class FilteredTemp(NamedTuple):
@@ -162,37 +202,11 @@ def _parse_daemon(
     config: configparser.ConfigParser, daemon_cli_config: DaemonCLIConfig
 ) -> Tuple[DaemonConfig, str]:
     daemon: ConfigParserSection[str] = ConfigParserSection(config["daemon"])
-
-    pidfile = first_not_none(
-        daemon_cli_config.pidfile, daemon.get("pidfile", fallback=DEFAULT_PIDFILE)
-    )
-    if pidfile is not None and not pidfile.strip():
-        pidfile = None
-
-    logfile = first_not_none(
-        daemon_cli_config.logfile, daemon.get("logfile", fallback=None)
-    )
-
-    interval = daemon.getint("interval", fallback=DEFAULT_INTERVAL)
-
-    exporter_listen_host = first_not_none(
-        daemon_cli_config.exporter_listen_host,
-        daemon.get("exporter_listen_host", fallback=None),
-    )
-
+    daemon_config = DaemonConfig.from_configparser(daemon, daemon_cli_config)
     hddtemp = daemon.get("hddtemp", fallback=DEFAULT_HDDTEMP)
-
     daemon.ensure_no_unused_keys()
 
-    return (
-        DaemonConfig(
-            pidfile=pidfile,
-            logfile=logfile,
-            interval=interval,
-            exporter_listen_host=exporter_listen_host,
-        ),
-        hddtemp,
-    )
+    return daemon_config, hddtemp
 
 
 def _parse_actions(config: configparser.ConfigParser) -> Tuple[str, Actions]:
@@ -201,19 +215,10 @@ def _parse_actions(config: configparser.ConfigParser) -> Tuple[str, Actions]:
     report_cmd = actions.get("report_cmd", fallback=DEFAULT_REPORT_CMD)
     assert report_cmd is not None
 
-    panic = AlertCommands(
-        enter_cmd=actions.get("panic_enter_cmd", fallback=None),
-        leave_cmd=actions.get("panic_leave_cmd", fallback=None),
-    )
-
-    threshold = AlertCommands(
-        enter_cmd=actions.get("threshold_enter_cmd", fallback=None),
-        leave_cmd=actions.get("threshold_leave_cmd", fallback=None),
-    )
-
+    actions_ = Actions.from_configparser(actions)
     actions.ensure_no_unused_keys()
 
-    return report_cmd, Actions(panic=panic, threshold=threshold)
+    return report_cmd, actions_
 
 
 def _parse_arduino_connections(
@@ -299,16 +304,6 @@ def _parse_temps(
         temp_name = TempName(section_name_parts[1].strip())
         temp = ConfigParserSection(config[section_name], temp_name)
 
-        actions_panic = AlertCommands(
-            enter_cmd=temp.get("panic_enter_cmd", fallback=None),
-            leave_cmd=temp.get("panic_leave_cmd", fallback=None),
-        )
-
-        actions_threshold = AlertCommands(
-            enter_cmd=temp.get("threshold_enter_cmd", fallback=None),
-            leave_cmd=temp.get("threshold_leave_cmd", fallback=None),
-        )
-
         type = temp["type"]
 
         if type == "file":
@@ -336,9 +331,7 @@ def _parse_temps(
                 "Duplicate temp section declaration for '%s'" % temp_name
             )
         temps[temp_name] = FilteredTemp(temp=t, filter=filter)
-        temp_commands[temp_name] = Actions(
-            panic=actions_panic, threshold=actions_threshold
-        )
+        temp_commands[temp_name] = Actions.from_configparser(temp)
 
     return temps, temp_commands
 
