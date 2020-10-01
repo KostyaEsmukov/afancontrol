@@ -14,14 +14,14 @@ RUN apt-get update \
 RUN mkdir ~/.gnupg && echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf
 
 # Import the GPG key used to sign the PyPI releases of `afancontrol`:
-RUN gpg --recv-keys "2D3B9C1712FF84F7"
+RUN gpg --recv-keys "AA7B5406547AF062"
 
 COPY debian /build/afancontrol/debian
 WORKDIR /build/afancontrol/
 
 RUN mkdir -p debian/upstream \
     && gpg --export --export-options export-minimal --armor \
-        'BE3D633AB6792715ECF34D742D3B9C1712FF84F7' \
+        'A18FE9F6F570D5B4E1E1853FAA7B5406547AF062' \
         > debian/upstream/signing-key.asc
 
 RUN apt-get -y build-dep .
