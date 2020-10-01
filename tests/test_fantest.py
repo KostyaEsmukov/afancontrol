@@ -8,7 +8,6 @@ from click.testing import CliRunner
 from afancontrol import fantest
 from afancontrol.fantest import (
     CSVMeasurementsOutput,
-    Fan,
     HumanMeasurementsOutput,
     MeasurementsOutput,
     fantest as main,
@@ -24,6 +23,7 @@ from afancontrol.pwmfan import (
     LinuxFanSpeed,
     PWMDevice,
     PWMValue,
+    ReadWriteFan,
 )
 
 
@@ -65,7 +65,7 @@ def test_main_smoke(temp_path):
         args, kwargs = mocked_fantest.call_args
         assert not args
         assert kwargs.keys() == {"fan", "pwm_step_size", "output"}
-        assert kwargs["fan"] == Fan(
+        assert kwargs["fan"] == ReadWriteFan(
             fan_speed=LinuxFanSpeed(FanInputDevice(str(fan_input_path))),
             pwm_read=LinuxFanPWMRead(PWMDevice(str(pwm_path))),
             pwm_write=LinuxFanPWMWrite(PWMDevice(str(pwm_path))),
@@ -77,7 +77,7 @@ def test_main_smoke(temp_path):
 @pytest.mark.parametrize("pwm_step_size", [5, -5])
 @pytest.mark.parametrize("output_cls", [HumanMeasurementsOutput, CSVMeasurementsOutput])
 def test_fantest(output_cls: Type[MeasurementsOutput], pwm_step_size: PWMValue):
-    fan: Any = Fan(
+    fan: Any = ReadWriteFan(
         fan_speed=MagicMock(spec=BaseFanSpeed),
         pwm_read=MagicMock(spec=BaseFanPWMRead),
         pwm_write=MagicMock(spec=BaseFanPWMWrite),

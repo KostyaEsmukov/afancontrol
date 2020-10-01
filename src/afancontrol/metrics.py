@@ -7,9 +7,10 @@ from timeit import default_timer
 from typing import ContextManager, Mapping, Optional, Union
 
 from afancontrol.arduino import ArduinoConnection, ArduinoName
-from afancontrol.config import AnyFanName, FanName, ReadonlyFanName, TempName
+from afancontrol.config import TempName
 from afancontrol.fans import Fans
 from afancontrol.logger import logger
+from afancontrol.pwmfan import AnyFanName, FanName, ReadonlyFanName
 from afancontrol.pwmfannorm import PWMFanNorm, ReadonlyPWMFanNorm
 from afancontrol.temps import ObservedTempStatus
 from afancontrol.trigger import Triggers

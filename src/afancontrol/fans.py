@@ -2,8 +2,8 @@ import itertools
 from contextlib import ExitStack
 from typing import Iterator, Mapping, MutableSet, Optional, Tuple, Union, cast
 
-from afancontrol.config import AnyFanName, FanName, ReadonlyFanName
 from afancontrol.logger import logger
+from afancontrol.pwmfan import AnyFanName, FanName, ReadonlyFanName
 from afancontrol.pwmfannorm import PWMFanNorm, PWMValueNorm, ReadonlyPWMFanNorm
 from afancontrol.report import Report
 

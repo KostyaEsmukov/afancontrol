@@ -1,7 +1,7 @@
 import abc
 import sys
 from time import sleep
-from typing import NamedTuple, Optional
+from typing import Optional
 
 import click
 
@@ -15,9 +15,6 @@ from afancontrol.pwmfan import (
     ArduinoFanPWMRead,
     ArduinoFanPWMWrite,
     ArduinoFanSpeed,
-    BaseFanPWMRead,
-    BaseFanPWMWrite,
-    BaseFanSpeed,
     FanInputDevice,
     FanValue,
     LinuxFanPWMRead,
@@ -25,6 +22,7 @@ from afancontrol.pwmfan import (
     LinuxFanSpeed,
     PWMDevice,
     PWMValue,
+    ReadWriteFan,
 )
 
 # Time to wait before measuring fan speed after setting a PWM value.
@@ -73,12 +71,6 @@ HELP_PWM_STEP_SIZE = (
     "more accurate results, but is a slower option. `fast` equals to 25 and completes "
     "faster."
 )
-
-
-class Fan(NamedTuple):
-    fan_speed: BaseFanSpeed
-    pwm_read: BaseFanPWMRead
-    pwm_write: BaseFanPWMWrite
 
 
 @click.command()
@@ -188,7 +180,7 @@ controlling the fan you're going to test.
 
             assert linux_fan_pwm is not None
             assert linux_fan_input is not None
-            fan = Fan(
+            fan = ReadWriteFan(
                 fan_speed=LinuxFanSpeed(FanInputDevice(linux_fan_input)),
                 pwm_read=LinuxFanPWMRead(PWMDevice(linux_fan_pwm)),
                 pwm_write=LinuxFanPWMWrite(PWMDevice(linux_fan_pwm)),
@@ -227,7 +219,7 @@ controlling the fan you're going to test.
             )
             assert arduino_pwm_pin is not None
             assert arduino_tacho_pin is not None
-            fan = Fan(
+            fan = ReadWriteFan(
                 fan_speed=ArduinoFanSpeed(
                     arduino_connection, tacho_pin=ArduinoPin(arduino_tacho_pin)
                 ),
@@ -265,7 +257,7 @@ controlling the fan you're going to test.
 
 
 def run_fantest(
-    fan: Fan, pwm_step_size: PWMValue, output: "MeasurementsOutput"
+    fan: ReadWriteFan, pwm_step_size: PWMValue, output: "MeasurementsOutput"
 ) -> None:
     with fan.fan_speed, fan.pwm_read, fan.pwm_write:
         start = fan.pwm_read.min_pwm

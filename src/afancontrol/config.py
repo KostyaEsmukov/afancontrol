@@ -9,7 +9,6 @@ from typing import (
     Sequence,
     Tuple,
     TypeVar,
-    Union,
 )
 
 from afancontrol.arduino import ArduinoConnection, ArduinoName
@@ -22,17 +21,11 @@ from afancontrol.filters import (
 )
 from afancontrol.logger import logger
 from afancontrol.pwmfan import (
-    ArduinoFanPWMRead,
-    ArduinoFanPWMWrite,
-    ArduinoFanSpeed,
-    BaseFanPWMRead,
-    BaseFanPWMWrite,
-    BaseFanSpeed,
-    FreeIPMIFanSpeed,
-    LinuxFanPWMRead,
-    LinuxFanPWMWrite,
-    LinuxFanSpeed,
+    FanName,
     PWMValue,
+    ReadOnlyFan,
+    ReadonlyFanName,
+    ReadWriteFan,
 )
 from afancontrol.pwmfannorm import PWMFanNorm, ReadonlyPWMFanNorm
 from afancontrol.temp import CommandTemp, FileTemp, HDDTemp, Temp
@@ -46,7 +39,6 @@ DEFAULT_REPORT_CMD = (
     " | sendmail -t"
 )
 
-DEFAULT_FAN_TYPE = "linux"
 DEFAULT_PWM_LINE_START = 100
 DEFAULT_PWM_LINE_END = 240
 
@@ -56,9 +48,6 @@ DEFAULT_WINDOW_SIZE = 3
 
 FilterName = NewType("FilterName", str)
 TempName = NewType("TempName", str)
-FanName = NewType("FanName", str)
-ReadonlyFanName = NewType("ReadonlyFanName", str)
-AnyFanName = Union[FanName, ReadonlyFanName]
 MappingName = NewType("MappingName", str)
 
 T = TypeVar("T")
@@ -350,21 +339,7 @@ def _parse_fans(
         fan_name = FanName(section_name_parts[1].strip())
         fan = ConfigParserSection(config[section_name], fan_name)
 
-        fan_type = fan.get("type", fallback=DEFAULT_FAN_TYPE)
-
-        if fan_type == "linux":
-            fan_speed: BaseFanSpeed = LinuxFanSpeed.from_configparser(fan)
-            pwm_read: BaseFanPWMRead = LinuxFanPWMRead.from_configparser(fan)
-            pwm_write: BaseFanPWMWrite = LinuxFanPWMWrite.from_configparser(fan)
-        elif fan_type == "arduino":
-            fan_speed = ArduinoFanSpeed.from_configparser(fan, arduino_connections)
-            pwm_read = ArduinoFanPWMRead.from_configparser(fan, arduino_connections)
-            pwm_write = ArduinoFanPWMWrite.from_configparser(fan, arduino_connections)
-        else:
-            raise ValueError(
-                "Unsupported FAN type %s. Supported ones are "
-                "`linux` and `arduino`." % fan_type
-            )
+        readwrite_fan = ReadWriteFan.from_configparser(fan, arduino_connections)
 
         never_stop = fan.getboolean("never_stop", fallback=DEFAULT_NEVER_STOP)
 
@@ -377,10 +352,19 @@ def _parse_fans(
         )
 
         for pwm_value in (pwm_line_start, pwm_line_end):
-            if not (pwm_read.min_pwm <= pwm_value <= pwm_read.max_pwm):
+            if not (
+                readwrite_fan.pwm_read.min_pwm
+                <= pwm_value
+                <= readwrite_fan.pwm_read.max_pwm
+            ):
                 raise RuntimeError(
                     "Incorrect PWM value '%s' for fan '%s': it must be within [%s;%s]"
-                    % (pwm_value, fan_name, pwm_read.min_pwm, pwm_read.max_pwm)
+                    % (
+                        pwm_value,
+                        fan_name,
+                        readwrite_fan.pwm_read.min_pwm,
+                        readwrite_fan.pwm_read.max_pwm,
+                    )
                 )
         if pwm_line_start >= pwm_line_end:
             raise RuntimeError(
@@ -393,9 +377,9 @@ def _parse_fans(
         if fan_name in fans:
             raise RuntimeError("Duplicate fan section declaration for '%s'" % fan_name)
         fans[fan_name] = PWMFanNorm(
-            fan_speed,
-            pwm_read,
-            pwm_write,
+            readwrite_fan.fan_speed,
+            readwrite_fan.pwm_read,
+            readwrite_fan.pwm_write,
             pwm_line_start=pwm_line_start,
             pwm_line_end=pwm_line_end,
             never_stop=never_stop,
@@ -417,34 +401,15 @@ def _parse_readonly_fans(
 
         fan_name = ReadonlyFanName(section_name_parts[1].strip())
         fan = ConfigParserSection(config[section_name], fan_name)
-
-        fan_type = fan.get("type", fallback=DEFAULT_FAN_TYPE)
-
-        if fan_type == "linux":
-            fan_speed: BaseFanSpeed = LinuxFanSpeed.from_configparser(fan)
-
-            pwm_read: Optional[BaseFanPWMRead] = None
-            if "pwm" in fan:
-                pwm_read = LinuxFanPWMRead.from_configparser(fan)
-        elif fan_type == "arduino":
-            fan_speed = ArduinoFanSpeed.from_configparser(fan, arduino_connections)
-            pwm_read = None
-            if "pwm_pin" in fan:
-                pwm_read = ArduinoFanPWMRead.from_configparser(fan, arduino_connections)
-        elif fan_type == "freeipmi":
-            fan_speed = FreeIPMIFanSpeed.from_configparser(fan)
-            pwm_read = None
-        else:
-            raise ValueError(
-                "Unsupported FAN type %s. Supported ones are "
-                "`linux`, `arduino`, `freeipmi`." % fan_type
-            )
+        readonly_fan = ReadOnlyFan.from_configparser(fan, arduino_connections)
 
         if fan_name in readonly_fans:
             raise RuntimeError(
                 "Duplicate readonly_fan section declaration for '%s'" % fan_name
             )
-        readonly_fans[fan_name] = ReadonlyPWMFanNorm(fan_speed, pwm_read)
+        readonly_fans[fan_name] = ReadonlyPWMFanNorm(
+            readonly_fan.fan_speed, readonly_fan.pwm_read
+        )
 
     return readonly_fans
 
