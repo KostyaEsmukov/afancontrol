@@ -16,13 +16,7 @@ from afancontrol.arduino import ArduinoConnection, ArduinoName
 from afancontrol.configparser import ConfigParserSection, iter_sections
 from afancontrol.filters import FilterName, TempFilter
 from afancontrol.logger import logger
-from afancontrol.pwmfan import (
-    FanName,
-    PWMValue,
-    ReadOnlyFan,
-    ReadonlyFanName,
-    ReadWriteFan,
-)
+from afancontrol.pwmfan import FanName, ReadonlyFanName
 from afancontrol.pwmfannorm import PWMFanNorm, ReadonlyPWMFanNorm
 from afancontrol.temp import FilteredTemp, TempName
 
@@ -34,11 +28,6 @@ DEFAULT_REPORT_CMD = (
     ' "afancontrol daemon report: %REASON%" root "%MESSAGE%"'
     " | sendmail -t"
 )
-
-DEFAULT_PWM_LINE_START = 100
-DEFAULT_PWM_LINE_END = 240
-
-DEFAULT_NEVER_STOP = True
 
 MappingName = NewType("MappingName", str)
 
@@ -258,53 +247,12 @@ def _parse_fans(
 ) -> Mapping[FanName, PWMFanNorm]:
     fans: Dict[FanName, PWMFanNorm] = {}
     for section in iter_sections(config, "fan", FanName):
-        readwrite_fan = ReadWriteFan.from_configparser(section, arduino_connections)
-
-        never_stop = section.getboolean("never_stop", fallback=DEFAULT_NEVER_STOP)
-
-        pwm_line_start = PWMValue(
-            section.getint("pwm_line_start", fallback=DEFAULT_PWM_LINE_START)
-        )
-
-        pwm_line_end = PWMValue(
-            section.getint("pwm_line_end", fallback=DEFAULT_PWM_LINE_END)
-        )
-
-        for pwm_value in (pwm_line_start, pwm_line_end):
-            if not (
-                readwrite_fan.pwm_read.min_pwm
-                <= pwm_value
-                <= readwrite_fan.pwm_read.max_pwm
-            ):
-                raise RuntimeError(
-                    "Incorrect PWM value '%s' for fan '%s': it must be within [%s;%s]"
-                    % (
-                        pwm_value,
-                        section.name,
-                        readwrite_fan.pwm_read.min_pwm,
-                        readwrite_fan.pwm_read.max_pwm,
-                    )
-                )
-        if pwm_line_start >= pwm_line_end:
-            raise RuntimeError(
-                "`pwm_line_start` PWM value must be less than `pwm_line_end` for fan '%s'"
-                % (section.name,)
-            )
-
-        section.ensure_no_unused_keys()
-
         if section.name in fans:
             raise RuntimeError(
                 "Duplicate fan section declaration for '%s'" % section.name
             )
-        fans[section.name] = PWMFanNorm(
-            readwrite_fan.fan_speed,
-            readwrite_fan.pwm_read,
-            readwrite_fan.pwm_write,
-            pwm_line_start=pwm_line_start,
-            pwm_line_end=pwm_line_end,
-            never_stop=never_stop,
-        )
+        fans[section.name] = PWMFanNorm.from_configparser(section, arduino_connections)
+        section.ensure_no_unused_keys()
 
     return fans
 
@@ -315,15 +263,14 @@ def _parse_readonly_fans(
 ) -> Mapping[ReadonlyFanName, ReadonlyPWMFanNorm]:
     readonly_fans: Dict[ReadonlyFanName, ReadonlyPWMFanNorm] = {}
     for section in iter_sections(config, "readonly_fan", ReadonlyFanName):
-        readonly_fan = ReadOnlyFan.from_configparser(section, arduino_connections)
-
         if section.name in readonly_fans:
             raise RuntimeError(
                 "Duplicate readonly_fan section declaration for '%s'" % section.name
             )
-        readonly_fans[section.name] = ReadonlyPWMFanNorm(
-            readonly_fan.fan_speed, readonly_fan.pwm_read
+        readonly_fans[section.name] = ReadonlyPWMFanNorm.from_configparser(
+            section, arduino_connections
         )
+        section.ensure_no_unused_keys()
 
     return readonly_fans
 

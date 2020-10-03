@@ -1,13 +1,19 @@
 import math
 from contextlib import ExitStack
-from typing import NewType, Optional
+from typing import Mapping, NewType, Optional
 
+from afancontrol.arduino import ArduinoConnection, ArduinoName
+from afancontrol.configparser import ConfigParserSection
 from afancontrol.pwmfan import (
     BaseFanPWMRead,
     BaseFanPWMWrite,
     BaseFanSpeed,
+    FanName,
     FanValue,
     PWMValue,
+    ReadOnlyFan,
+    ReadonlyFanName,
+    ReadWriteFan,
 )
 
 PWMValueNorm = NewType("PWMValueNorm", float)  # [0..1]
@@ -20,6 +26,15 @@ class ReadonlyPWMFanNorm:
         self.fan_speed = fan_speed
         self.pwm_read = pwm_read
         self._stack: Optional[ExitStack] = None
+
+    @classmethod
+    def from_configparser(
+        cls,
+        section: ConfigParserSection[ReadonlyFanName],
+        arduino_connections: Mapping[ArduinoName, ArduinoConnection],
+    ) -> "ReadonlyPWMFanNorm":
+        readonly_fan = ReadOnlyFan.from_configparser(section, arduino_connections)
+        return cls(readonly_fan.fan_speed, readonly_fan.pwm_read)
 
     def __enter__(self):
         self._stack = ExitStack()
@@ -99,6 +114,47 @@ class PWMFanNorm:
                 "Got: %s <= %s" % (self.pwm_line_end, type(self.pwm_read).max_pwm)
             )
         self._stack: Optional[ExitStack] = None
+
+    @classmethod
+    def from_configparser(
+        cls,
+        section: ConfigParserSection[FanName],
+        arduino_connections: Mapping[ArduinoName, ArduinoConnection],
+    ) -> "PWMFanNorm":
+        readwrite_fan = ReadWriteFan.from_configparser(section, arduino_connections)
+        never_stop = section.getboolean("never_stop", fallback=True)
+        pwm_line_start = PWMValue(section.getint("pwm_line_start", fallback=100))
+        pwm_line_end = PWMValue(section.getint("pwm_line_end", fallback=240))
+
+        for pwm_value in (pwm_line_start, pwm_line_end):
+            if not (
+                readwrite_fan.pwm_read.min_pwm
+                <= pwm_value
+                <= readwrite_fan.pwm_read.max_pwm
+            ):
+                raise RuntimeError(
+                    "Incorrect PWM value '%s' for fan '%s': it must be within [%s;%s]"
+                    % (
+                        pwm_value,
+                        section.name,
+                        readwrite_fan.pwm_read.min_pwm,
+                        readwrite_fan.pwm_read.max_pwm,
+                    )
+                )
+        if pwm_line_start >= pwm_line_end:
+            raise RuntimeError(
+                "`pwm_line_start` PWM value must be less than `pwm_line_end` for fan '%s'"
+                % (section.name,)
+            )
+
+        return cls(
+            readwrite_fan.fan_speed,
+            readwrite_fan.pwm_read,
+            readwrite_fan.pwm_write,
+            pwm_line_start=pwm_line_start,
+            pwm_line_end=pwm_line_end,
+            never_stop=never_stop,
+        )
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
