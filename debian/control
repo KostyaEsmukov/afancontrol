@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Kostya Esmukov <kostya@esmukov.ru>
 Build-Depends: debhelper (>= 9),
                dh-python,
+               dh-systemd,
                python3-all,
                python3-setuptools
 Build-Depends-Indep: python3-pytest,
