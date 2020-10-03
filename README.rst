@@ -17,7 +17,7 @@ afancontrol
 `fancontrol <https://github.com/lm-sensors/lm-sensors/blob/master/prog/pwm/fancontrol>`_
 with more advanced configuration abilities.
 
-`afancontrol` measures temperature from the sensors, computes the required
-airflow and sets the PWM fan speeds accordingly.
+`afancontrol` measures temperatures from sensors, computes the required
+airflow and sets PWM fan speeds accordingly.
 
 The docs are available at `<https://afancontrol.readthedocs.io/>`_.
