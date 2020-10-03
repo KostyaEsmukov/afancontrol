@@ -1,3 +1,14 @@
+afancontrol (3.0.0-1) unstable; urgency=medium
+
+  * Drop support for prometheus-client < 0.1.0 (debian stretch)
+  * Drop support for Python 3.5 (debian stretch)
+  * Add support for Python 3.9
+  * config: add `ipmi_sensors` location property
+  * Add dh-systemd (would automatically (re)start the systemd service upon
+    package (re)installation)
+
+ -- Kostya Esmukov <kostya@esmukov.ru>  Sat, 10 Oct 2020 14:43:01 +0000
+
 afancontrol (2.2.1-1) unstable; urgency=medium
 
   * Fix compatibility with py3.5
