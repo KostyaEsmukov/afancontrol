@@ -4,6 +4,7 @@ from typing import Mapping, NewType, Optional
 
 from afancontrol.arduino import ArduinoConnection, ArduinoName
 from afancontrol.configparser import ConfigParserSection
+from afancontrol.exec import Programs
 from afancontrol.pwmfan import (
     BaseFanPWMRead,
     BaseFanPWMWrite,
@@ -32,8 +33,11 @@ class ReadonlyPWMFanNorm:
         cls,
         section: ConfigParserSection[ReadonlyFanName],
         arduino_connections: Mapping[ArduinoName, ArduinoConnection],
+        programs: Programs,
     ) -> "ReadonlyPWMFanNorm":
-        readonly_fan = ReadOnlyFan.from_configparser(section, arduino_connections)
+        readonly_fan = ReadOnlyFan.from_configparser(
+            section, arduino_connections, programs
+        )
         return cls(readonly_fan.fan_speed, readonly_fan.pwm_read)
 
     def __enter__(self):

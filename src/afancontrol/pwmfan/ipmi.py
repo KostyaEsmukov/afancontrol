@@ -2,7 +2,7 @@ import csv
 import io
 
 from afancontrol.configparser import ConfigParserSection
-from afancontrol.exec import exec_shell_command
+from afancontrol.exec import Programs, exec_shell_command
 from afancontrol.pwmfan.base import BaseFanSpeed, FanValue
 
 # TODO maybe switch to `python3-pyghmi`? although it looks like the current version
@@ -20,9 +20,12 @@ class FreeIPMIFanSpeed(BaseFanSpeed):
         self._ipmi_sensors_extra_args = ipmi_sensors_extra_args
 
     @classmethod
-    def from_configparser(cls, section: ConfigParserSection) -> BaseFanSpeed:
+    def from_configparser(
+        cls, section: ConfigParserSection, programs: Programs
+    ) -> BaseFanSpeed:
         return cls(
             section["name"],
+            ipmi_sensors_bin=programs.ipmi_sensors,
             ipmi_sensors_extra_args=section.get("ipmi_sensors_extra_args", fallback=""),
         )
 

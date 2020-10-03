@@ -1,6 +1,7 @@
 from typing import Mapping, NamedTuple, NewType
 
 from afancontrol.configparser import ConfigParserSection
+from afancontrol.exec import Programs
 from afancontrol.filters import FilterName, NullFilter, TempFilter
 from afancontrol.temp.base import Temp, TempCelsius, TempStatus
 from afancontrol.temp.command import CommandTemp
@@ -28,8 +29,7 @@ class FilteredTemp(NamedTuple):
         cls,
         section: ConfigParserSection[TempName],
         filters: Mapping[FilterName, TempFilter],
-        *,
-        hddtemp: str,
+        programs: Programs,
     ) -> "FilteredTemp":
 
         type = section["type"]
@@ -37,7 +37,7 @@ class FilteredTemp(NamedTuple):
         if type == "file":
             temp: Temp = FileTemp.from_configparser(section)
         elif type == "hdd":
-            temp = HDDTemp.from_configparser(section, hddtemp=hddtemp)
+            temp = HDDTemp.from_configparser(section, programs)
         elif type == "exec":
             temp = CommandTemp.from_configparser(section)
         else:

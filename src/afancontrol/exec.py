@@ -1,6 +1,20 @@
 import subprocess
+from typing import NamedTuple
 
+from afancontrol.configparser import ConfigParserSection
 from afancontrol.logger import logger
+
+
+class Programs(NamedTuple):
+    hddtemp: str
+    ipmi_sensors: str
+
+    @classmethod
+    def from_configparser(cls, section: ConfigParserSection) -> "Programs":
+        return cls(
+            hddtemp=section.get("hddtemp", fallback="hddtemp"),
+            ipmi_sensors=section.get("ipmi_sensors", fallback="ipmi-sensors"),
+        )
 
 
 def exec_shell_command(shell_command: str, timeout: int = 5) -> str:

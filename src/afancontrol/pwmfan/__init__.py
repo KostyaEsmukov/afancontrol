@@ -2,6 +2,7 @@ from typing import Mapping, NamedTuple, NewType, Optional, Union
 
 from afancontrol.arduino import ArduinoConnection, ArduinoName
 from afancontrol.configparser import ConfigParserSection
+from afancontrol.exec import Programs
 from afancontrol.pwmfan.arduino import (
     ArduinoFanPWMRead,
     ArduinoFanPWMWrite,
@@ -56,6 +57,7 @@ class ReadOnlyFan(NamedTuple):
         cls,
         section: ConfigParserSection[ReadonlyFanName],
         arduino_connections: Mapping[ArduinoName, ArduinoConnection],
+        programs: Programs,
     ) -> "ReadOnlyFan":
         fan_type = section.get("type", fallback=DEFAULT_FAN_TYPE)
 
@@ -81,7 +83,8 @@ class ReadOnlyFan(NamedTuple):
             )
         elif fan_type == "freeipmi":
             return cls(
-                fan_speed=FreeIPMIFanSpeed.from_configparser(section), pwm_read=None
+                fan_speed=FreeIPMIFanSpeed.from_configparser(section, programs),
+                pwm_read=None,
             )
         else:
             raise ValueError(

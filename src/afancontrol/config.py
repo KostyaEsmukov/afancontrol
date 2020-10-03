@@ -14,6 +14,7 @@ from typing import (
 import afancontrol.filters
 from afancontrol.arduino import ArduinoConnection, ArduinoName
 from afancontrol.configparser import ConfigParserSection, iter_sections
+from afancontrol.exec import Programs
 from afancontrol.filters import FilterName, TempFilter
 from afancontrol.logger import logger
 from afancontrol.pwmfan import FanName, ReadonlyFanName
@@ -22,7 +23,6 @@ from afancontrol.temp import FilteredTemp, TempName
 
 DEFAULT_CONFIG = "/etc/afancontrol/afancontrol.conf"
 DEFAULT_PIDFILE = "/run/afancontrol.pid"
-DEFAULT_HDDTEMP = "hddtemp"
 DEFAULT_REPORT_CMD = (
     'printf "Subject: %s\nTo: %s\n\n%b"'
     ' "afancontrol daemon report: %REASON%" root "%MESSAGE%"'
@@ -132,13 +132,13 @@ def parse_config(config_path: Path, daemon_cli_config: DaemonCLIConfig) -> Parse
     except Exception as e:
         raise RuntimeError("Unable to parse %s:\n%s" % (config_path, e))
 
-    daemon, hddtemp = _parse_daemon(config, daemon_cli_config)
+    daemon, programs = _parse_daemon(config, daemon_cli_config)
     report_cmd, global_commands = _parse_actions(config)
     arduino_connections = _parse_arduino_connections(config)
     filters = _parse_filters(config)
-    temps, temp_commands = _parse_temps(config, hddtemp, filters)
+    temps, temp_commands = _parse_temps(config, programs, filters)
     fans = _parse_fans(config, arduino_connections)
-    readonly_fans = _parse_readonly_fans(config, arduino_connections)
+    readonly_fans = _parse_readonly_fans(config, arduino_connections, programs)
     _check_fans_namespace(fans, readonly_fans)
     mappings = _parse_mappings(config, fans, temps)
 
@@ -165,13 +165,13 @@ def first_not_none(*parts: Optional[T]) -> Optional[T]:
 
 def _parse_daemon(
     config: configparser.ConfigParser, daemon_cli_config: DaemonCLIConfig
-) -> Tuple[DaemonConfig, str]:
+) -> Tuple[DaemonConfig, Programs]:
     section: ConfigParserSection[str] = ConfigParserSection(config["daemon"])
     daemon_config = DaemonConfig.from_configparser(section, daemon_cli_config)
-    hddtemp = section.get("hddtemp", fallback=DEFAULT_HDDTEMP)
+    programs = Programs.from_configparser(section)
     section.ensure_no_unused_keys()
 
-    return daemon_config, hddtemp
+    return daemon_config, programs
 
 
 def _parse_actions(config: configparser.ConfigParser) -> Tuple[str, Actions]:
@@ -217,7 +217,7 @@ def _parse_filters(
 
 def _parse_temps(
     config: configparser.ConfigParser,
-    hddtemp: str,
+    programs: Programs,
     filters: Mapping[FilterName, TempFilter],
 ) -> Tuple[Mapping[TempName, FilteredTemp], Mapping[TempName, Actions]]:
     temps: Dict[TempName, FilteredTemp] = {}
@@ -227,9 +227,7 @@ def _parse_temps(
             raise RuntimeError(
                 "Duplicate temp section declaration for '%s'" % section.name
             )
-        temps[section.name] = FilteredTemp.from_configparser(
-            section, filters, hddtemp=hddtemp
-        )
+        temps[section.name] = FilteredTemp.from_configparser(section, filters, programs)
         temp_commands[section.name] = Actions.from_configparser(section)
         section.ensure_no_unused_keys()
 
@@ -255,6 +253,7 @@ def _parse_fans(
 def _parse_readonly_fans(
     config: configparser.ConfigParser,
     arduino_connections: Mapping[ArduinoName, ArduinoConnection],
+    programs: Programs,
 ) -> Mapping[ReadonlyFanName, ReadonlyPWMFanNorm]:
     readonly_fans: Dict[ReadonlyFanName, ReadonlyPWMFanNorm] = {}
     for section in iter_sections(config, "readonly_fan", ReadonlyFanName):
@@ -263,7 +262,7 @@ def _parse_readonly_fans(
                 "Duplicate readonly_fan section declaration for '%s'" % section.name
             )
         readonly_fans[section.name] = ReadonlyPWMFanNorm.from_configparser(
-            section, arduino_connections
+            section, arduino_connections, programs
         )
         section.ensure_no_unused_keys()
 

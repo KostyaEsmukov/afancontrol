@@ -1,7 +1,7 @@
 from typing import Optional, Tuple
 
 from afancontrol.configparser import ConfigParserSection
-from afancontrol.exec import exec_shell_command
+from afancontrol.exec import Programs, exec_shell_command
 from afancontrol.temp.base import Temp, TempCelsius
 
 
@@ -34,7 +34,9 @@ class HDDTemp(Temp):
         self._hddtemp_bin = hddtemp_bin
 
     @classmethod
-    def from_configparser(cls, section: ConfigParserSection, *, hddtemp: str) -> Temp:
+    def from_configparser(
+        cls, section: ConfigParserSection, programs: Programs
+    ) -> Temp:
         panic = TempCelsius(section.getfloat("panic", fallback=None))
         threshold = TempCelsius(section.getfloat("threshold", fallback=None))
         min = TempCelsius(section.getfloat("min"))
@@ -45,7 +47,7 @@ class HDDTemp(Temp):
             max=max,
             panic=panic,
             threshold=threshold,
-            hddtemp_bin=hddtemp,
+            hddtemp_bin=programs.hddtemp,
         )
 
     def __eq__(self, other):
