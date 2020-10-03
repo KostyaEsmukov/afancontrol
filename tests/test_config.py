@@ -476,3 +476,23 @@ temps =
             ],
         )
     }
+
+
+def test_extraneous_keys_raises():
+    daemon_cli_config = DaemonCLIConfig(
+        pidfile=None, logfile=None, exporter_listen_host=None
+    )
+
+    config = """
+[daemon]
+
+[actions]
+
+[temp:   mobo]
+type = file
+path = /sys/class/hwmon/hwmon0/device/temp1_input
+aa = 55
+"""
+    with pytest.raises(RuntimeError) as cm:
+        parse_config(path_from_str(config), daemon_cli_config)
+    assert str(cm.value) == "Unknown options in the [temp:   mobo] section: {'aa'}"
