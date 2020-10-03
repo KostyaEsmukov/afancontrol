@@ -145,25 +145,24 @@ def fantest(
 ) -> None:
     """The PWM fan testing program.
 
-This program tests how changing the PWM value of a fan affects its speed.
+    This program tests how changing the PWM value of a fan affects its speed.
 
-In the beginning the fan would be stopped (by setting it to a minimum PWM value),
-and then the PWM value would be increased in small steps, while also
-measuring the speed as reported by the fan.
+    In the beginning the fan would be stopped (by setting it to a minimum PWM value),
+    and then the PWM value would be increased in small steps, while also
+    measuring the speed as reported by the fan.
 
-This data would help you to find the effective range of values
-for the `pwm_line_start` and `pwm_line_end` settings where the correlation
-between PWM and fan speed is close to linear. Usually its
-`pwm_line_start = 100` and `pwm_line_end = 240`, but it is individual
-for each fan. The allowed range for a PWM value is from 0 to 255.
+    This data would help you to find the effective range of values
+    for the `pwm_line_start` and `pwm_line_end` settings where the correlation
+    between PWM and fan speed is close to linear. Usually its
+    `pwm_line_start = 100` and `pwm_line_end = 240`, but it is individual
+    for each fan. The allowed range for a PWM value is from 0 to 255.
 
-Note that the fan would be stopped for some time during the test. If you'll
-feel nervous, press Ctrl+C to stop the test and return the fan to full speed.
+    Note that the fan would be stopped for some time during the test. If you'll
+    feel nervous, press Ctrl+C to stop the test and return the fan to full speed.
 
-Before starting the test ensure that no fan control software is currently
-controlling the fan you're going to test.
-
-"""
+    Before starting the test ensure that no fan control software is currently
+    controlling the fan you're going to test.
+    """
     try:
         if fan_type == "linux":
             if not linux_fan_pwm:

@@ -57,7 +57,10 @@ class ArduinoFanPWMRead(BaseFanPWMRead):
     min_pwm = PWMValue(0)
 
     def __init__(
-        self, arduino_connection: ArduinoConnection, *, pwm_pin: ArduinoPin,
+        self,
+        arduino_connection: ArduinoConnection,
+        *,
+        pwm_pin: ArduinoPin,
     ) -> None:
         self._conn = arduino_connection
         self._pwm_pin = pwm_pin
@@ -90,7 +93,10 @@ class ArduinoFanPWMWrite(BaseFanPWMWrite):
     read_cls = ArduinoFanPWMRead
 
     def __init__(
-        self, arduino_connection: ArduinoConnection, *, pwm_pin: ArduinoPin,
+        self,
+        arduino_connection: ArduinoConnection,
+        *,
+        pwm_pin: ArduinoPin,
     ) -> None:
         self._conn = arduino_connection
         self._pwm_pin = pwm_pin

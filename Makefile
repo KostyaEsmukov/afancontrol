@@ -1,11 +1,11 @@
 
 .PHONY: format
 format:
-	black src tests *.py && isort -rc src tests *.py
+	black src tests *.py && isort src tests *.py
 
 .PHONY: lint
 lint:
-	flake8 src tests *.py && isort --check-only -rc src tests *.py && black --check src tests *.py && mypy src tests
+	flake8 src tests *.py && isort --check-only src tests *.py && black --check src tests *.py && mypy src tests
 
 .PHONY: test
 test:

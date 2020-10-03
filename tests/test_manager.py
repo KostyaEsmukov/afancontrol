@@ -1,4 +1,5 @@
 from contextlib import ExitStack
+from typing import cast
 from unittest.mock import MagicMock, patch, sentinel
 
 import pytest
@@ -68,7 +69,7 @@ def test_manager(report):
 
         manager.tick()
 
-        mocked_triggers: MagicMock = manager.triggers
+        mocked_triggers = cast(MagicMock, manager.triggers)
         assert mocked_triggers.check.call_count == 1
         assert mocked_case_fan.__enter__.call_count == 1
         assert mocked_metrics.__enter__.call_count == 1
