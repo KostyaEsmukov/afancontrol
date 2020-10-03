@@ -430,3 +430,49 @@ fan_input = /sys/class/hwmon/hwmon0/device/fan1_input
         },
         mappings={},
     )
+
+
+def test_multiline_mapping():
+    daemon_cli_config = DaemonCLIConfig(
+        pidfile=None, logfile=None, exporter_listen_host=None
+    )
+
+    config = """
+[daemon]
+
+[actions]
+
+[temp:cpu]
+type = file
+path = /sys/class/hwmon/hwmon0/device/temp1_input
+
+[temp:mobo]
+type = file
+path = /sys/class/hwmon/hwmon0/device/temp2_input
+
+[fan: case]
+pwm = /sys/class/hwmon/hwmon0/device/pwm2
+fan_input = /sys/class/hwmon/hwmon0/device/fan2_input
+
+[fan: hdd]
+pwm = /sys/class/hwmon/hwmon0/device/pwm2
+fan_input = /sys/class/hwmon/hwmon0/device/fan2_input
+
+[mapping:1]
+fans =
+    case*0.6,
+    hdd,
+temps =
+    mobo,
+    cpu
+"""
+    parsed = parse_config(path_from_str(config), daemon_cli_config)
+    assert parsed.mappings == {
+        MappingName("1"): FansTempsRelation(
+            temps=[TempName("mobo"), TempName("cpu")],
+            fans=[
+                FanSpeedModifier(fan=FanName("case"), modifier=0.6),
+                FanSpeedModifier(fan=FanName("hdd"), modifier=1.0),
+            ],
+        )
+    }

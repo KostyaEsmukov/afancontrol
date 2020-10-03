@@ -193,7 +193,6 @@ def _parse_arduino_connections(
                 "Duplicate arduino section declaration for '%s'" % section.name
             )
         arduino_connections[section.name] = ArduinoConnection.from_configparser(section)
-
         section.ensure_no_unused_keys()
 
     # Empty arduino_connections is ok
@@ -205,15 +204,12 @@ def _parse_filters(
 ) -> Mapping[FilterName, TempFilter]:
     filters: Dict[FilterName, TempFilter] = {}
     for section in iter_sections(config, "filter", FilterName):
-        f = afancontrol.filters.from_configparser(section)
-
-        section.ensure_no_unused_keys()
-
         if section.name in filters:
             raise RuntimeError(
                 "Duplicate filter section declaration for '%s'" % section.name
             )
-        filters[section.name] = f
+        filters[section.name] = afancontrol.filters.from_configparser(section)
+        section.ensure_no_unused_keys()
 
     # Empty filters is ok
     return filters
@@ -235,7 +231,6 @@ def _parse_temps(
             section, filters, hddtemp=hddtemp
         )
         temp_commands[section.name] = Actions.from_configparser(section)
-
         section.ensure_no_unused_keys()
 
     return temps, temp_commands
@@ -366,15 +361,14 @@ def _parse_mappings(
                 "There are duplicate fans in mapping '%s'" % section.name
             )
 
-        section.ensure_no_unused_keys()
-
-        if section.name in fans:
+        if section.name in mappings:
             raise RuntimeError(
                 "Duplicate mapping section declaration for '%s'" % section.name
             )
         mappings[section.name] = FansTempsRelation(
             temps=mapping_temps, fans=mapping_fans
         )
+        section.ensure_no_unused_keys()
 
     unused_temps = set(temps.keys())
     unused_fans = set(fans.keys())
