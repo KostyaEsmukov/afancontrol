@@ -1,10 +1,24 @@
 import configparser
-from typing import Any, Generic, Optional, TypeVar, Union, overload
+from typing import Any, Generic, Iterator, Optional, Type, TypeVar, Union, overload
 
-T = TypeVar("T")
+T = TypeVar("T", bound=str)
 F = TypeVar("F", None, Any)
 
 _UNSET = object()
+
+
+def iter_sections(
+    config: configparser.ConfigParser, section_type: str, name_typevar: Type[T]
+) -> Iterator["ConfigParserSection[T]"]:
+    for section_name in config.sections():
+        section_name_parts = section_name.split(":", 1)
+
+        if section_name_parts[0].strip().lower() != section_type:
+            continue
+
+        name = name_typevar(section_name_parts[1].strip())
+        section = ConfigParserSection(config[section_name], name)
+        yield section
 
 
 class ConfigParserSection(Generic[T]):

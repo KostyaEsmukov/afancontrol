@@ -13,7 +13,7 @@ from typing import (
 
 import afancontrol.filters
 from afancontrol.arduino import ArduinoConnection, ArduinoName
-from afancontrol.configparser import ConfigParserSection
+from afancontrol.configparser import ConfigParserSection, iter_sections
 from afancontrol.filters import FilterName, TempFilter
 from afancontrol.logger import logger
 from afancontrol.pwmfan import (
@@ -177,46 +177,35 @@ def first_not_none(*parts: Optional[T]) -> Optional[T]:
 def _parse_daemon(
     config: configparser.ConfigParser, daemon_cli_config: DaemonCLIConfig
 ) -> Tuple[DaemonConfig, str]:
-    daemon: ConfigParserSection[str] = ConfigParserSection(config["daemon"])
-    daemon_config = DaemonConfig.from_configparser(daemon, daemon_cli_config)
-    hddtemp = daemon.get("hddtemp", fallback=DEFAULT_HDDTEMP)
-    daemon.ensure_no_unused_keys()
+    section: ConfigParserSection[str] = ConfigParserSection(config["daemon"])
+    daemon_config = DaemonConfig.from_configparser(section, daemon_cli_config)
+    hddtemp = section.get("hddtemp", fallback=DEFAULT_HDDTEMP)
+    section.ensure_no_unused_keys()
 
     return daemon_config, hddtemp
 
 
 def _parse_actions(config: configparser.ConfigParser) -> Tuple[str, Actions]:
-    actions: ConfigParserSection[str] = ConfigParserSection(config["actions"])
+    section: ConfigParserSection[str] = ConfigParserSection(config["actions"])
+    report_cmd = section.get("report_cmd", fallback=DEFAULT_REPORT_CMD)
+    actions = Actions.from_configparser(section)
+    section.ensure_no_unused_keys()
 
-    report_cmd = actions.get("report_cmd", fallback=DEFAULT_REPORT_CMD)
-    assert report_cmd is not None
-
-    actions_ = Actions.from_configparser(actions)
-    actions.ensure_no_unused_keys()
-
-    return report_cmd, actions_
+    return report_cmd, actions
 
 
 def _parse_arduino_connections(
     config: configparser.ConfigParser,
 ) -> Mapping[ArduinoName, ArduinoConnection]:
     arduino_connections: Dict[ArduinoName, ArduinoConnection] = {}
-    for section_name in config.sections():
-        section_name_parts = section_name.split(":", 1)
-
-        if section_name_parts[0].strip().lower() != "arduino":
-            continue
-
-        arduino_name = ArduinoName(section_name_parts[1].strip())
-        arduino = ConfigParserSection(config[section_name], arduino_name)
-
-        if arduino_name in arduino_connections:
+    for section in iter_sections(config, "arduino", ArduinoName):
+        if section.name in arduino_connections:
             raise RuntimeError(
-                "Duplicate arduino section declaration for '%s'" % arduino_name
+                "Duplicate arduino section declaration for '%s'" % section.name
             )
-        arduino_connections[arduino_name] = ArduinoConnection.from_configparser(arduino)
+        arduino_connections[section.name] = ArduinoConnection.from_configparser(section)
 
-        arduino.ensure_no_unused_keys()
+        section.ensure_no_unused_keys()
 
     # Empty arduino_connections is ok
     return arduino_connections
@@ -226,24 +215,16 @@ def _parse_filters(
     config: configparser.ConfigParser,
 ) -> Mapping[FilterName, TempFilter]:
     filters: Dict[FilterName, TempFilter] = {}
-    for section_name in config.sections():
-        section_name_parts = section_name.split(":", 1)
+    for section in iter_sections(config, "filter", FilterName):
+        f = afancontrol.filters.from_configparser(section)
 
-        if section_name_parts[0].strip().lower() != "filter":
-            continue
+        section.ensure_no_unused_keys()
 
-        filter_name = FilterName(section_name_parts[1].strip())
-        filter = ConfigParserSection(config[section_name], filter_name)
-
-        f = afancontrol.filters.from_configparser(filter)
-
-        filter.ensure_no_unused_keys()
-
-        if filter_name in filters:
+        if section.name in filters:
             raise RuntimeError(
-                "Duplicate filter section declaration for '%s'" % filter_name
+                "Duplicate filter section declaration for '%s'" % section.name
             )
-        filters[filter_name] = f
+        filters[section.name] = f
 
     # Empty filters is ok
     return filters
@@ -256,25 +237,17 @@ def _parse_temps(
 ) -> Tuple[Mapping[TempName, FilteredTemp], Mapping[TempName, Actions]]:
     temps: Dict[TempName, FilteredTemp] = {}
     temp_commands: Dict[TempName, Actions] = {}
-    for section_name in config.sections():
-        section_name_parts = section_name.split(":", 1)
-
-        if section_name_parts[0].strip().lower() != "temp":
-            continue
-
-        temp_name = TempName(section_name_parts[1].strip())
-        temp = ConfigParserSection(config[section_name], temp_name)
-
-        if temp_name in temps:
+    for section in iter_sections(config, "temp", TempName):
+        if section.name in temps:
             raise RuntimeError(
-                "Duplicate temp section declaration for '%s'" % temp_name
+                "Duplicate temp section declaration for '%s'" % section.name
             )
-        temps[temp_name] = FilteredTemp.from_configparser(
-            temp, filters, hddtemp=hddtemp
+        temps[section.name] = FilteredTemp.from_configparser(
+            section, filters, hddtemp=hddtemp
         )
-        temp_commands[temp_name] = Actions.from_configparser(temp)
+        temp_commands[section.name] = Actions.from_configparser(section)
 
-        temp.ensure_no_unused_keys()
+        section.ensure_no_unused_keys()
 
     return temps, temp_commands
 
@@ -284,25 +257,17 @@ def _parse_fans(
     arduino_connections: Mapping[ArduinoName, ArduinoConnection],
 ) -> Mapping[FanName, PWMFanNorm]:
     fans: Dict[FanName, PWMFanNorm] = {}
-    for section_name in config.sections():
-        section_name_parts = section_name.split(":", 1)
+    for section in iter_sections(config, "fan", FanName):
+        readwrite_fan = ReadWriteFan.from_configparser(section, arduino_connections)
 
-        if section_name_parts[0].strip().lower() != "fan":
-            continue
-
-        fan_name = FanName(section_name_parts[1].strip())
-        fan = ConfigParserSection(config[section_name], fan_name)
-
-        readwrite_fan = ReadWriteFan.from_configparser(fan, arduino_connections)
-
-        never_stop = fan.getboolean("never_stop", fallback=DEFAULT_NEVER_STOP)
+        never_stop = section.getboolean("never_stop", fallback=DEFAULT_NEVER_STOP)
 
         pwm_line_start = PWMValue(
-            fan.getint("pwm_line_start", fallback=DEFAULT_PWM_LINE_START)
+            section.getint("pwm_line_start", fallback=DEFAULT_PWM_LINE_START)
         )
 
         pwm_line_end = PWMValue(
-            fan.getint("pwm_line_end", fallback=DEFAULT_PWM_LINE_END)
+            section.getint("pwm_line_end", fallback=DEFAULT_PWM_LINE_END)
         )
 
         for pwm_value in (pwm_line_start, pwm_line_end):
@@ -315,7 +280,7 @@ def _parse_fans(
                     "Incorrect PWM value '%s' for fan '%s': it must be within [%s;%s]"
                     % (
                         pwm_value,
-                        fan_name,
+                        section.name,
                         readwrite_fan.pwm_read.min_pwm,
                         readwrite_fan.pwm_read.max_pwm,
                     )
@@ -323,14 +288,16 @@ def _parse_fans(
         if pwm_line_start >= pwm_line_end:
             raise RuntimeError(
                 "`pwm_line_start` PWM value must be less than `pwm_line_end` for fan '%s'"
-                % (fan_name,)
+                % (section.name,)
             )
 
-        fan.ensure_no_unused_keys()
+        section.ensure_no_unused_keys()
 
-        if fan_name in fans:
-            raise RuntimeError("Duplicate fan section declaration for '%s'" % fan_name)
-        fans[fan_name] = PWMFanNorm(
+        if section.name in fans:
+            raise RuntimeError(
+                "Duplicate fan section declaration for '%s'" % section.name
+            )
+        fans[section.name] = PWMFanNorm(
             readwrite_fan.fan_speed,
             readwrite_fan.pwm_read,
             readwrite_fan.pwm_write,
@@ -347,21 +314,14 @@ def _parse_readonly_fans(
     arduino_connections: Mapping[ArduinoName, ArduinoConnection],
 ) -> Mapping[ReadonlyFanName, ReadonlyPWMFanNorm]:
     readonly_fans: Dict[ReadonlyFanName, ReadonlyPWMFanNorm] = {}
-    for section_name in config.sections():
-        section_name_parts = section_name.split(":", 1)
+    for section in iter_sections(config, "readonly_fan", ReadonlyFanName):
+        readonly_fan = ReadOnlyFan.from_configparser(section, arduino_connections)
 
-        if section_name_parts[0].strip().lower() != "readonly_fan":
-            continue
-
-        fan_name = ReadonlyFanName(section_name_parts[1].strip())
-        fan = ConfigParserSection(config[section_name], fan_name)
-        readonly_fan = ReadOnlyFan.from_configparser(fan, arduino_connections)
-
-        if fan_name in readonly_fans:
+        if section.name in readonly_fans:
             raise RuntimeError(
-                "Duplicate readonly_fan section declaration for '%s'" % fan_name
+                "Duplicate readonly_fan section declaration for '%s'" % section.name
             )
-        readonly_fans[fan_name] = ReadonlyPWMFanNorm(
+        readonly_fans[section.name] = ReadonlyPWMFanNorm(
             readonly_fan.fan_speed, readonly_fan.pwm_read
         )
 
@@ -387,39 +347,32 @@ def _parse_mappings(
 ) -> Mapping[MappingName, FansTempsRelation]:
 
     mappings: Dict[MappingName, FansTempsRelation] = {}
-    for section_name in config.sections():
-        section_name_parts = section_name.split(":", 1)
-
-        if section_name_parts[0].lower() != "mapping":
-            continue
-
-        mapping_name = MappingName(section_name_parts[1])
-        mapping = ConfigParserSection(config[section_name], mapping_name)
+    for section in iter_sections(config, "mapping", MappingName):
 
         # temps:
 
         mapping_temps = [
-            TempName(temp_name.strip()) for temp_name in mapping["temps"].split(",")
+            TempName(temp_name.strip()) for temp_name in section["temps"].split(",")
         ]
         mapping_temps = [s for s in mapping_temps if s]
         if not mapping_temps:
             raise RuntimeError(
-                "Temps must not be empty in the '%s' mapping" % mapping_name
+                "Temps must not be empty in the '%s' mapping" % section.name
             )
         for temp_name in mapping_temps:
             if temp_name not in temps:
                 raise RuntimeError(
-                    "Unknown temp '%s' in mapping '%s'" % (temp_name, mapping_name)
+                    "Unknown temp '%s' in mapping '%s'" % (temp_name, section.name)
                 )
         if len(mapping_temps) != len(set(mapping_temps)):
             raise RuntimeError(
-                "There are duplicate temps in mapping '%s'" % mapping_name
+                "There are duplicate temps in mapping '%s'" % section.name
             )
 
         # fans:
 
         fans_with_speed = [
-            fan_with_speed.strip() for fan_with_speed in mapping["fans"].split(",")
+            fan_with_speed.strip() for fan_with_speed in section["fans"].split(",")
         ]
         fans_with_speed = [s for s in fans_with_speed if s]
 
@@ -430,7 +383,7 @@ def _parse_mappings(
             if len(fan_speed_pair) not in (1, 2):
                 raise RuntimeError(
                     "Invalid fan specification '%s' in mapping '%s'"
-                    % (fan_speed_pair, mapping_name)
+                    % (fan_speed_pair, section.name)
                 )
         mapping_fans = [
             FanSpeedModifier(
@@ -447,7 +400,7 @@ def _parse_mappings(
             if fan_speed_modifier.fan not in fans:
                 raise RuntimeError(
                     "Unknown fan '%s' in mapping '%s'"
-                    % (fan_speed_modifier.fan, mapping_name)
+                    % (fan_speed_modifier.fan, section.name)
                 )
             if not (0 < fan_speed_modifier.modifier <= 1.0):
                 raise RuntimeError(
@@ -455,7 +408,7 @@ def _parse_mappings(
                     "the allowed range is (0.0;1.0]."
                     % (
                         fan_speed_modifier.modifier,
-                        mapping_name,
+                        section.name,
                         fan_speed_modifier.fan,
                     )
                 )
@@ -463,16 +416,16 @@ def _parse_mappings(
             set(fan_speed_modifier.fan for fan_speed_modifier in mapping_fans)
         ):
             raise RuntimeError(
-                "There are duplicate fans in mapping '%s'" % mapping_name
+                "There are duplicate fans in mapping '%s'" % section.name
             )
 
-        mapping.ensure_no_unused_keys()
+        section.ensure_no_unused_keys()
 
-        if mapping_name in fans:
+        if section.name in fans:
             raise RuntimeError(
-                "Duplicate mapping section declaration for '%s'" % mapping_name
+                "Duplicate mapping section declaration for '%s'" % section.name
             )
-        mappings[mapping_name] = FansTempsRelation(
+        mappings[section.name] = FansTempsRelation(
             temps=mapping_temps, fans=mapping_fans
         )
 
