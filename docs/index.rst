@@ -220,8 +220,7 @@ There's a Dockerfile which can be used to build a Debian `.deb` package:
     make deb-from-pypi
 
     # Install the package:
-    sudo dpkg -i dist/debian/*.deb
-    sudo apt install -f
+    sudo apt install ./dist/debian/*.deb
 
 Perhaps one day the package might get published to the Debian repos,
 so a simple ``apt install afancontrol`` would work. But for now, given
