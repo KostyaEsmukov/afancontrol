@@ -1,9 +1,11 @@
 import abc
 import collections
-from typing import Deque, NewType, Optional, TypeVar
+from typing import TYPE_CHECKING, Deque, NewType, Optional, TypeVar
 
 from afancontrol.configparser import ConfigParserSection
-from afancontrol.temp import TempStatus
+
+if TYPE_CHECKING:
+    from afancontrol.temp import TempStatus
 
 T = TypeVar("T")
 FilterName = NewType("FilterName", str)
@@ -33,7 +35,7 @@ class TempFilter(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def apply(self, status: Optional[TempStatus]) -> Optional[TempStatus]:
+    def apply(self, status: Optional["TempStatus"]) -> Optional["TempStatus"]:
         pass
 
     def __enter__(self):  # reusable
@@ -47,7 +49,7 @@ class NullFilter(TempFilter):
     def copy(self: T) -> T:
         return type(self)()
 
-    def apply(self, status: Optional[TempStatus]) -> Optional[TempStatus]:
+    def apply(self, status: Optional["TempStatus"]) -> Optional["TempStatus"]:
         return status
 
     def __eq__(self, other):
@@ -63,7 +65,7 @@ class NullFilter(TempFilter):
         return "%s()" % (type(self).__name__,)
 
 
-def _temp_status_sorting_key(status: Optional[TempStatus]) -> float:
+def _temp_status_sorting_key(status: Optional["TempStatus"]) -> float:
     if status is None:
         return float("+inf")
     return status.temp
@@ -73,14 +75,14 @@ class MovingQuantileFilter(TempFilter):
     def __init__(self, quantile: float, *, window_size: int) -> None:
         self.quantile = quantile
         self.window_size = window_size
-        self.history: Optional[Deque[Optional[TempStatus]]] = None
+        self.history: Optional[Deque[Optional["TempStatus"]]] = None
 
     def copy(self: T) -> T:
         return type(self)(  # type: ignore
             quantile=self.quantile, window_size=self.window_size  # type: ignore
         )
 
-    def apply(self, status: Optional[TempStatus]) -> Optional[TempStatus]:
+    def apply(self, status: Optional["TempStatus"]) -> Optional["TempStatus"]:
         assert self.history is not None
         self.history.append(status)
 

@@ -14,7 +14,7 @@ from typing import (
 import afancontrol.filters
 from afancontrol.arduino import ArduinoConnection, ArduinoName
 from afancontrol.configparser import ConfigParserSection
-from afancontrol.filters import FilterName, NullFilter, TempFilter
+from afancontrol.filters import FilterName, TempFilter
 from afancontrol.logger import logger
 from afancontrol.pwmfan import (
     FanName,
@@ -24,7 +24,7 @@ from afancontrol.pwmfan import (
     ReadWriteFan,
 )
 from afancontrol.pwmfannorm import PWMFanNorm, ReadonlyPWMFanNorm
-from afancontrol.temp import CommandTemp, FileTemp, HDDTemp, Temp
+from afancontrol.temp import FilteredTemp, TempName
 
 DEFAULT_CONFIG = "/etc/afancontrol/afancontrol.conf"
 DEFAULT_PIDFILE = "/run/afancontrol.pid"
@@ -40,7 +40,6 @@ DEFAULT_PWM_LINE_END = 240
 
 DEFAULT_NEVER_STOP = True
 
-TempName = NewType("TempName", str)
 MappingName = NewType("MappingName", str)
 
 T = TypeVar("T")
@@ -124,11 +123,6 @@ class DaemonConfig(NamedTuple):
             interval=interval,
             exporter_listen_host=exporter_listen_host,
         )
-
-
-class FilteredTemp(NamedTuple):
-    temp: Temp
-    filter: TempFilter
 
 
 class ParsedConfig(NamedTuple):
@@ -271,34 +265,16 @@ def _parse_temps(
         temp_name = TempName(section_name_parts[1].strip())
         temp = ConfigParserSection(config[section_name], temp_name)
 
-        type = temp["type"]
-
-        if type == "file":
-            t = FileTemp.from_configparser(temp)  # type: Temp
-        elif type == "hdd":
-            t = HDDTemp.from_configparser(temp, hddtemp=hddtemp)
-        elif type == "exec":
-            t = CommandTemp.from_configparser(temp)
-        else:
-            raise RuntimeError(
-                "Unsupported temp type '%s' for temp '%s'" % (type, temp_name)
-            )
-
-        filter_name = temp.get("filter", fallback=None)
-
-        if filter_name is None:
-            filter: TempFilter = NullFilter()
-        else:
-            filter = filters[FilterName(filter_name.strip())].copy()
-
-        temp.ensure_no_unused_keys()
-
         if temp_name in temps:
             raise RuntimeError(
                 "Duplicate temp section declaration for '%s'" % temp_name
             )
-        temps[temp_name] = FilteredTemp(temp=t, filter=filter)
+        temps[temp_name] = FilteredTemp.from_configparser(
+            temp, filters, hddtemp=hddtemp
+        )
         temp_commands[temp_name] = Actions.from_configparser(temp)
+
+        temp.ensure_no_unused_keys()
 
     return temps, temp_commands
 
