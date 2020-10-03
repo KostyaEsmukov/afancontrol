@@ -11,14 +11,10 @@ from typing import (
     TypeVar,
 )
 
+import afancontrol.filters
 from afancontrol.arduino import ArduinoConnection, ArduinoName
 from afancontrol.configparser import ConfigParserSection
-from afancontrol.filters import (
-    MovingMedianFilter,
-    MovingQuantileFilter,
-    NullFilter,
-    TempFilter,
-)
+from afancontrol.filters import FilterName, NullFilter, TempFilter
 from afancontrol.logger import logger
 from afancontrol.pwmfan import (
     FanName,
@@ -44,9 +40,6 @@ DEFAULT_PWM_LINE_END = 240
 
 DEFAULT_NEVER_STOP = True
 
-DEFAULT_WINDOW_SIZE = 3
-
-FilterName = NewType("FilterName", str)
 TempName = NewType("TempName", str)
 MappingName = NewType("MappingName", str)
 
@@ -248,22 +241,7 @@ def _parse_filters(
         filter_name = FilterName(section_name_parts[1].strip())
         filter = ConfigParserSection(config[section_name], filter_name)
 
-        filter_type = filter["type"]
-
-        if filter_type == "moving_median":
-            window_size = filter.getint("window_size", fallback=DEFAULT_WINDOW_SIZE)
-
-            f: TempFilter = MovingMedianFilter(window_size=window_size)
-        elif filter_type == "moving_quantile":
-            window_size = filter.getint("window_size", fallback=DEFAULT_WINDOW_SIZE)
-            quantile = filter.getfloat("quantile")
-            f = MovingQuantileFilter(quantile=quantile, window_size=window_size)
-        else:
-            raise RuntimeError(
-                "Unsupported filter type '%s' for filter '%s'. "
-                "Supported types: `moving_median`, `moving_quantile`."
-                % (filter_type, filter_name)
-            )
+        f = afancontrol.filters.from_configparser(filter)
 
         filter.ensure_no_unused_keys()
 

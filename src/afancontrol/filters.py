@@ -1,10 +1,30 @@
 import abc
 import collections
-from typing import Deque, Optional, TypeVar
+from typing import Deque, NewType, Optional, TypeVar
 
+from afancontrol.configparser import ConfigParserSection
 from afancontrol.temp import TempStatus
 
 T = TypeVar("T")
+FilterName = NewType("FilterName", str)
+
+
+def from_configparser(section: ConfigParserSection[FilterName]) -> "TempFilter":
+    filter_type = section["type"]
+
+    if filter_type == "moving_median":
+        window_size = section.getint("window_size", fallback=3)
+        return MovingMedianFilter(window_size=window_size)
+    elif filter_type == "moving_quantile":
+        window_size = section.getint("window_size", fallback=3)
+        quantile = section.getfloat("quantile")
+        return MovingQuantileFilter(quantile=quantile, window_size=window_size)
+    else:
+        raise RuntimeError(
+            "Unsupported filter type '%s' for filter '%s'. "
+            "Supported types: `moving_median`, `moving_quantile`."
+            % (filter_type, section.name)
+        )
 
 
 class TempFilter(abc.ABC):
