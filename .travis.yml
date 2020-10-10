@@ -5,6 +5,7 @@ python:
   - "3.6"
   - "3.7"
   - "3.8"
+  # TODO add 3.9
   - "3.9-dev"
 
 install: pip install tox-travis tox tox-venv
