@@ -5,8 +5,8 @@ afancontrol
     :target: https://pypi.python.org/pypi/afancontrol/
     :alt: Latest Version
 
-.. image:: https://img.shields.io/travis/KostyaEsmukov/afancontrol.svg?style=flat-square
-    :target: https://travis-ci.org/KostyaEsmukov/afancontrol
+.. image:: https://img.shields.io/github/workflow/status/KostyaEsmukov/afancontrol/CI?style=flat-square
+    :target: https://github.com/KostyaEsmukov/afancontrol/actions
     :alt: Build Status
 
 .. image:: https://img.shields.io/github/license/KostyaEsmukov/afancontrol.svg?style=flat-square
