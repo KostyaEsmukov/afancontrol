@@ -49,15 +49,11 @@ check-docs:
 deb-local: clean sdist
 	docker build -t afancontrol-debuild -f ./Dockerfile.debian .
 	docker run -it --rm \
-		-e DEBFULLNAME="`git config --global user.name`" \
-		-e DEBEMAIL="`git config --global user.email`" \
 		-v `pwd`/dist:/afancontrol/dist \
 		-v `pwd`/debian:/afancontrol/debian \
 		afancontrol-debuild sh -ex -c '\
 			tar xaf /afancontrol/dist/afancontrol-*.tar.gz --strip 1; \
-			dch -v `python3 setup.py --version` -b --distribution=unstable; \
 			debuild -us -uc -b; \
-			cp debian/changelog /afancontrol/debian/; \
 			cd ../; \
 			ls -alh; \
 			mkdir /afancontrol/dist/debian; \
