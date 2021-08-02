@@ -1,3 +1,9 @@
+afancontrol (3.0.0-2) unstable; urgency=medium
+
+  * Dump debhelper compat to 13
+
+ -- Kostya Esmukov <kostya@esmukov.ru>  Mon, 02 Aug 2021 19:19:34 +0000
+
 afancontrol (3.0.0-1) unstable; urgency=medium
 
   * Drop support for prometheus-client < 0.1.0 (debian stretch)
