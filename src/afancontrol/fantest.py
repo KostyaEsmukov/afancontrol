@@ -187,7 +187,8 @@ def fantest(
         elif fan_type == "arduino":
             if not arduino_serial_url:
                 arduino_serial_url = click.prompt(
-                    "\n%s\nArduino Serial url" % HELP_ARDUINO_SERIAL_URL, type=str
+                    "\n%s\nArduino Serial url" % HELP_ARDUINO_SERIAL_URL,
+                    type=str,  # type: ignore
                 )
 
                 # typeshed currently specifies `Optional[str]` for `default`,
@@ -197,17 +198,19 @@ def fantest(
                 # Hence the `type: ignore`.
                 arduino_baudrate = click.prompt(  # type: ignore
                     "\n%s\nBaudrate" % HELP_ARDUINO_BAUDRATE,
-                    type=int,
+                    type=int,  # type: ignore
                     default=str(arduino_baudrate),
                     show_default=True,
                 )
             if not arduino_pwm_pin and arduino_pwm_pin != 0:
                 arduino_pwm_pin = click.prompt(
-                    "\n%s\nArduino PWM pin" % HELP_ARDUINO_PWM_PIN, type=int
+                    "\n%s\nArduino PWM pin" % HELP_ARDUINO_PWM_PIN,
+                    type=int,  # type: ignore
                 )
             if not arduino_tacho_pin and arduino_tacho_pin != 0:
                 arduino_tacho_pin = click.prompt(
-                    "\n%s\nArduino Tachometer pin" % HELP_ARDUINO_TACHO_PIN, type=int
+                    "\n%s\nArduino Tachometer pin" % HELP_ARDUINO_TACHO_PIN,
+                    type=int,  # type: ignore
                 )
 
             assert arduino_serial_url is not None
