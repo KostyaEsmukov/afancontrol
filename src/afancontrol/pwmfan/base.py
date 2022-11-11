@@ -1,11 +1,13 @@
 import abc
-from typing import NewType, Type
+from typing import NewType, Tuple, Type
 
 PWMValue = NewType("PWMValue", int)  # [0..255]
 FanValue = NewType("FanValue", int)
 
 
 class _SlotsReprMixin:
+    __slots__: Tuple[str, ...]
+
     def __eq__(self, other):
         if isinstance(other, type(self)):
             for attr in self.__slots__:

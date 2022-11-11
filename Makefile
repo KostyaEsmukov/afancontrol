@@ -9,7 +9,7 @@ lint:
 
 .PHONY: test
 test:
-	coverage run -m py.test
+	coverage run -m pytest
 	coverage report
 
 .PHONY: clean
