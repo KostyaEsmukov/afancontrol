@@ -6,7 +6,8 @@ import pytest
 from click.testing import CliRunner
 
 from afancontrol import daemon
-from afancontrol.daemon import PidFile, Signals, daemon as main
+from afancontrol.daemon import PidFile, Signals
+from afancontrol.daemon import daemon as main
 
 
 def test_main_smoke(temp_path):

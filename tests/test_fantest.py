@@ -10,9 +10,9 @@ from afancontrol.fantest import (
     CSVMeasurementsOutput,
     HumanMeasurementsOutput,
     MeasurementsOutput,
-    fantest as main,
-    run_fantest,
 )
+from afancontrol.fantest import fantest as main
+from afancontrol.fantest import run_fantest
 from afancontrol.pwmfan import (
     BaseFanPWMRead,
     BaseFanPWMWrite,
