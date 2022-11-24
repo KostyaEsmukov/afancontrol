@@ -1,19 +1,10 @@
-import glob
 import re
 from pathlib import Path
 from typing import Optional, Tuple
 
-from afancontrol.configparser import ConfigParserSection
+from afancontrol.configparser import ConfigParserSection, expand_glob
 from afancontrol.temp.base import Temp, TempCelsius
 
-
-def _expand_glob(path: str):
-    matches = glob.glob(path)
-    if not matches:
-        return path  # a FileNotFoundError will be raised on a first read attempt
-    if len(matches) == 1:
-        return matches[0]
-    raise ValueError("Expected glob to expand to a single path, got %r" % (matches,))
 
 
 class FileTemp(Temp):
@@ -33,7 +24,7 @@ class FileTemp(Temp):
         #  /sys/devices/pci0000:00/0000:00:01.3/[...]/hwmon/hwmon*/temp1_input
         # The `hwmon*` might change after reboot, but it is always a single
         # directory within the device.
-        temp_path = _expand_glob(temp_path + "_input")
+        temp_path = expand_glob(temp_path + "_input")
         temp_path = re.sub(r"_input$", "", temp_path)
 
         self._temp_input = Path(temp_path + "_input")

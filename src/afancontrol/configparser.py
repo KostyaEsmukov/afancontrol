@@ -1,4 +1,5 @@
 import configparser
+import glob
 from typing import Any, Generic, Iterator, Optional, Type, TypeVar, Union, overload
 
 T = TypeVar("T", bound=str)
@@ -127,3 +128,12 @@ class ConfigParserSection(Generic[T]):
                 "[%s] %r option is expected to be set" % (self.__section.name, option)
             )
         return res
+
+
+def expand_glob(path: str):
+    matches = glob.glob(path)
+    if not matches:
+        return path  # a FileNotFoundError will be raised on a first read attempt
+    if len(matches) == 1:
+        return matches[0]
+    raise ValueError("Expected glob to expand to a single path, got %r" % (matches,))
