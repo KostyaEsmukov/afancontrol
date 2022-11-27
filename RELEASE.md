@@ -12,6 +12,4 @@
 
 1. `make deb-from-pypi`
 1. `docker run -it --rm python:3.7 bash` + `pip install afancontrol` + `afancontrol --help`
-1. Ensure that RTD builds have passed and the `stable` version has updated:
-   https://readthedocs.org/projects/afancontrol/builds/
 1. Ensure that the CI build for the tag is green.
