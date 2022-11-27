@@ -6,7 +6,6 @@ from afancontrol.configparser import ConfigParserSection, expand_glob
 from afancontrol.temp.base import Temp, TempCelsius
 
 
-
 class FileTemp(Temp):
     def __init__(
         self,
