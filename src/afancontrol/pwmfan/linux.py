@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import NewType
 
-from afancontrol.configparser import ConfigParserSection
+from afancontrol.configparser import ConfigParserSection, expand_glob
 from afancontrol.pwmfan.base import (
     BaseFanPWMRead,
     BaseFanPWMWrite,
@@ -18,7 +18,7 @@ class LinuxFanSpeed(BaseFanSpeed):
     __slots__ = ("_fan_input",)
 
     def __init__(self, fan_input: FanInputDevice) -> None:
-        self._fan_input = Path(fan_input)
+        self._fan_input = Path(expand_glob(fan_input))
 
     @classmethod
     def from_configparser(cls, section: ConfigParserSection) -> BaseFanSpeed:
@@ -35,7 +35,7 @@ class LinuxFanPWMRead(BaseFanPWMRead):
     min_pwm = PWMValue(0)
 
     def __init__(self, pwm: PWMDevice) -> None:
-        self._pwm = Path(pwm)
+        self._pwm = Path(expand_glob(pwm))
 
     @classmethod
     def from_configparser(cls, section: ConfigParserSection) -> BaseFanPWMRead:
@@ -51,8 +51,9 @@ class LinuxFanPWMWrite(BaseFanPWMWrite):
     read_cls = LinuxFanPWMRead
 
     def __init__(self, pwm: PWMDevice) -> None:
-        self._pwm = Path(pwm)
-        self._pwm_enable = Path(pwm + "_enable")
+        base = expand_glob(pwm)
+        self._pwm = Path(base)
+        self._pwm_enable = Path(base + "_enable")
 
     @classmethod
     def from_configparser(cls, section: ConfigParserSection) -> BaseFanPWMWrite:
