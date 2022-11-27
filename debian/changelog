@@ -1,6 +1,16 @@
+afancontrol (3.1.0-1) unstable; urgency=medium
+
+  [ Juha Yrjölä ]
+  * Support glob expansion with fans (#9)
+
+  [ Kostya Esmukov ]
+  * Drop Python 3.6 support, add 3.11
+
+ -- Kostya Esmukov <kostya@esmukov.ru>  Mon, 28 Nov 2022 00:11:43 +0200
+
 afancontrol (3.0.0-2) unstable; urgency=medium
 
-  * Dump debhelper compat to 13
+  * Bump debhelper compat to 13
 
  -- Kostya Esmukov <kostya@esmukov.ru>  Mon, 02 Aug 2021 19:19:34 +0000
 
