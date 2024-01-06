@@ -62,7 +62,10 @@ deb-local: clean sdist
 	'
 
 .PHONY: deb-from-pypi
-deb-from-pypi: clean
+deb-from-pypi: deb-from-github  # deprecated target
+
+.PHONY: deb-from-github
+deb-from-github: clean
 	docker build -t afancontrol-debuild -f ./Dockerfile.debian .
 	docker run -it --rm \
 		-v `pwd`/dist:/afancontrol/dist \
