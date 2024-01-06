@@ -20,7 +20,7 @@ from afancontrol.trigger import Triggers
 def requests_session():
     # Ignore system proxies, see https://stackoverflow.com/a/28521696
     with requests.Session() as session:
-        session.trust_env = False
+        session.trust_env = False  # type: ignore
         yield session
 
 
