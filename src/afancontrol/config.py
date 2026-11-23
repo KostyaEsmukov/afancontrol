@@ -379,11 +379,11 @@ def _parse_mappings(
     if unused_temps:
         logger.warning(
             "The following temps are defined but not used in any mapping: %s",
-            unused_temps,
+            sorted(unused_temps),
         )
     if unused_fans:
         raise RuntimeError(
             "The following fans are defined but not used in any mapping: %s"
-            % unused_fans
+            % sorted(unused_fans)
         )
     return mappings
