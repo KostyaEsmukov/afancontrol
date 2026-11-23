@@ -1,7 +1,7 @@
 Source: afancontrol
 Section: utils
 Priority: optional
-Maintainer: Kostya Esmukov <kostya@esmukov.ru>
+Maintainer: Kostya Esmukov <kostya@esmukov.net>
 Build-Depends: debhelper-compat (= 13),
                dh-python,
                python3-all,

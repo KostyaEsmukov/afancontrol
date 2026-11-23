@@ -4,11 +4,11 @@ Source: https://github.com/KostyaEsmukov/afancontrol
 Files-Excluded: *.pyc
 
 Files: *
-Copyright: 2019 Kostya Esmukov <kostya@esmukov.ru>
+Copyright: 2019 Kostya Esmukov <kostya@esmukov.net>
 License: Expat
 
 Files: debian/*
-Copyright: 2019 Kostya Esmukov <kostya@esmukov.ru>
+Copyright: 2019 Kostya Esmukov <kostya@esmukov.net>
 License: Expat
 
 

@@ -6,13 +6,13 @@ afancontrol (3.1.0-1) unstable; urgency=medium
   [ Kostya Esmukov ]
   * Drop Python 3.6 support, add 3.11
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Mon, 28 Nov 2022 00:11:43 +0200
+ -- Kostya Esmukov <kostya@esmukov.net>  Mon, 28 Nov 2022 00:11:43 +0200
 
 afancontrol (3.0.0-2) unstable; urgency=medium
 
   * Bump debhelper compat to 13
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Mon, 02 Aug 2021 19:19:34 +0000
+ -- Kostya Esmukov <kostya@esmukov.net>  Mon, 02 Aug 2021 19:19:34 +0000
 
 afancontrol (3.0.0-1) unstable; urgency=medium
 
@@ -23,13 +23,13 @@ afancontrol (3.0.0-1) unstable; urgency=medium
   * Add dh-systemd (would automatically (re)start the systemd service upon
     package (re)installation)
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Sat, 10 Oct 2020 14:43:01 +0000
+ -- Kostya Esmukov <kostya@esmukov.net>  Sat, 10 Oct 2020 14:43:01 +0000
 
 afancontrol (2.2.1-1) unstable; urgency=medium
 
   * Fix compatibility with py3.5
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Mon, 28 Sep 2020 22:39:46 +0000
+ -- Kostya Esmukov <kostya@esmukov.net>  Mon, 28 Sep 2020 22:39:46 +0000
 
 afancontrol (2.2.0-1) unstable; urgency=medium
 
@@ -41,25 +41,25 @@ afancontrol (2.2.0-1) unstable; urgency=medium
 
   * Add filters, collect temperatures simultaneously
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Mon, 28 Sep 2020 22:12:04 +0000
+ -- Kostya Esmukov <kostya@esmukov.net>  Mon, 28 Sep 2020 22:12:04 +0000
 
 afancontrol (2.1.0-1) unstable; urgency=medium
 
   * Move PID file under /run (#3)
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Fri, 12 Jun 2020 15:12:15 +0000
+ -- Kostya Esmukov <kostya@esmukov.net>  Fri, 12 Jun 2020 15:12:15 +0000
 
 afancontrol (2.0.0-1) unstable; urgency=medium
 
   * Switch Debian distribution from stretch to unstable
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Sat, 09 May 2020 13:30:44 +0000
+ -- Kostya Esmukov <kostya@esmukov.net>  Sat, 09 May 2020 13:30:44 +0000
 
 afancontrol (2.0.0~b5-1) unstable; urgency=medium
 
   * Fix LinuxPWMFan spuriously raising "Couldn't disable PWM on the fan"
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Sat, 15 Jun 2019 23:18:33 +0000
+ -- Kostya Esmukov <kostya@esmukov.net>  Sat, 15 Jun 2019 23:18:33 +0000
 
 afancontrol (2.0.0~b4-1) unstable; urgency=medium
 
@@ -67,7 +67,7 @@ afancontrol (2.0.0~b4-1) unstable; urgency=medium
 
   * Fantest: fix arduino pins being asked when they equal 0
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Thu, 02 May 2019 11:55:29 +0000
+ -- Kostya Esmukov <kostya@esmukov.net>  Thu, 02 May 2019 11:55:29 +0000
 
 afancontrol (2.0.0~b3-1) unstable; urgency=medium
 
@@ -79,16 +79,16 @@ afancontrol (2.0.0~b3-1) unstable; urgency=medium
 
   * Config parser: strip spaces around fan name and speed modifier in mappings
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Wed, 01 May 2019 12:40:13 +0000
+ -- Kostya Esmukov <kostya@esmukov.net>  Wed, 01 May 2019 12:40:13 +0000
 
 afancontrol (2.0.0~b2-1) unstable; urgency=medium
 
   * Fix hddtemp not expanding glob
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Mon, 29 Apr 2019 19:04:42 +0000
+ -- Kostya Esmukov <kostya@esmukov.net>  Mon, 29 Apr 2019 19:04:42 +0000
 
 afancontrol (2.0.0~b1-1) unstable; urgency=medium
 
   * Initial release
 
- -- Kostya Esmukov <kostya@esmukov.ru>  Sun, 28 Apr 2019 11:58:16 +0000
+ -- Kostya Esmukov <kostya@esmukov.net>  Sun, 28 Apr 2019 11:58:16 +0000
