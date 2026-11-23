@@ -13,5 +13,5 @@
 ## Check
 
 1. `make deb-from-github`
-1. `docker run -it --rm python:3.7 bash` + `pip install afancontrol` + `afancontrol --help`
+1. `docker run -it --rm python:3.11 bash` + `pip install afancontrol` + `afancontrol --help`
 1. Ensure that the CI build for the tag is green.
