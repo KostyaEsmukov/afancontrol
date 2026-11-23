@@ -163,6 +163,33 @@ The temperature sensors might look like this:
     max = 45
     panic = 50
 
+A ``file`` sensor resolves its ``path`` at startup. The path can be a
+literal filename or a glob. If it lacks the ``_input`` suffix, the daemon
+tries appending it first and falls back to the original path if no files
+match. Each reading requires a temperature from every matched file.
+
+For paths resolved with the ``_input`` suffix, the daemon reads omitted
+bounds at startup from sibling ``_min`` and ``_max`` files. It uses the
+highest minimum and lowest maximum across the matched files. Direct
+reads from files without the suffix, such as
+``/sys/class/thermal/thermal_zone0/temp``, require explicit ``min`` and
+``max`` values.
+
+The ``aggregation`` setting combines readings from multiple files or drives.
+It supports ``max`` (the default), ``min``, ``avg``, and ``median``.
+An ``hdd`` sensor uses the valid readings returned by ``hddtemp``.
+The ``panic`` and ``threshold`` settings apply to the aggregated temperature.
+
+This example reports the temperature of the hottest NVMe drive::
+
+    [temp: nvmes]
+    type = file
+    path = /sys/class/nvme/nvme*/hwmon*/temp1_input
+    aggregation = max
+    min = 30
+    max = 70
+    panic = 80
+
 Now we need to create the mappings between the temps and the fans.
 The simplest mapping would be:
 

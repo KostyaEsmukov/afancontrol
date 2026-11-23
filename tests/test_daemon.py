@@ -29,6 +29,8 @@ hddtemp = true
 [temp:mobo]
 type = file
 path = /fake/sys/class/hwmon/hwmon0/device/temp1_input
+min = 30
+max = 40
 
 [fan: case]
 pwm = %(pwm_path)s

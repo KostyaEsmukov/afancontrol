@@ -1,36 +1,46 @@
-import re
+import glob
 from pathlib import Path
 from typing import Optional, Tuple
 
-from afancontrol.configparser import ConfigParserSection, expand_glob
-from afancontrol.temp.base import Temp, TempCelsius
+from afancontrol.configparser import ConfigParserSection
+from afancontrol.temp.base import Temp, TempCelsius, aggregate, validate_aggregation
 
 
 class FileTemp(Temp):
     def __init__(
         self,
-        temp_path: str,  # /sys/class/hwmon/hwmon0/temp1
+        temp_path: str,
         *,
         min: Optional[TempCelsius],
         max: Optional[TempCelsius],
         panic: Optional[TempCelsius],
-        threshold: Optional[TempCelsius]
+        threshold: Optional[TempCelsius],
+        aggregation: str = "max",
     ) -> None:
+        """
+        `temp_path` is a literal path or glob pattern for temperature files
+        containing integer values in millidegrees Celsius. It accepts hwmon
+        input paths such as `/sys/class/hwmon/hwmon*/temp1_input` and shorthand
+        such as `/sys/class/hwmon/hwmon*/temp1`.
+
+        Paths that lack the _min/_max sibling files require explicit
+        `min` and `max` bounds.
+
+        Multiple matches are combined using `aggregation`.
+        """
         super().__init__(panic=panic, threshold=threshold)
-        temp_path = re.sub(r"_input$", "", temp_path)
+        self._temp_path = temp_path
+        self._aggregation = validate_aggregation(aggregation)
 
-        # Allow paths looking like this (this one is from an nvme drive):
-        #  /sys/devices/pci0000:00/0000:00:01.3/[...]/hwmon/hwmon*/temp1_input
-        # The `hwmon*` might change after reboot, but it is always a single
-        # directory within the device.
-        temp_path = expand_glob(temp_path + "_input")
-        temp_path = re.sub(r"_input$", "", temp_path)
+        input_path = temp_path if temp_path.endswith("_input") else temp_path + "_input"
+        matches = [path for path in glob.glob(input_path) if not Path(path).is_dir()]
+        # Preserve hwmon shorthand when both forms match.
+        if not matches and temp_path != input_path:  # non-`_input` path
+            matches = [path for path in glob.glob(temp_path) if not Path(path).is_dir()]
 
-        self._temp_input = Path(temp_path + "_input")
-        self._temp_min = Path(temp_path + "_min")
-        self._temp_max = Path(temp_path + "_max")
-        self._min = min
-        self._max = max
+        self._inputs = [Path(path) for path in sorted(matches or [input_path])]
+        derive_bounds = all(path.name.endswith("_input") for path in self._inputs)
+        self._min, self._max = self._resolve_bounds(min, max, derive_bounds)
 
     @classmethod
     def from_configparser(cls, section: ConfigParserSection) -> Temp:
@@ -38,14 +48,21 @@ class FileTemp(Temp):
         threshold = TempCelsius(section.getfloat("threshold", fallback=None))
         min = TempCelsius(section.getfloat("min", fallback=None))
         max = TempCelsius(section.getfloat("max", fallback=None))
-        return cls(section["path"], min=min, max=max, panic=panic, threshold=threshold)
+        aggregation = section.get("aggregation", fallback="max")
+        return cls(
+            section["path"],
+            min=min,
+            max=max,
+            panic=panic,
+            threshold=threshold,
+            aggregation=aggregation,
+        )
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
             return (
-                self._temp_input == other._temp_input
-                and self._temp_min == other._temp_min
-                and self._temp_max == other._temp_max
+                self._aggregation == other._aggregation
+                and self._inputs == other._inputs
                 and self._min == other._min
                 and self._max == other._max
                 and self._panic == other._panic
@@ -58,42 +75,57 @@ class FileTemp(Temp):
         return not (self == other)
 
     def __repr__(self):
-        return "%s(%r, min=%r, max=%r, panic=%r, threshold=%r)" % (
+        return "%s(%s, min=%r, max=%r, panic=%r, threshold=%r, aggregation=%r)" % (
             type(self).__name__,
-            str(self._temp_input),
+            self._temp_path,
             self._min,
             self._max,
             self._panic,
             self._threshold,
+            self._aggregation,
         )
 
     def _get_temp(self) -> Tuple[TempCelsius, TempCelsius, TempCelsius]:
-        temp = self._read_temp_from_path(self._temp_input)
-        return temp, self._get_min(), self._get_max()
+        temps = [self._read_temp_from_path(path) for path in self._inputs]
+        temp = TempCelsius(aggregate(temps, self._aggregation))
+        return temp, self._min, self._max
 
-    def _get_min(self) -> TempCelsius:
-        if self._min is not None:
-            return self._min
+    def _resolve_bounds(
+        self,
+        min_temp: Optional[TempCelsius],
+        max_temp: Optional[TempCelsius],
+        derive_bounds: bool,
+    ) -> Tuple[TempCelsius, TempCelsius]:
+        if not derive_bounds and (min_temp is None or max_temp is None):
+            raise RuntimeError(
+                "The %s sensor requires explicit `min` and `max` temperatures"
+                % self._temp_path
+            )
+        if min_temp is None:
+            min_temp = max(self._read_bounds("min"))
+        if max_temp is None:
+            max_temp = min(self._read_bounds("max"))
+        if not min_temp < max_temp:
+            raise ValueError(
+                "Min temperature must be less than max for %s (min=%s, max=%s)"
+                % (self._temp_path, min_temp, max_temp)
+            )
+        return min_temp, max_temp
+
+    def _read_bounds(self, bound: str) -> list[TempCelsius]:
         try:
-            min_t = self._read_temp_from_path(self._temp_min)
+            bounds = [
+                self._read_temp_from_path(
+                    Path(str(path).removesuffix("_input") + "_" + bound)
+                )
+                for path in self._inputs
+            ]
         except FileNotFoundError:
             raise RuntimeError(
                 "Please specify `min` and `max` temperatures for "
-                "the %s sensor" % self._temp_input
+                "the %s sensor" % self._temp_path
             )
-        return min_t
-
-    def _get_max(self) -> TempCelsius:
-        if self._max is not None:
-            return self._max
-        try:
-            max_t = self._read_temp_from_path(self._temp_max)
-        except FileNotFoundError:
-            raise RuntimeError(
-                "Please specify `min` and `max` temperatures for "
-                "the %s sensor" % self._temp_input
-            )
-        return max_t
+        return bounds
 
     def _read_temp_from_path(self, path: Path) -> TempCelsius:
         return TempCelsius(int(path.read_text().strip()) / 1000)

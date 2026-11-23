@@ -169,6 +169,10 @@ def test_example_conf(example_conf: Path):
                     panic=AlertCommands(enter_cmd=None, leave_cmd=None),
                     threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
                 ),
+                TempName("nvmes"): Actions(
+                    panic=AlertCommands(enter_cmd=None, leave_cmd=None),
+                    threshold=AlertCommands(enter_cmd=None, leave_cmd=None),
+                ),
             },
         ),
         fans={
@@ -259,10 +263,21 @@ def test_example_conf(example_conf: Path):
                 ),
                 filter=NullFilter(),
             ),
+            TempName("nvmes"): FilteredTemp(
+                temp=FileTemp(
+                    "/sys/class/nvme/nvme*/hwmon*/temp1_input",
+                    min=TempCelsius(30.0),
+                    max=TempCelsius(70.0),
+                    panic=None,
+                    threshold=None,
+                    aggregation="max",
+                ),
+                filter=NullFilter(),
+            ),
         },
         mappings={
             MappingName("1"): FansTempsRelation(
-                temps=[TempName("mobo"), TempName("hdds")],
+                temps=[TempName("mobo"), TempName("hdds"), TempName("nvmes")],
                 fans=[
                     FanSpeedModifier(fan=FanName("cpu"), modifier=1.0),
                     FanSpeedModifier(fan=FanName("hdd"), modifier=0.6),
@@ -290,6 +305,8 @@ def test_minimal_config() -> None:
 [temp:mobo]
 type = file
 path = /sys/class/hwmon/hwmon0/device/temp1_input
+min = 30
+max = 40
 
 [fan: case]
 pwm = /sys/class/hwmon/hwmon0/device/pwm2
@@ -345,8 +362,8 @@ temps = mobo
             TempName("mobo"): FilteredTemp(
                 temp=FileTemp(
                     "/sys/class/hwmon/hwmon0/device/temp1_input",
-                    min=None,
-                    max=None,
+                    min=TempCelsius(30.0),
+                    max=TempCelsius(40.0),
                     panic=None,
                     threshold=None,
                 ),
@@ -375,6 +392,8 @@ def test_readonly_config() -> None:
 [temp:mobo]
 type = file
 path = /sys/class/hwmon/hwmon0/device/temp1_input
+min = 30
+max = 40
 
 [readonly_fan: cpu]
 pwm = /sys/class/hwmon/hwmon0/device/pwm1
@@ -420,8 +439,8 @@ fan_input = /sys/class/hwmon/hwmon0/device/fan1_input
             TempName("mobo"): FilteredTemp(
                 temp=FileTemp(
                     "/sys/class/hwmon/hwmon0/device/temp1_input",
-                    min=None,
-                    max=None,
+                    min=TempCelsius(30.0),
+                    max=TempCelsius(40.0),
                     panic=None,
                     threshold=None,
                 ),
@@ -445,10 +464,14 @@ def test_multiline_mapping():
 [temp:cpu]
 type = file
 path = /sys/class/hwmon/hwmon0/device/temp1_input
+min = 30
+max = 40
 
 [temp:mobo]
 type = file
 path = /sys/class/hwmon/hwmon0/device/temp2_input
+min = 30
+max = 40
 
 [fan: case]
 pwm = /sys/class/hwmon/hwmon0/device/pwm2
@@ -491,8 +514,121 @@ def test_extraneous_keys_raises():
 [temp:   mobo]
 type = file
 path = /sys/class/hwmon/hwmon0/device/temp1_input
+min = 30
+max = 40
 aa = 55
 """
     with pytest.raises(RuntimeError) as cm:
         parse_config(path_from_str(config), daemon_cli_config)
     assert str(cm.value) == "Unknown options in the [temp:   mobo] section: {'aa'}"
+
+
+def test_temp_file_aggregation():
+    daemon_cli_config = DaemonCLIConfig(
+        pidfile=None, logfile=None, exporter_listen_host=None
+    )
+
+    config = """
+[daemon]
+
+[actions]
+
+[temp:nvmes]
+type = file
+path = /sys/class/nvme/nvme*/hwmon*/temp1_input
+aggregation = median
+min = 30
+max = 70
+"""
+    parsed = parse_config(path_from_str(config), daemon_cli_config)
+    assert parsed.temps == {
+        TempName("nvmes"): FilteredTemp(
+            temp=FileTemp(
+                "/sys/class/nvme/nvme*/hwmon*/temp1_input",
+                min=TempCelsius(30.0),
+                max=TempCelsius(70.0),
+                panic=None,
+                threshold=None,
+                aggregation="median",
+            ),
+            filter=NullFilter(),
+        )
+    }
+
+
+def test_temp_hdd_aggregation():
+    daemon_cli_config = DaemonCLIConfig(
+        pidfile=None, logfile=None, exporter_listen_host=None
+    )
+
+    config = """
+[daemon]
+
+[actions]
+
+[temp:hdds]
+type = hdd
+path = /dev/sd?
+min = 35
+max = 48
+aggregation = avg
+"""
+    parsed = parse_config(path_from_str(config), daemon_cli_config)
+    assert parsed.temps == {
+        TempName("hdds"): FilteredTemp(
+            temp=HDDTemp(
+                "/dev/sd?",
+                min=TempCelsius(35.0),
+                max=TempCelsius(48.0),
+                panic=None,
+                threshold=None,
+                hddtemp_bin="hddtemp",
+                aggregation="avg",
+            ),
+            filter=NullFilter(),
+        )
+    }
+
+
+def test_temp_bad_aggregation_value():
+    daemon_cli_config = DaemonCLIConfig(
+        pidfile=None, logfile=None, exporter_listen_host=None
+    )
+
+    config = """
+[daemon]
+
+[actions]
+
+[temp:nvmes]
+type = file
+path = /sys/class/nvme/nvme*/hwmon*/temp1_input
+aggregation = bogus
+min = 30
+max = 70
+"""
+    with pytest.raises(ValueError) as cm:
+        parse_config(path_from_str(config), daemon_cli_config)
+    assert "Unsupported aggregation 'bogus'" in str(cm.value)
+
+
+def test_temp_aggregation_on_exec_raises():
+    daemon_cli_config = DaemonCLIConfig(
+        pidfile=None, logfile=None, exporter_listen_host=None
+    )
+
+    config = """
+[daemon]
+
+[actions]
+
+[temp:gpu]
+type = exec
+command = nvidia-smi --query-gpu=temperature.gpu
+aggregation = max
+"""
+    with pytest.raises(RuntimeError) as cm:
+        parse_config(path_from_str(config), daemon_cli_config)
+    assert str(cm.value) == (
+        "Unknown options in the [temp:gpu] section: {'aggregation'}"
+    )
