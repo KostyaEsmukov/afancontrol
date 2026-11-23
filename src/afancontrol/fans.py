@@ -35,7 +35,7 @@ class Fans:
 
     def __enter__(self):  # reusable
         self._stack = ExitStack()
-        logger.info("Enabling PWM on fans...")
+        logger.info("Enabling PWM on the non-readonly fans...")
         try:
             for pwmfan in cast(
                 Iterator[Union[PWMFanNorm, ReadonlyPWMFanNorm]],
@@ -49,9 +49,9 @@ class Fans:
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         assert self._stack is not None
-        logger.info("Disabling PWM on fans...")
+        logger.info("Disabling PWM on the non-readonly fans...")
         self._stack.close()
-        logger.info("Done. Fans should be returned to full speed")
+        logger.info("Done. Fans should have returned to full speed")
         return None
 
     def check_speeds(self) -> None:
