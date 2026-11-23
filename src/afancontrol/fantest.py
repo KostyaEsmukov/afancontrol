@@ -166,13 +166,13 @@ def fantest(
     try:
         if fan_type == "linux":
             if not linux_fan_pwm:
-                linux_fan_pwm = click.prompt(
+                linux_fan_pwm = click.prompt(  # type: ignore
                     "\n%s\nPWM file" % HELP_LINUX_PWM_FILE,
                     type=click.Path(exists=True, dir_okay=False),
                 )
 
             if not linux_fan_input:
-                linux_fan_input = click.prompt(
+                linux_fan_input = click.prompt(  # type: ignore
                     "\n%s\nFan input file" % HELP_LINUX_FAN_INPUT_FILE,
                     type=click.Path(exists=True, dir_okay=False),
                 )

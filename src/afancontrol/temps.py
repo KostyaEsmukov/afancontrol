@@ -14,7 +14,7 @@ class ObservedTempStatus(NamedTuple):
 
 
 def filtered_temps(
-    temps: Mapping[TempName, ObservedTempStatus]
+    temps: Mapping[TempName, ObservedTempStatus],
 ) -> Mapping[TempName, Optional[TempStatus]]:
     return {
         temp_name: observed_temp_status.filtered

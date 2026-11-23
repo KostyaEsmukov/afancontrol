@@ -195,7 +195,7 @@ class SetPWMCommand:
         return struct.pack("sBB", self.command, self.pwm_pin, self.pwm)
 
     @classmethod
-    def parse(cls, b: bytes) -> "SetPWMCommand":
+    def parse(cls, b: bytes | bytearray) -> "SetPWMCommand":
         command, pwm_pin, pwm = struct.unpack("sBB", b)
         if command != cls.command:
             raise ValueError(

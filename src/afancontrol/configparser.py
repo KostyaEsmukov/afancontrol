@@ -50,12 +50,10 @@ class ConfigParserSection(Generic[T]):
         return self.__section.__getitem__(key)
 
     @overload
-    def get(self, option: str) -> str:
-        ...
+    def get(self, option: str) -> str: ...
 
     @overload
-    def get(self, option: str, *, fallback: F) -> Union[str, F]:
-        ...
+    def get(self, option: str, *, fallback: F) -> Union[str, F]: ...
 
     def get(self, option: str, *, fallback=_UNSET) -> Union[str, F]:
         kwargs = {}
@@ -70,12 +68,10 @@ class ConfigParserSection(Generic[T]):
         return res
 
     @overload
-    def getint(self, option: str) -> int:
-        ...
+    def getint(self, option: str) -> int: ...
 
     @overload
-    def getint(self, option: str, *, fallback: F) -> Union[int, F]:
-        ...
+    def getint(self, option: str, *, fallback: F) -> Union[int, F]: ...
 
     def getint(self, option: str, *, fallback=_UNSET) -> Union[int, F]:
         kwargs = {}
@@ -90,12 +86,10 @@ class ConfigParserSection(Generic[T]):
         return res
 
     @overload
-    def getfloat(self, option: str) -> float:
-        ...
+    def getfloat(self, option: str) -> float: ...
 
     @overload
-    def getfloat(self, option: str, *, fallback: F) -> Union[float, F]:
-        ...
+    def getfloat(self, option: str, *, fallback: F) -> Union[float, F]: ...
 
     def getfloat(self, option: str, *, fallback=_UNSET) -> Union[float, F]:
         kwargs = {}
@@ -110,12 +104,10 @@ class ConfigParserSection(Generic[T]):
         return res
 
     @overload
-    def getboolean(self, option: str) -> bool:
-        ...
+    def getboolean(self, option: str) -> bool: ...
 
     @overload
-    def getboolean(self, option: str, *, fallback: F) -> Union[bool, F]:
-        ...
+    def getboolean(self, option: str, *, fallback: F) -> Union[bool, F]: ...
 
     def getboolean(self, option: str, *, fallback=_UNSET) -> Union[bool, F]:
         kwargs = {}

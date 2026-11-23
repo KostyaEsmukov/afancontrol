@@ -20,8 +20,7 @@ def test_main_smoke(temp_path):
     pwm_faninput_path.write_text("999")
 
     config_path = temp_path / "afancontrol.conf"
-    config_path.write_text(
-        """
+    config_path.write_text("""
 [daemon]
 hddtemp = true
 
@@ -38,9 +37,7 @@ fan_input = %(pwm_faninput_path)s
 [mapping:1]
 fans = case*0.6,
 temps = mobo
-"""
-        % dict(pwm_path=pwm_path, pwm_faninput_path=pwm_faninput_path)
-    )
+""" % dict(pwm_path=pwm_path, pwm_faninput_path=pwm_faninput_path))
 
     with ExitStack() as stack:
         mocked_tick = stack.enter_context(patch.object(daemon.Manager, "tick"))
