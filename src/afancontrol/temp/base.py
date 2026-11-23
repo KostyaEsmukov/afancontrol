@@ -1,7 +1,38 @@
 import abc
-from typing import NamedTuple, NewType, Optional, Tuple
+import math
+import statistics
+from typing import Callable, Dict, NamedTuple, NewType, Optional, Sequence, Tuple
 
 TempCelsius = NewType("TempCelsius", float)
+
+
+def _avg(temps: Sequence[float]) -> float:
+    return sum(temps) / len(temps)
+
+
+AGGREGATIONS: Dict[str, Callable[[Sequence[float]], float]] = {
+    "max": max,
+    "min": min,
+    "avg": _avg,
+    "median": statistics.median,
+}
+
+
+def validate_aggregation(aggregation: str) -> str:
+    if aggregation not in AGGREGATIONS:
+        raise ValueError(
+            "Unsupported aggregation %r (expected one of: %s)"
+            % (aggregation, ", ".join(sorted(AGGREGATIONS)))
+        )
+    return aggregation
+
+
+def aggregate(temps: Sequence[float], aggregation: str) -> float:
+    reducer = AGGREGATIONS[validate_aggregation(aggregation)]
+    finite_temps = [temp for temp in temps if math.isfinite(temp)]
+    if not finite_temps:
+        raise RuntimeError("Cannot aggregate an empty list of valid temperature values")
+    return reducer(finite_temps)
 
 
 class TempStatus(NamedTuple):

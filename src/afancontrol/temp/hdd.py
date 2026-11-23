@@ -2,7 +2,7 @@ from typing import Optional, Tuple
 
 from afancontrol.configparser import ConfigParserSection
 from afancontrol.exec import Programs, exec_shell_command
-from afancontrol.temp.base import Temp, TempCelsius
+from afancontrol.temp.base import Temp, TempCelsius, aggregate, validate_aggregation
 
 
 def _is_float(s: str) -> bool:
@@ -25,13 +25,15 @@ class HDDTemp(Temp):
         max: TempCelsius,
         panic: Optional[TempCelsius],
         threshold: Optional[TempCelsius],
-        hddtemp_bin: str = "hddtemp"
+        hddtemp_bin: str = "hddtemp",
+        aggregation: str = "max"
     ) -> None:
         super().__init__(panic=panic, threshold=threshold)
         self._disk_path = disk_path
         self._min = min
         self._max = max
         self._hddtemp_bin = hddtemp_bin
+        self._aggregation = validate_aggregation(aggregation)
 
     @classmethod
     def from_configparser(
@@ -41,6 +43,7 @@ class HDDTemp(Temp):
         threshold = TempCelsius(section.getfloat("threshold", fallback=None))
         min = TempCelsius(section.getfloat("min"))
         max = TempCelsius(section.getfloat("max"))
+        aggregation = section.get("aggregation", fallback="max")
         return cls(
             section["path"],
             min=min,
@@ -48,6 +51,7 @@ class HDDTemp(Temp):
             panic=panic,
             threshold=threshold,
             hddtemp_bin=programs.hddtemp,
+            aggregation=aggregation,
         )
 
     def __eq__(self, other):
@@ -59,6 +63,7 @@ class HDDTemp(Temp):
                 and self._panic == other._panic
                 and self._threshold == other._threshold
                 and self._hddtemp_bin == other._hddtemp_bin
+                and self._aggregation == other._aggregation
             )
 
         return NotImplemented
@@ -67,14 +72,19 @@ class HDDTemp(Temp):
         return not (self == other)
 
     def __repr__(self):
-        return "%s(%r, min=%r, max=%r, panic=%r, threshold=%r, hddtemp_bin=%r)" % (
-            type(self).__name__,
-            self._disk_path,
-            self._min,
-            self._max,
-            self._panic,
-            self._threshold,
-            self._hddtemp_bin,
+        return (
+            "%s(%r, min=%r, max=%r, panic=%r, threshold=%r, "
+            "hddtemp_bin=%r, aggregation=%r)"
+            % (
+                type(self).__name__,
+                self._disk_path,
+                self._min,
+                self._max,
+                self._panic,
+                self._threshold,
+                self._hddtemp_bin,
+                self._aggregation,
+            )
         )
 
     def _get_temp(self) -> Tuple[TempCelsius, TempCelsius, TempCelsius]:
@@ -87,7 +97,7 @@ class HDDTemp(Temp):
             raise RuntimeError(
                 "hddtemp returned empty list of valid temperature values"
             )
-        temp = TempCelsius(max(temps))
+        temp = TempCelsius(aggregate(temps, self._aggregation))
         return temp, self._get_min(), self._get_max()
 
     def _get_min(self) -> TempCelsius:

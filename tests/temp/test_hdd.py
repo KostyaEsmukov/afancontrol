@@ -67,6 +67,70 @@ def test_hddtemp_bad(hddtemp_output_bad):
             t.get()
 
 
+@pytest.mark.parametrize("aggregation", ["avg", "median"])
+def test_hddtemp_nonfinite(aggregation):
+    temp = HDDTemp(
+        disk_path="/dev/sd?",
+        min=TempCelsius(30.0),
+        max=TempCelsius(70.0),
+        panic=TempCelsius(60.0),
+        threshold=TempCelsius(55.0),
+        aggregation=aggregation,
+    )
+    with patch.object(HDDTemp, "_call_hddtemp", return_value="65\nnan\ninf\n-inf\n"):
+        status = temp.get()
+        assert status.temp == TempCelsius(65.0)
+        assert status.is_panic
+        assert status.is_threshold
+
+    with patch.object(HDDTemp, "_call_hddtemp", return_value="nan\ninf\n-inf\n"):
+        with pytest.raises(
+            RuntimeError, match="empty list of valid temperature values"
+        ):
+            temp.get()
+
+
+@pytest.mark.parametrize(
+    "aggregation, expected",
+    [
+        ("max", 39.0),
+        ("min", 30.0),
+        ("avg", 35.75),
+        ("median", 37.0),
+    ],
+)
+def test_hddtemp_aggregation(hddtemp_output_many, aggregation, expected):
+    with patch.object(HDDTemp, "_call_hddtemp") as mock_call_hddtemp:
+        mock_call_hddtemp.return_value = hddtemp_output_many
+        t = HDDTemp(
+            disk_path="/dev/sd?",
+            min=TempCelsius(38.0),
+            max=TempCelsius(45.0),
+            panic=TempCelsius(50.0),
+            threshold=None,
+            hddtemp_bin="testbin",
+            aggregation=aggregation,
+        )
+
+        assert t.get().temp == TempCelsius(expected)
+        print(repr(t))
+
+
+def test_hddtemp_aggregation_bad_value(hddtemp_output_many):
+    with patch.object(HDDTemp, "_call_hddtemp") as mock_call_hddtemp:
+        mock_call_hddtemp.return_value = hddtemp_output_many
+        with pytest.raises(ValueError):
+            HDDTemp(
+                disk_path="/dev/sd?",
+                min=TempCelsius(38.0),
+                max=TempCelsius(45.0),
+                panic=TempCelsius(50.0),
+                threshold=None,
+                hddtemp_bin="testbin",
+                aggregation="bogus",
+            )
+
+
 def test_hddtemp_exec_successful(temp_path):
     (temp_path / "sda").write_text("")
     (temp_path / "sdz").write_text("")
