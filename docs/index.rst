@@ -382,6 +382,21 @@ The ``temp1`` temperature sensor:
 This was an old cheap motherboard, so you would probably be more lucky
 and have the sensors which are yielding more trustworthy measurements.
 
+For hard drives, `lm-sensors` may also be usable on your system instead
+of `hddtemp`. Try ``modprobe drivetemp``, and then checking
+the ``sensors`` output. If it works, use it instead of `hddtemp`:
+it avoids a process spawn for each collection, thus it's more efficient.
+Example:
+
+::
+
+    [temp: hdd3]
+    type = file
+    path = /sys/devices/pci0000:00/0000:00:17.0/ata3/host2/target2:0:0/2:0:0:0/hwmon/hwmon*/temp1_input
+    min = 35
+    max = 45
+    panic = 55
+
 
 Metrics
 -------
