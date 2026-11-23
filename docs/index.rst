@@ -14,8 +14,8 @@ Introduction
 `fancontrol <https://github.com/lm-sensors/lm-sensors/blob/master/prog/pwm/fancontrol>`_
 with more advanced configuration abilities.
 
-`afancontrol` measures temperature from the sensors, computes the required
-airflow and sets the PWM fan speeds accordingly.
+`afancontrol` measures temperatures from the sensors, computes the required
+airflow, and sets the PWM fan speeds accordingly.
 
 Key features:
 
@@ -24,22 +24,22 @@ Key features:
 - Configurable PWM fan implementations (currently supported ones are
   `lm-sensors` PWM fans, `freeipmi` (readonly) and
   `a custom Arduino-based solution <index.html#pwm-fans-via-arduino>`_);
-- Configurable mappings between the temp sensors and the fans (e.g. fans
+- Configurable mappings between the temp sensors and the fans (e.g., fans
   would be more sensitive to the closely located sensors than to
   the farther-located ones);
 - Temperature filters to smoothen fan reactions;
 - Prometheus-compatible metrics exporter;
 - Custom shell commands might be run when temperature reaches configured
   thresholds;
-- OS-agnostic (`afancontrol` is written in Python3 and might be run on any OS
+- OS-agnostic (`afancontrol` is written in Python 3 and might be run on any OS
   which can run Python).
 
 `afancontrol` might be helpful in the following scenarios:
 
 - You have built a custom PC case with many different heat-generating parts
-  (like HDDs and GPUs) which you want to keep as quiet as possible, yet
-  being kept cool enough when required (at the cost of increased fan noise);
-- You need to control more 4-pin PWM fans than there're connectors
+  (like HDDs and GPUs) that you want to keep as quiet as possible while
+  keeping them cool enough when required (at the cost of increased fan noise);
+- You need to control more 4-pin PWM fans than there are connectors
   available on your motherboard (with an Arduino board
   connected via USB);
 - You simply want to control a PWM fan with HDD temperatures.
@@ -49,17 +49,17 @@ How it works
 ~~~~~~~~~~~~
 
 `afancontrol` should be run as a background service. Every 5 seconds
-(configurable) a single `tick` is performed. During a `tick`
+(configurable), a single `tick` is performed. During a `tick`,
 the temperatures are gathered and the required fan speeds are calculated
-and set to the fans. Upon receiving a SIGTERM signal the program would
-exit and the fans would be restored to the maximum speeds.
+and applied to the fans. Upon receiving a SIGTERM signal, the program
+exits and the fans are restored to their maximum speeds.
 
 
 PWM Fan Line
 ------------
 
-Each PWM fan has a PWM value associated with it which sets the speed of
-the fan, where ``0`` PWM means that the fan is stopped, and ``255`` PWM
+Each PWM fan has an associated PWM value that sets its speed.
+A PWM value of ``0`` means that the fan is stopped, and ``255``
 means that the fan is running at full speed.
 
 The correlation between the PWM value and the speed is usually not linear.
@@ -69,7 +69,7 @@ and PWM is close to linear (these are the ``pwm_line_start`` and
 ``pwm_line_end`` config params).
 
 The bundled ``afancontrol fantest`` interactive command helps to determine
-that range, which is specific to a pair of a PWM fan and a motherboard.
+that range, which is specific to each pairing of a PWM fan and a motherboard.
 Here are some examples to give you an idea of the difference:
 
 1) A Noctua fan connected to an Arduino board. The correct settings in
@@ -108,9 +108,9 @@ Consider the following almost typical PC case as an example:
 .. image:: ./_static/pc_case_example.svg
    :target: ./_static/pc_case_example.svg
 
-Assuming that `Intake Fans` share the same PWM wire and are connected to
+If `Intake Fans` share the same PWM wire and are connected to
 a `Fan 2` connector on the motherboard, and `Outtake Fans` share the PWM
-wire of a `Fan 3` motherboard connector, the fans config might look
+wire of a `Fan 3` motherboard connector, the fan configuration might look
 like the following:
 
 ::
@@ -200,7 +200,7 @@ The simplest mapping would be:
     temps = cpu, mobo, gpu, hdds
 
 
-The more fine-grained mappings configuration:
+A more fine-grained mapping configuration might look like this.
 
 ::
 
@@ -212,22 +212,21 @@ The more fine-grained mappings configuration:
     fans = intake, outtake
     temps = cpu, mobo, gpu
 
-Fan speeds are calculated as following (this is a simplified
-version for the matter of brevity):
+Fan speeds are calculated as follows (simplified for brevity).
 
-- For each temperature compute a desired `temperature speed` as
+- For each temperature, compute a desired `temperature speed` as
   ``(current_temperature - min) / (max - min)``.
-- For each mapping compute a desired `mapping speed` as a maximum across
+- For each mapping, compute a desired `mapping speed` as the maximum across
   all of the mapping's `temperature speeds`.
-- For each fan compute a desired `fan speed` as a maximum across
+- For each fan, compute a desired `fan speed` as the maximum across
   all of the `mapping speeds`, multiplied by the fan modifier of that
   mapping.
-- For each fan apply a PWM value computed roughly
+- For each fan, apply a PWM value computed roughly
   as ``max(pwm_line_start, fan_speed * pwm_line_end)``.
 
-If at least one fan reports a zero RPM when non-zero PWM is set (i.e.
+If at least one fan reports zero RPM when non-zero PWM is set (i.e.,
 the fan has jammed) or at least one temperature sensor reaches its `panic`
-value, the `panic` mode is activated, which would cause all fans to run
+value, `panic` mode activates and causes all fans to run
 at full speed until the issue is resolved.
 
 
@@ -251,18 +250,17 @@ There's a Dockerfile which can be used to build a Debian `.deb` package:
 
 Perhaps one day the package might get published to the Debian repos,
 so a simple ``apt install afancontrol`` would work. But for now, given
-that the package is not popular enough yet, I believe it doesn't worth
+that the package is not popular enough yet, I believe it isn't worth
 the hassle.
 
-To upgrade, the similar steps should be performed on an up to date
-`master` branch.
+To upgrade, perform the same steps on an up-to-date `master` branch.
 
 
 From PyPI
 ---------
 
-`afancontrol` might be installed with `pip` like a typical Python package,
-however, some extra steps are required to get the service running.
+`afancontrol` can be installed with `pip` like a typical Python package.
+However, some extra steps are required to get the service running.
 
 Note that this section assumes that systemd is used for managing system
 processes. If this is not the case, skip all the commands related to systemd
@@ -272,7 +270,7 @@ and make sure to create a similar service for your init system.
 
     # Install the package:
     pip install afancontrol
-    # Or, if Arduino or Prometheus support are required:
+    # Or, if Arduino or Prometheus support is required:
     pip install 'afancontrol[arduino,metrics]'
 
     # To use the motherboard-based sensors and PWM fans on Linux,
@@ -281,13 +279,13 @@ and make sure to create a similar service for your init system.
     # To use hddtemp for measuring HDD/SSD temperatures, install it:
     apt install hddtemp
 
-The stock config and a systemd service files must be copied
+The stock config and systemd service file must be copied
 manually:
 
 ::
 
     PYPREFIX=`python3 -c 'import sys; print(sys.prefix)'`
-    # Usually PYPREFIX equals to `/usr/local`.
+    # PYPREFIX is usually `/usr/local`.
 
     sudo mkdir -p /etc/afancontrol/
     cp "${PYPREFIX}"/etc/afancontrol/afancontrol.conf /etc/afancontrol/
@@ -312,10 +310,10 @@ refer to it.
 Generally speaking, the following steps are required (assuming that
 the package is already installed):
 
-- `Prepare an Arduino board <index.html#pwm-fans-via-arduino>`_, if
+- `Prepare an Arduino board <index.html#pwm-fans-via-arduino>`_ if
   extra PWM fan connectors are needed;
 - Prepare and connect the PWM fans and temperature sensors;
-- `Set up lm-sensors <index.html#lm-sensors>`_, if you want to use
+- `Set up lm-sensors <index.html#lm-sensors>`_ if you want to use
   sensors or fans connected to a motherboard on Linux;
 - Edit the configuration file;
 - Start the daemon and enable autostart on system boot:
@@ -331,18 +329,17 @@ PWM fans via Arduino
 
 An Arduino board might be used to control some PWM fans.
 
-Here is a `firmware`_ and schematics for Arduino Micro:
+The `firmware`_ and schematics below are for the Arduino Micro.
 
 .. _firmware: https://github.com/KostyaEsmukov/afancontrol/blob/master/arduino/micro.ino
 
 .. image:: ./_static/micro_schematics.svg
    :target: ./_static/micro_schematics.svg
 
-The given firmware can be flashed as-is on a Genuine Arduino Micro
-without any tweaks. It is important to use Micro, because the firmware
-was designed specifically for it. For other boards you might need to change
-the pins in the firmware. Refer to its code for the hints on the places
-which should be modified.
+The given firmware can be flashed as-is on a genuine Arduino Micro
+without any tweaks. It is important to use the Micro because the firmware
+was designed specifically for it. For other boards, you might need to change
+the pins in the firmware. Refer to its code for hints on which parts to modify.
 
 Once the board is flashed and connected, you may start using its pins
 in `afancontrol` to control the PWM fans connected to the board.
@@ -351,20 +348,20 @@ in `afancontrol` to control the PWM fans connected to the board.
 lm-sensors
 ----------
 
-`lm-sensors` is a Linux package which provides an ability to access and
-control the temperature and PWM fan sensors attached to a motherboard
-in userspace.
+`lm-sensors` is a Linux package that lets you access and control
+temperature sensors and PWM fans attached to a motherboard from userspace.
 
 Run the following command to make `lm-sensors` detect the available
-sensors hardware:
+sensor hardware:
 
 ::
 
     sudo sensors-detect
 
-Once configured, use the ``sensors`` command to get the current measurements.
+After configuring `lm-sensors`, use the ``sensors`` command to get the
+current measurements.
 
-Then you'd have to manually map the sensors with their actual physical location.
+Then manually map the sensors to their physical locations.
 
 For example:
 
@@ -392,9 +389,9 @@ For example:
     temp3:        +16.0°C  (low  = +127.0°C, high = +127.0°C)  sensor = Intel PECI
 
 
-There ``fan1`` corresponds to the CPU fan which is managed by BIOS,
+Here, ``fan1`` corresponds to the CPU fan managed by the BIOS.
 ``fan2`` corresponds to the single PWM fan attached to the motherboard
-(which is typically called a "case" fan), ``temp1`` is a sensor (probably
+(which is typically called a "case" fan). ``temp1`` is a sensor (probably
 in a chipset) yielding reasonable measurements (unlike ``temp2`` and ``temp3``).
 
 So the case fan's settings would be:
@@ -402,17 +399,17 @@ So the case fan's settings would be:
 - ``pwm = /sys/class/hwmon/hwmon0/pwm2``
 - ``fan_input = /sys/class/hwmon/hwmon0/fan2_input``
 
-The ``temp1`` temperature sensor:
+The ``temp1`` temperature sensor uses this path.
 
 - ``path = /sys/class/hwmon/hwmon0/temp1_input``
 
-This was an old cheap motherboard, so you would probably be more lucky
-and have the sensors which are yielding more trustworthy measurements.
+This was an old, cheap motherboard, so you may be luckier and have
+sensors that yield more trustworthy measurements.
 
 For hard drives, `lm-sensors` may also be usable on your system instead
-of `hddtemp`. Try ``modprobe drivetemp``, and then checking
-the ``sensors`` output. If it works, use it instead of `hddtemp`:
-it avoids a process spawn for each collection, thus it's more efficient.
+of `hddtemp`. Try running ``modprobe drivetemp`` and then checking
+the ``sensors`` output. If it works, using it instead of `hddtemp`
+avoids spawning a process for each reading.
 Example:
 
 ::
@@ -428,10 +425,10 @@ Example:
 Metrics
 -------
 
-`afancontrol` supports exposing some metrics (like PWM, RPM, temperatures,
-etc) via a Prometheus-compatible interface. To enable it,
-the ``exporter_listen_host`` configuration option should be set to
-an address which should be bound for an HTTP server.
+`afancontrol` supports exposing metrics such as PWM, RPM, and temperatures
+via a Prometheus-compatible interface. To enable it, set the
+``exporter_listen_host`` configuration option to the address the HTTP server
+should bind to.
 
 The metrics response would look like this:
 
