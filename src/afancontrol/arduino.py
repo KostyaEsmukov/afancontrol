@@ -177,7 +177,7 @@ class ArduinoConnection:
         self._status_event.clear()
         if self._status_event.wait(self.status_ttl) is not True:
             raise RuntimeError(
-                "Timed out waiting for the status from Arduino board at %s" % self.url
+                "Timed out waiting for status from the Arduino board at %s" % self.url
             )
 
 

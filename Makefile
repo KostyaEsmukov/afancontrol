@@ -42,7 +42,7 @@ docs:
 
 .PHONY: check-docs
 check-docs:
-	# Doesn't generate any output but prints out errors and warnings.
+	# Check for errors and warnings without generating documentation files.
 	make -C docs dummy
 
 .PHONY: deb-local

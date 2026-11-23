@@ -8,7 +8,7 @@ from afancontrol.fantest import fantest
 @click.group()
 @click.version_option(version=afancontrol.__version__)
 def main():
-    """afancontrol is an Advanced Fan Control program, which controls PWM
+    """afancontrol is an Advanced Fan Control program that controls PWM
     fans according to the current temperatures of the system components.
     """
     pass

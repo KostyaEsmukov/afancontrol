@@ -1,4 +1,4 @@
-// The pins defined in this program are for Arduino Micro.
+// The pins defined in this program are for the Arduino Micro.
 
 /////////////////////////
 // FAN PWM outputs:
@@ -9,12 +9,12 @@
 #include <TimerOne.h>
 #include <TimerThree.h>
 
-// TimerOne/Three accepts PWM duty in range from 0 to 1023.
+// TimerOne and TimerThree accept PWM duty values from 0 to 1023.
 // The standard range for PWM fans on Linux is, however, from 0 to 255.
-// This macros below does the conversion from 255 to 1023.
+// The macro below converts values from the 0–255 range to the 0–1023 range.
 #define PWM_255_TO_1023(PWM) ((PWM == 0) ? 0 : (1L * PWM + 1) * 4 - 1)
 
-// These are the pins connected to the Timers 1 and 3 on Arduino Micro.
+// These are the pins connected to timers 1 and 3 on the Arduino Micro.
 // See https://www.pjrc.com/teensy/td_libs_TimerOne.html
 byte currentPWM5;
 byte currentPWM9;
@@ -33,15 +33,15 @@ Serial.print(currentPWM##PIN, DEC);
 /////////////////////////
 // FAN tachometer (RPM) inputs:
 
-// FAN speed from tachometer is measured by counting the number
-// of interrupts (pulses) for a small period of time `MEASUREMENT_TIME_MS`.
+// Fan speed from the tachometer is measured by counting the number
+// of interrupts (pulses) over a short period of time (`MEASUREMENT_TIME_MS`).
 //
-// Between the periods the current status (a JSON) is reported and
-// an incoming command is read (if any) from the Serial port.
+// Between periods, the current status is reported as JSON and
+// an incoming command is read (if any) from the serial port.
 //
 // The number of pulses for each time period is written to a ring buffer,
-// which allows to compute the RPM on a larger time interval than a single
-// small period of `MEASUREMENT_TIME_MS`, which yields a smoother RPM.
+// which allows us to compute the RPM over a longer interval than a single
+// short `MEASUREMENT_TIME_MS` period, yielding a smoother RPM reading.
 //
 // The number of periods of the ring buffer is `PULSES_BUFFER_LEN`,
 // so the total amount of time the pulses are measured for would be
@@ -58,20 +58,20 @@ int pulsesBufferPosition = 0;
 // Be sure to select the dividers which yield an integer result after each division.
 #define PULSES_MULTIPLIER (1L * 60 * 1000 / MEASUREMENT_TIME_MS / PULSES_BUFFER_LEN)
 
-// When a PWM wire goes near the Tachometer wire, the Tachometer one might
-// receive interference, which would be sensed by the interruptions,
+// When a PWM wire runs near the tachometer wire, the latter might
+// pick up interference and trigger extra interrupts,
 // spoiling the RPM measurements.
 //
-// PWM works at 25kHz, Tachometer is in the range ~4hz - ~200hz (120 RPM - 6000 RPM),
-// so the extraneous PWM pulses would have delay ~0.04 - 1ms, while
-// the genuine Tachometer pulses would have delay 5ms-250ms.
+// PWM works at 25 kHz. The tachometer runs at about 4 to 200 Hz (120 to 6000 RPM),
+// so the extraneous PWM pulses would have a delay of about 0.04 to 1 ms, while
+// the genuine tachometer pulses would have a delay of 5 to 250 ms.
 //
 // This problem is similar to the common one occurring with the switches
 // (http://www.gammon.com.au/switches), when a click on a switch produces
 // many short pulses instead of a single long one.
 //
-// This var defines the minimum delay (in ms) between the two RISING
-// interrupts, which should be treated as a valid Tachometer pulse.
+// This variable defines the minimum delay (in ms) between two `RISING`
+// interrupts for the second pulse to count as a valid tachometer pulse.
 #define PULSES_ACCEPT_MIN_DURATION_MS 3
 
 #define TACHO_PULSES_INT_FUNCTION(PIN) \
@@ -114,7 +114,7 @@ int sumPulses(volatile int tachoPulses [PULSES_BUFFER_LEN]) {
     return sum;
 }
 
-// These are the pins on Arduino Micro which support interrupts.
+// These are the pins on the Arduino Micro that support interrupts.
 // See https://www.arduino.cc/reference/en/language/functions/external-interrupts/attachinterrupt/
 TACHO_PULSES_INT_FUNCTION(0);
 TACHO_PULSES_INT_FUNCTION(1);

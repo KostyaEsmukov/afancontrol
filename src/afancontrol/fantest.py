@@ -29,7 +29,7 @@ from afancontrol.pwmfan import (
 STEP_INTERVAL_SECONDS = 2
 
 # Time to wait before starting the test right after resetting the fan
-# (i.e. setting it to full speed).
+# (i.e., setting it to full speed).
 FAN_RESET_INTERVAL_SECONDS = 7
 
 EXIT_CODE_CTRL_C = 130  # https://stackoverflow.com/a/1101969
@@ -40,21 +40,17 @@ HELP_FAN_TYPE = (
 )
 
 HELP_LINUX_PWM_FILE = (
-    "PWM file for a Linux PWM fan, e.g. `/sys/class/hwmon/hwmon0/device/pwm2`."
+    "PWM file for a Linux PWM fan, e.g., `/sys/class/hwmon/hwmon0/device/pwm2`."
 )
 HELP_LINUX_FAN_INPUT_FILE = (
     "Fan input (tachometer) file for a Linux PWM fan, "
-    "e.g. `/sys/class/hwmon/hwmon0/device/fan2_input`."
+    "e.g., `/sys/class/hwmon/hwmon0/device/fan2_input`."
 )
 
-HELP_ARDUINO_SERIAL_URL = "URL for the Arduino's Serial port"
-HELP_ARDUINO_BAUDRATE = "Arduino Serial connection baudrate"
-HELP_ARDUINO_PWM_PIN = (
-    "Arduino Board pin where the target fan's PWM wire is connected to."
-)
-HELP_ARDUINO_TACHO_PIN = (
-    "Arduino Board pin where the target fan's tachometer wire is connected to."
-)
+HELP_ARDUINO_SERIAL_URL = "URL for the Arduino's serial port"
+HELP_ARDUINO_BAUDRATE = "Baud rate for the Arduino's serial connection"
+HELP_ARDUINO_PWM_PIN = "Arduino board pin connected to the fan's PWM wire."
+HELP_ARDUINO_TACHO_PIN = "Arduino board pin connected to the fan's tachometer wire."
 
 HELP_OUTPUT_FORMAT = (
     "Output format for the measurements. `csv` data could be used "
@@ -62,14 +58,13 @@ HELP_OUTPUT_FORMAT = (
 )
 HELP_TEST_DIRECTION = (
     "The default test is to stop the fan and then gracefully increase its speed. "
-    "You might want to reverse it, i.e. run the fan at full speed and then start "
-    "decreasing the speed. This would allow you to test the fan without fully "
-    "stopping it, if you abort the test with Ctrl+C when the speed becomes too low."
+    "To reverse the test, start the fan at full speed and then decrease its speed. "
+    "You can test the fan without fully stopping it if you press Ctrl+C when "
+    "the speed becomes too low."
 )
 HELP_PWM_STEP_SIZE = (
-    "A single step size for the PWM value. `accurate` equals to 5 and provides "
-    "more accurate results, but is a slower option. `fast` equals to 25 and completes "
-    "faster."
+    "The step size for the PWM value. `accurate` uses a step of 5 for more "
+    "accurate results. `fast` uses a step of 25 and completes the test sooner."
 )
 
 
@@ -147,20 +142,19 @@ def fantest(
 
     This program tests how changing the PWM value of a fan affects its speed.
 
-    In the beginning the fan would be stopped (by setting it to a minimum PWM value),
-    and then the PWM value would be increased in small steps, while also
-    measuring the speed as reported by the fan.
+    By default, the test stops the fan by setting it to the minimum PWM value.
+    It then increases PWM in small steps and measures the reported fan speed.
 
     This data would help you to find the effective range of values
     for the `pwm_line_start` and `pwm_line_end` settings where the correlation
-    between PWM and fan speed is close to linear. Usually its
-    `pwm_line_start = 100` and `pwm_line_end = 240`, but it is individual
-    for each fan. The allowed range for a PWM value is from 0 to 255.
+    between PWM and fan speed is close to linear. Typical values are
+    `pwm_line_start = 100` and `pwm_line_end = 240`, but they vary by fan.
+    The allowed range for a PWM value is from 0 to 255.
 
-    Note that the fan would be stopped for some time during the test. If you'll
-    feel nervous, press Ctrl+C to stop the test and return the fan to full speed.
+    The fan may stop briefly during the test. Press Ctrl+C to stop the
+    test and return the fan to full speed.
 
-    Before starting the test ensure that no fan control software is currently
+    Before starting the test, ensure that no fan control software is currently
     controlling the fan you're going to test.
     """
     try:
@@ -187,7 +181,7 @@ def fantest(
         elif fan_type == "arduino":
             if not arduino_serial_url:
                 arduino_serial_url = click.prompt(
-                    "\n%s\nArduino Serial url" % HELP_ARDUINO_SERIAL_URL,
+                    "\n%s\nArduino serial URL" % HELP_ARDUINO_SERIAL_URL,
                     type=str,  # type: ignore
                 )
 
@@ -197,7 +191,7 @@ def fantest(
                 # see https://click.palletsprojects.com/en/7.x/prompts/#input-prompts
                 # Hence the `type: ignore`.
                 arduino_baudrate = click.prompt(  # type: ignore
-                    "\n%s\nBaudrate" % HELP_ARDUINO_BAUDRATE,
+                    "\n%s\nBaud rate" % HELP_ARDUINO_BAUDRATE,
                     type=int,  # type: ignore
                     default=str(arduino_baudrate),
                     show_default=True,
@@ -209,7 +203,7 @@ def fantest(
                 )
             if not arduino_tacho_pin and arduino_tacho_pin != 0:
                 arduino_tacho_pin = click.prompt(
-                    "\n%s\nArduino Tachometer pin" % HELP_ARDUINO_TACHO_PIN,
+                    "\n%s\nArduino tachometer pin" % HELP_ARDUINO_TACHO_PIN,
                     type=int,  # type: ignore
                 )
 
@@ -266,12 +260,14 @@ def run_fantest(
         stop = fan.pwm_read.max_pwm
         if pwm_step_size > 0:
             print("Testing increase with step %s" % pwm_step_size)
-            print("Waiting %s seconds for fan to stop..." % FAN_RESET_INTERVAL_SECONDS)
+            print(
+                "Waiting %s seconds for the fan to stop..." % FAN_RESET_INTERVAL_SECONDS
+            )
         else:
             start, stop = stop, start
             print("Testing decrease with step %s" % pwm_step_size)
             print(
-                "Waiting %s seconds for fan to run in full speed..."
+                "Waiting %s seconds for the fan to reach full speed..."
                 % FAN_RESET_INTERVAL_SECONDS
             )
 
@@ -295,7 +291,7 @@ def run_fantest(
                 output.data_row(pwm=PWMValue(pwm_value), rpm=rpm, rpm_delta=rpm_delta)
             )
 
-        print("Test is complete, returning fan to full speed")
+        print("Test complete. Returning the fan to full speed")
 
 
 class MeasurementsOutput(abc.ABC):

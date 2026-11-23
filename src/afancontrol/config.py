@@ -276,7 +276,7 @@ def _check_fans_namespace(
     common_keys = fans.keys() & readonly_fans.keys()
     if common_keys:
         raise RuntimeError(
-            "Duplicate fan names has been found between `fan` "
+            "Duplicate fan names were found in both `fan` "
             "and `readonly_fan` sections: %r" % (list(common_keys),)
         )
 

@@ -21,10 +21,10 @@ class Fans:
         self.report = report
         self._stack: Optional[ExitStack] = None
 
-        # Set of fans marked as failing (which speed is 0)
+        # Set of fans marked as failing (their speed is 0)
         self._failed_fans: MutableSet[AnyFanName] = set()
 
-        # Set of fans that will be skipped on speed check
+        # Set of fans to skip during speed checks
         self._stopped_fans: MutableSet[AnyFanName] = set()
 
     def is_fan_failing(self, fan_name: AnyFanName) -> bool:

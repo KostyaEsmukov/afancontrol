@@ -15,9 +15,9 @@ afancontrol
 
 `afancontrol` stands for "Advanced fancontrol". Think of it as
 `fancontrol <https://github.com/lm-sensors/lm-sensors/blob/master/prog/pwm/fancontrol>`_
-with more advanced configuration abilities.
+with more advanced configuration options.
 
 `afancontrol` measures temperatures from sensors, computes the required
-airflow and sets PWM fan speeds accordingly.
+airflow, and sets PWM fan speeds accordingly.
 
 The docs are available at `<https://afancontrol.readthedocs.io/>`_.

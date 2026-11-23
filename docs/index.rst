@@ -12,7 +12,7 @@ Introduction
 
 `afancontrol` stands for "Advanced fancontrol". Think of it as
 `fancontrol <https://github.com/lm-sensors/lm-sensors/blob/master/prog/pwm/fancontrol>`_
-with more advanced configuration abilities.
+with more advanced configuration options.
 
 `afancontrol` measures temperatures from the sensors, computes the required
 airflow, and sets the PWM fan speeds accordingly.
@@ -27,7 +27,7 @@ Key features:
 - Configurable mappings between the temp sensors and the fans (e.g., fans
   would be more sensitive to the closely located sensors than to
   the farther-located ones);
-- Temperature filters to smoothen fan reactions;
+- Temperature filters to smooth out fan speed changes;
 - Prometheus-compatible metrics exporter;
 - Custom shell commands might be run when temperature reaches configured
   thresholds;

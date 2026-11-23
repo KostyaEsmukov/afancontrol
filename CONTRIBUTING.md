@@ -7,9 +7,10 @@ it on my other machines as well.
 I'm quite happy with how this package serves my needs, and I hope
 it can be useful for someone else too.
 
-Contributions are welcome, however, keep in mind, that:
-* Complex features and large diffs would probably be rejected,
-  because it would make maintenance more complicated for me,
+Contributions are welcome. Please keep the following in mind.
+
+* Complex features and large diffs would probably be rejected
+  because they would make maintenance more complicated for me.
 * I don't have any plans for active development and promotion
   of the package.
 
@@ -35,8 +36,8 @@ Run linters:
 
     make lint
 
-So essentially after writing a small part of code and tests I call these
-three commands and fix the errors until they stop failing.
+After writing a small piece of code and its tests, I run these three
+commands and fix any errors until the commands pass.
 
 To build docs:
 

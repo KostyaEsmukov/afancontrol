@@ -2,13 +2,13 @@
 
 ## Release
 
-1. Bump version in `src/afancontrol/__init__.py`
-1. Generate debian/changelog record with `dch`
+1. Bump the version in `src/afancontrol/__init__.py`
+1. Generate a `debian/changelog` entry with `dch`
 1. `make release`
 1. `git tag -s 3.0.0` + `git push origin 3.0.0`
 1. Create a new release for the pushed tag at https://github.com/KostyaEsmukov/afancontrol/releases
-1. Upload a GPG signature of the tarball to the just created GitHub release,
-   see https://wiki.debian.org/Creating%20signed%20GitHub%20releases
+1. Upload a GPG signature for the tarball to the new GitHub release.
+   See https://wiki.debian.org/Creating%20signed%20GitHub%20releases
 
 ## Check
 

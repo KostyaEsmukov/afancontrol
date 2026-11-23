@@ -137,7 +137,7 @@ class Trigger(abc.ABC):
             exec_shell_command(shell_cmd)
         except Exception as e:
             logger.warning(
-                "Enable to execute %s trigger command %s:\n%s",
+                "Unable to execute %s trigger command %s:\n%s",
                 self.trigger_name,
                 shell_cmd,
                 e,
