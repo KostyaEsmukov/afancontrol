@@ -1,3 +1,17 @@
+afancontrol (3.2.0-1) unstable; urgency=medium
+
+  * Add temperature aggregation for file and HDD sensors with max (default),
+    min, avg, and median modes.
+  * Support direct temperature files without an _input suffix when bounds
+    are configured.
+  * Resolve file sensor bounds at startup and use the range shared by all
+    matched inputs when deriving bounds from hwmon files.
+  * Require Python 3.11 or later.
+  * Fetch upstream sources for Debian builds from GitHub.
+  * Document drivetemp and clarify fan and sensor diagnostics.
+
+ -- Kostya Esmukov <kostya@esmukov.net>  Mon, 23 Nov 2026 16:48:58 -0600
+
 afancontrol (3.1.0-1) unstable; urgency=medium
 
   [ Juha Yrjölä ]
