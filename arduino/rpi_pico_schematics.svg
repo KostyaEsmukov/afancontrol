@@ -1,0 +1,189 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 708 1452" role="img">
+  <defs>
+    <g id="fan-connector" stroke="#000000">
+      <rect x="406" y="-29.5" width="131.5" height="46" fill="#efefef"/>
+      <rect x="458" y="-29.5" width="57" height="14" fill="#b7b7b7"/>
+    </g>
+    <g id="fan-contacts" fill="#000000">
+      <circle cx="426" r="7.3"/>
+      <circle cx="456" r="7.3"/>
+      <circle cx="486" r="7.3"/>
+      <circle cx="519" r="7.3"/>
+    </g>
+    <circle id="pico-contact" r="5.5" fill="#000000"/>
+    <g id="fan-signals">
+      <path d="M214 0 H426" fill="none" stroke="#3d85c6"/>
+      <path d="M214 24 H456 V0" fill="none" stroke="#f1c232"/>
+      <use xlink:href="#pico-contact" x="214" y="0"/>
+      <use xlink:href="#pico-contact" x="214" y="24"/>
+      <use xlink:href="#fan-contacts"/>
+    </g>
+    <path id="ground" d="M-10 0 H10" fill="none" stroke="#000000"/>
+  </defs>
+  <rect width="708" height="1452" fill="#ffffff"/>
+
+  <g font-family="Arial, Helvetica, sans-serif" fill="#000000">
+    <rect x="93" y="102" width="121" height="1206" fill="#cfe2f3" stroke="#000000"/>
+    <rect x="133" y="102" width="43" height="46" fill="#b7b7b7" stroke="#000000"/>
+    <text x="154" y="122" font-size="11" text-anchor="middle">USB</text>
+    <text x="154" y="52" font-size="18" text-anchor="middle">USB</text>
+    <path d="M154 102 V68" fill="none" stroke="#000000"/>
+    <path d="M152 68 L154 62 L156 68 Z" fill="#000000"/>
+
+    <text x="154" y="754" font-size="18" text-anchor="middle">Raspberry Pi</text>
+    <text x="154" y="776" font-size="18" text-anchor="middle">Pico</text>
+    <text x="154" y="791" font-size="12" text-anchor="middle">RP2040</text>
+    <text x="223" y="148" font-size="11">PWM / tach pins</text>
+
+    <path d="M93 1296 H62 V1316" fill="none" stroke="#000000"/>
+    <use xlink:href="#ground" x="62" y="1316"/>
+    <use xlink:href="#pico-contact" x="93" y="1296"/>
+    <text x="102" y="1300" font-size="13">GND (38)</text>
+    <text x="39" y="1340" font-size="18">GND</text>
+
+    <use xlink:href="#fan-connector" y="161"/>
+    <use xlink:href="#fan-connector" y="252.5"/>
+    <use xlink:href="#fan-connector" y="344"/>
+    <use xlink:href="#fan-connector" y="435.5"/>
+    <use xlink:href="#fan-connector" y="527"/>
+    <use xlink:href="#fan-connector" y="618.5"/>
+    <use xlink:href="#fan-connector" y="710"/>
+    <use xlink:href="#fan-connector" y="801.5"/>
+    <use xlink:href="#fan-connector" y="893"/>
+    <use xlink:href="#fan-connector" y="984.5"/>
+    <use xlink:href="#fan-connector" y="1076"/>
+    <use xlink:href="#fan-connector" y="1167.5"/>
+    <use xlink:href="#fan-connector" y="1259"/>
+
+    <text x="482" y="34" font-size="18" text-anchor="middle">+12V</text>
+    <path d="M484 50 L486 44 L488 50 Z" fill="#000000"/>
+    <path d="M486 50 V1259 M519 1259 V50 H555 V70" fill="none" stroke="#000000"/>
+    <use xlink:href="#ground" x="555" y="70"/>
+    <text x="531" y="100" font-size="18">GND</text>
+
+    <g id="fan-1" transform="translate(0 161)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP0</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP1</text>
+      <text x="549" y="-3" font-size="18">PWM fan 1</text>
+      <text x="562" y="13" font-size="13">PWM pin = 0</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 1</text>
+    </g>
+
+    <g id="fan-2" transform="translate(0 252.5)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP2</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP3</text>
+      <text x="549" y="-3" font-size="18">PWM fan 2</text>
+      <text x="562" y="13" font-size="13">PWM pin = 2</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 3</text>
+    </g>
+
+    <g id="fan-3" transform="translate(0 344)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP7</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP6</text>
+      <text x="549" y="-3" font-size="18">PWM fan 3</text>
+      <text x="562" y="13" font-size="13">PWM pin = 7</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 6</text>
+    </g>
+
+    <g id="fan-4" transform="translate(0 435.5)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP8</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP4</text>
+      <text x="549" y="-3" font-size="18">PWM fan 4</text>
+      <text x="562" y="13" font-size="13">PWM pin = 8</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 4</text>
+    </g>
+
+    <g id="fan-5" transform="translate(0 527)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP9</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP5</text>
+      <text x="549" y="-3" font-size="18">PWM fan 5</text>
+      <text x="562" y="13" font-size="13">PWM pin = 9</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 5</text>
+    </g>
+
+    <g id="fan-6" transform="translate(0 618.5)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP10</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP11</text>
+      <text x="549" y="-3" font-size="18">PWM fan 6</text>
+      <text x="562" y="13" font-size="13">PWM pin = 10</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 11</text>
+    </g>
+
+    <g id="fan-7" transform="translate(0 710)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP13</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP12</text>
+      <text x="549" y="-3" font-size="18">PWM fan 7</text>
+      <text x="562" y="13" font-size="13">PWM pin = 13</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 12</text>
+    </g>
+
+    <g id="fan-8" transform="translate(0 801.5)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP14</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP15</text>
+      <text x="549" y="-3" font-size="18">PWM fan 8</text>
+      <text x="562" y="13" font-size="13">PWM pin = 14</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 15</text>
+    </g>
+
+    <g id="fan-9" transform="translate(0 893)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP17</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP16</text>
+      <text x="549" y="-3" font-size="18">PWM fan 9</text>
+      <text x="562" y="13" font-size="13">PWM pin = 17</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 16</text>
+    </g>
+
+    <g id="fan-10" transform="translate(0 984.5)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP19</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP18</text>
+      <text x="549" y="-3" font-size="18">PWM fan 10</text>
+      <text x="562" y="13" font-size="13">PWM pin = 19</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 18</text>
+    </g>
+
+    <g id="fan-11" transform="translate(0 1076)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP21</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP27</text>
+      <text x="549" y="-3" font-size="18">PWM fan 11</text>
+      <text x="562" y="13" font-size="13">PWM pin = 21</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 27</text>
+    </g>
+
+    <g id="fan-12" transform="translate(0 1167.5)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP20</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP26</text>
+      <text x="549" y="-3" font-size="18">PWM fan 12</text>
+      <text x="562" y="13" font-size="13">PWM pin = 20</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 26</text>
+    </g>
+
+    <g id="fan-13" transform="translate(0 1259)">
+      <use xlink:href="#fan-signals"/>
+      <text x="205" y="4" font-size="13" text-anchor="end">GP22</text>
+      <text x="205" y="28" font-size="13" text-anchor="end">GP28</text>
+      <text x="549" y="-3" font-size="18">PWM fan 13</text>
+      <text x="562" y="13" font-size="13">PWM pin = 22</text>
+      <text x="562" y="29" font-size="13">Tacho pin = 28</text>
+    </g>
+
+    <g font-size="12">
+      <text x="39" y="1360">From left to right, fan contacts are 4 (PWM), 3 (tachometer), 2 (+12V), and 1 (GND).</text>
+      <text x="39" y="1376">Use the same PSU for 5 V (Pico via USB) and 12 V (fans). Connect their grounds.</text>
+      <text x="39" y="1392">Non-standby 5 V is recommended to avoid backfeeding unpowered fans through PWM.</text>
+      <text x="39" y="1408">(!) Use fans with a 3.3 V PWM level (most of the recent fans are).</text>
+      <text x="39" y="1424">Measure it with the fan powered and the PWM wire disconnected.</text>
+    </g>
+  </g>
+</svg>

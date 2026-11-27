@@ -341,6 +341,17 @@ without any tweaks. It is important to use the Micro because the firmware
 was designed specifically for it. For other boards, you might need to change
 the pins in the firmware. Refer to its code for hints on which parts to modify.
 
+The Raspberry Pi Pico is an alternative to the Arduino Micro and supports
+up to 13 PWM fans. Install the `Arduino-Pico core`_ in the Arduino IDE,
+select Raspberry Pi Pico, and flash the `Pico firmware`_. Follow the wiring
+diagram below for the connections.
+
+.. _Arduino-Pico core: https://arduino-pico.readthedocs.io/en/latest/install.html
+.. _Pico firmware: https://github.com/KostyaEsmukov/afancontrol/blob/master/arduino/rpi_pico.ino
+
+.. image:: ./_static/rpi_pico_schematics.svg
+   :target: ./_static/rpi_pico_schematics.svg
+
 Once the board is flashed and connected, you may start using its pins
 in `afancontrol` to control the PWM fans connected to the board.
 
