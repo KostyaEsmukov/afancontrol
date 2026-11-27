@@ -1,6 +1,8 @@
 // The pins defined in this program are for the Raspberry Pi Pico (RP2040).
 // Flashed via Arduino IDE with https://arduino-pico.readthedocs.io/en/latest/install.html
 
+#define PWM_STARTING_VALUE 255  // 0 = disabled, 255 = full speed.
+
 // Use INPUT if the GP0–GP22 tachometer lines have external 3.3 V pull-ups.
 // GP26–GP28 always use internal pull-ups. These ADC-capable pins must
 // stay undriven while the Pico is off.
@@ -44,7 +46,6 @@ byte currentPWM20;
 byte currentPWM22;
 
 #define SET_PWM(PIN, PWM) currentPWM##PIN = (PWM);
-#define SET_PWM_HIGH(PIN) SET_PWM(PIN, 255)
 
 #define PRINT_PWM_JSON(PIN) \
 Serial.print("\""); \
@@ -168,19 +169,19 @@ void setup() {
   analogWriteFreq(25000); // 40us == 25kHz
   analogWriteRange(255);
 
-  SET_PWM_HIGH(0);
-  SET_PWM_HIGH(2);
-  SET_PWM_HIGH(7);
-  SET_PWM_HIGH(8);
-  SET_PWM_HIGH(9);
-  SET_PWM_HIGH(10);
-  SET_PWM_HIGH(13);
-  SET_PWM_HIGH(14);
-  SET_PWM_HIGH(17);
-  SET_PWM_HIGH(19);
-  SET_PWM_HIGH(21);
-  SET_PWM_HIGH(20);
-  SET_PWM_HIGH(22);
+  SET_PWM(0, PWM_STARTING_VALUE);
+  SET_PWM(2, PWM_STARTING_VALUE);
+  SET_PWM(7, PWM_STARTING_VALUE);
+  SET_PWM(8, PWM_STARTING_VALUE);
+  SET_PWM(9, PWM_STARTING_VALUE);
+  SET_PWM(10, PWM_STARTING_VALUE);
+  SET_PWM(13, PWM_STARTING_VALUE);
+  SET_PWM(14, PWM_STARTING_VALUE);
+  SET_PWM(17, PWM_STARTING_VALUE);
+  SET_PWM(19, PWM_STARTING_VALUE);
+  SET_PWM(21, PWM_STARTING_VALUE);
+  SET_PWM(20, PWM_STARTING_VALUE);
+  SET_PWM(22, PWM_STARTING_VALUE);
 
   TACHO_PULSES_ATTACH_INT(1);
   TACHO_PULSES_ATTACH_INT(3);

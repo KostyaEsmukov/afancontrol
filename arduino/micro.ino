@@ -1,5 +1,7 @@
 // The pins defined in this program are for the Arduino Micro.
 
+#define PWM_STARTING_VALUE 255  // 0 = disabled, 255 = full speed.
+
 /////////////////////////
 // FAN PWM outputs:
 
@@ -22,7 +24,6 @@ byte currentPWM10;
 byte currentPWM11;
 
 #define SET_PWM(PIN, PWM) currentPWM##PIN = (PWM);
-#define SET_PWM_HIGH(PIN) SET_PWM(PIN, 255)
 
 #define PRINT_PWM_JSON(PIN) \
 Serial.print("\""); \
@@ -137,10 +138,10 @@ void setup() {
   Timer1.initialize(40); // 40us == 25kHz
   Timer3.initialize(40);
 
-  SET_PWM_HIGH(5);
-  SET_PWM_HIGH(9);
-  SET_PWM_HIGH(10);
-  SET_PWM_HIGH(11);
+  SET_PWM(5, PWM_STARTING_VALUE);
+  SET_PWM(9, PWM_STARTING_VALUE);
+  SET_PWM(10, PWM_STARTING_VALUE);
+  SET_PWM(11, PWM_STARTING_VALUE);
 
   TACHO_PULSES_ATTACH_INT(0);
   TACHO_PULSES_ATTACH_INT(1);
