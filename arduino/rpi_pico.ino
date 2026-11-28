@@ -3,11 +3,6 @@
 
 #define PWM_STARTING_VALUE 255  // 0 = disabled, 255 = full speed.
 
-// Use INPUT if the GP0–GP22 tachometer lines have external 3.3 V pull-ups.
-// GP26–GP28 always use internal pull-ups. These ADC-capable pins must
-// stay undriven while the Pico is off.
-#define TACHO_PIN_MODE INPUT_PULLUP
-
 #include <Arduino.h>
 
 // Fan   PWM   TACH   PWM slice/channel
@@ -109,8 +104,13 @@ void incTachoPulses##PIN () { \
   tachoPulses##PIN [pulsesBufferPosition] ++; \
 }
 
+// Tachometer lines should have external pull-ups from the Pico's 3V3(OUT).
+// GP26–GP28 always use internal pull-ups.
+// Use internal pull-ups along with the external ones everywhere
+// for uniformity.
+// The ADC-capable GP26–GP28 pins must stay undriven while the Pico is off.
 #define TACHO_PULSES_ATTACH_INT(PIN) \
-pinMode(PIN, (PIN) >= 26 ? INPUT_PULLUP : TACHO_PIN_MODE); \
+pinMode(PIN, INPUT_PULLUP); \
 attachInterrupt(digitalPinToInterrupt(PIN), incTachoPulses##PIN, RISING); \
 { \
   for (int i = 0; i < PULSES_BUFFER_LEN; i++) tachoPulses##PIN[i] = 0; \

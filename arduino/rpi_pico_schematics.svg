@@ -14,6 +14,11 @@
     <g id="fan-signals">
       <path d="M214 0 H426" fill="none" stroke="#3d85c6"/>
       <path d="M214 24 H456 V0" fill="none" stroke="#f1c232"/>
+      <path d="M271 24 V46 H288 M322 46 H336" fill="none" stroke="#000000"/>
+      <circle cx="271" cy="24" r="2.8"/>
+      <rect x="288" y="41" width="34" height="10" fill="#ffffff" stroke="#000000"/>
+      <text x="305" y="65" font-size="12" text-anchor="middle">4.7 kΩ</text>
+      <circle cx="336" cy="46" r="2.8"/>
       <use xlink:href="#pico-contact" x="214" y="0"/>
       <use xlink:href="#pico-contact" x="214" y="24"/>
       <use xlink:href="#fan-contacts"/>
@@ -34,6 +39,11 @@
     <text x="154" y="776" font-size="18" text-anchor="middle">Pico</text>
     <text x="154" y="791" font-size="12" text-anchor="middle">RP2040</text>
     <text x="223" y="148" font-size="11">PWM / tach pins</text>
+
+    <path d="M336 207 V1305 M214 1245 H336" fill="none" stroke="#000000"/>
+    <use xlink:href="#pico-contact" x="214" y="1245"/>
+    <circle cx="336" cy="1245" r="2.8"/>
+    <text x="205" y="1249" font-size="13" text-anchor="end">3V3(OUT)</text>
 
     <path d="M93 1296 H62 V1316" fill="none" stroke="#000000"/>
     <use xlink:href="#ground" x="62" y="1316"/>
@@ -184,6 +194,7 @@
       <text x="39" y="1392">Non-standby 5 V is recommended to avoid backfeeding unpowered fans through PWM.</text>
       <text x="39" y="1408">(!) Use fans with a 3.3 V PWM level (most of the recent fans are).</text>
       <text x="39" y="1424">Measure it with the fan powered and the PWM wire disconnected.</text>
+      <text x="39" y="1440">The Pico's internal pull-ups alone are insufficient for reliable RPM readings.</text>
     </g>
   </g>
 </svg>
